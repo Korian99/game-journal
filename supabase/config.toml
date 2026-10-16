@@ -1,0 +1,8 @@
+project_id = "game-journal"
+[auth]
+enable_signup = false
+minimum_password_length = 8
+[functions.account-admin]
+verify_jwt = false
+[functions.price-worker]
+verify_jwt = false

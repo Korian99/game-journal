@@ -1,0 +1,3 @@
+import { EnvHttpProxyAgent, setGlobalDispatcher } from "undici";
+if (process.env.HTTP_PROXY || process.env.HTTPS_PROXY)
+  setGlobalDispatcher(new EnvHttpProxyAgent());

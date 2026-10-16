@@ -1,0 +1,23 @@
+begin;
+insert into auth.users(id,email) values ('11111111-1111-4111-8111-111111111111','journal-test-one@example.invalid'),('22222222-2222-4222-8222-222222222222','journal-test-two@example.invalid');
+insert into public.members(id,display_name) values('11111111-1111-4111-8111-111111111111','Test one'),('22222222-2222-4222-8222-222222222222','Test two');
+set local role authenticated;
+select set_config('request.jwt.claim.sub','11111111-1111-4111-8111-111111111111',true);
+select public.save_record('{"title":"Isolation fixture","status":"playing","notes":"PRIVATE_SENTINEL","reason":"PRIVATE_REASON","rating":90}'::jsonb);
+do $$ begin if jsonb_array_length(public.list_records())<>1 then raise exception 'Owner cannot read entry';end if;end $$;
+insert into public.shared_entries(entry_id,owner_id,recipient_id) select id,owner_id,'22222222-2222-4222-8222-222222222222' from public.playthroughs;
+select set_config('request.jwt.claim.sub','22222222-2222-4222-8222-222222222222',true);
+do $$ declare value text;begin
+ if jsonb_array_length(public.list_records())<>0 then raise exception 'Private records leaked';end if;
+ value=public.read_shared()::text;
+ if value like '%PRIVATE_SENTINEL%' or value like '%PRIVATE_REASON%' or value like '%"notes"%' then raise exception 'Private notes leaked';end if;
+ if jsonb_array_length(public.read_shared())<>1 then raise exception 'Share missing';end if;
+ update public.playthroughs set data='{"notes":"hacked"}' where owner_id='11111111-1111-4111-8111-111111111111';
+ if found then raise exception 'Other user modified entry';end if;
+ end $$;
+select set_config('request.jwt.claim.sub','11111111-1111-4111-8111-111111111111',true);
+delete from public.shared_entries;
+select set_config('request.jwt.claim.sub','22222222-2222-4222-8222-222222222222',true);
+do $$begin if jsonb_array_length(public.read_shared())<>0 then raise exception 'Revoked share leaked';end if;end $$;
+select 'PASS: ownership, sharing projection, write isolation and revocation' as result;
+rollback;
