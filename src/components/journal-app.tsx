@@ -1,5 +1,5 @@
 "use client";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useId, useMemo, useState } from "react";
 import {
   BookOpen,
   Library,
@@ -28,9 +28,37 @@ import {
   getSortedRowModel,
   flexRender,
   type ColumnDef,
-  type SortingState,
 } from "@tanstack/react-table";
 import { Modal } from "./ui/dialog";
+import { WishlistPrice } from "./wishlist-price";
+import { PlatformPicker } from "./platform-picker";
+import {
+  OwnershipBadge,
+  getOwnershipInfo,
+  ownershipOptions,
+} from "./ownership-badge";
+import { wishlistPlatforms, hasActiveDiscount } from "@/lib/wishlist-display";
+import { HypeBadge } from "./hype-badge";
+import { useJournalLocation } from "@/lib/use-journal-location";
+import type { JournalLocation, JournalView } from "@/lib/journal-location";
+import { summarizeGames } from "@/lib/view-summary";
+import { ReleaseField } from "./release-field";
+import {
+  releaseLabel,
+  releaseOrder,
+  parseRelease,
+  compareReleases,
+  releaseHasArrived,
+} from "@/lib/releases";
+import { releaseSchema, pagesSchema } from "@/lib/validation";
+import {
+  viewStatuses,
+  dateOrder,
+  periodOrder,
+  reviewOrder,
+  matchesViewYear,
+  viewYears,
+} from "@/lib/view-config";
 import { browserClient } from "@/lib/supabase/client";
 import {
   emptyRecord,
@@ -51,6 +79,14 @@ const nav = [
   ["shared", "Compartido conmigo", Users],
   ["settings", "Configuración", Settings],
 ] as const;
+const libraryTextFields = [
+  { key: "reason", label: "Por qué" },
+  { key: "impression", label: "Impresiones" },
+  { key: "notes", label: "Comentarios adicionales" },
+] as const;
+const journalTextFields = libraryTextFields.filter(
+  ({ key }) => key !== "reason",
+);
 async function api(path: string, method = "GET", body?: unknown) {
   const r = await fetch(path, {
     method,
@@ -70,14 +106,26 @@ const price = (o: Offer) =>
       }).format(o.price) +
       " " +
       (o.currency ?? "");
-export function JournalApp() {
-  const [view, setView] = useState("library"),
-    [records, setRecords] = useState<Entry[]>([]),
+export function JournalApp({
+  initialLocation,
+}: { initialLocation?: JournalLocation } = {}) {
+  const {
+    view,
+    query,
+    status,
+    platform,
+    year: selectedYear,
+    sort,
+    setView,
+    setQuery,
+    setStatus,
+    setPlatform,
+    setYear,
+    setSort,
+  } = useJournalLocation(initialLocation);
+  const [records, setRecords] = useState<Entry[]>([]),
     [offers, setOffers] = useState<Offer[]>([]),
-    [query, setQuery] = useState(""),
-    [status, setStatus] = useState(""),
-    [platform, setPlatform] = useState(""),
-    [sort, setSort] = useState<SortingState>([{ id: "title", desc: false }]),
+    [releaseNow, setReleaseNow] = useState(() => new Date()),
     [loading, setLoading] = useState(true),
     [error, setError] = useState(""),
     [notice, setNotice] = useState(""),
@@ -146,6 +194,17 @@ export function JournalApp() {
       db.removeChannel(channel);
     };
   }, [load]);
+  useEffect(() => {
+    if (view !== "upcoming") return;
+    const update = () => setReleaseNow(new Date());
+    update();
+    const timer = window.setInterval(update, 60_000);
+    window.addEventListener("focus", update);
+    return () => {
+      window.clearInterval(timer);
+      window.removeEventListener("focus", update);
+    };
+  }, [view]);
   async function perform(fn: () => Promise<unknown>, message?: string) {
     setBusy(true);
     setError("");
@@ -161,22 +220,48 @@ export function JournalApp() {
       setBusy(false);
     }
   }
+  const yearOptions = useMemo(
+    () =>
+      [
+        ...new Set([
+          ...viewYears(
+            records.filter((record) =>
+              (viewStatuses[view] ?? []).includes(record.status),
+            ),
+            view,
+          ),
+          ...(selectedYear ? [selectedYear] : []),
+        ]),
+      ].sort((a, b) => Number(b) - Number(a)),
+    [records, view, selectedYear],
+  );
+  const entriesInView = useMemo(
+    () =>
+      records.filter(
+        (record) =>
+          (viewStatuses[view] ?? []).includes(record.status) &&
+          matchesViewYear(record, view, selectedYear),
+      ),
+    [records, view, selectedYear],
+  );
   const games = useMemo(
     () =>
-      records
-        .filter((r) =>
-          view === "wishlist"
-            ? r.status === "wishlist"
-            : view === "upcoming"
-              ? r.status === "upcoming"
-              : view === "journal"
-                ? !["wishlist", "upcoming", "backlog"].includes(r.status)
-                : !["wishlist", "upcoming"].includes(r.status),
-        )
+      entriesInView
         .filter(
           (r) =>
             !query ||
-            [r.title, r.platforms, r.device, r.period].some((v) =>
+            [
+              r.title,
+              r.platforms,
+              r.device,
+              r.period,
+              ...(["wishlist", "upcoming"].includes(view)
+                ? wishlistPlatforms(
+                    r,
+                    offers.filter((o) => o.game_id === r.gameId),
+                  )
+                : []),
+            ].some((v) =>
               String(v).toLowerCase().includes(query.toLowerCase()),
             ),
         )
@@ -184,14 +269,34 @@ export function JournalApp() {
         .filter(
           (r) =>
             !platform ||
-            (r.device + ";" + r.platforms)
-              .split(";")
-              .some((p) => p.trim() === platform),
+            (["wishlist", "upcoming"].includes(view)
+              ? wishlistPlatforms(
+                  r,
+                  offers.filter((o) => o.game_id === r.gameId),
+                )
+              : (r.device + ";" + r.platforms).split(";").map((p) => p.trim())
+            ).includes(platform),
         ),
-    [records, view, query, status, platform],
+    [entriesInView, query, status, platform, view, offers],
   );
-  const columns = useMemo<ColumnDef<Entry>[]>(
-    () => [
+  const summary = useMemo(
+    () => summarizeGames(games, view === "library" ? selectedYear : ""),
+    [games, view, selectedYear],
+  );
+  function entryRowClass(record: Entry): string | undefined {
+    if (view === "upcoming" && releaseHasArrived(record, releaseNow))
+      return "upcoming-released";
+    if (
+      view === "wishlist" &&
+      hasActiveDiscount(
+        offers.filter((offer) => offer.game_id === record.gameId),
+      )
+    )
+      return "wishlist-discounted";
+    return undefined;
+  }
+  const columns = useMemo<ColumnDef<Entry>[]>(() => {
+    const general: ColumnDef<Entry>[] = [
       {
         accessorKey: "title",
         header: "Juego",
@@ -215,9 +320,18 @@ export function JournalApp() {
         ),
       },
       {
-        accessorKey: "year",
+        id: "year",
+        accessorFn: releaseOrder,
         header: "Lanzamiento",
-        cell: ({ getValue }) => getValue() ?? "—",
+        sortingFn: (a, b) =>
+          compareReleases(
+            a.original,
+            b.original,
+            sort.find((item) => item.id === "year")?.desc,
+          ),
+        sortUndefined: false,
+        sortDescFirst: false,
+        cell: ({ row }) => releaseLabel(row.original),
       },
       {
         accessorKey: "status",
@@ -229,9 +343,12 @@ export function JournalApp() {
         ),
       },
       {
-        accessorKey: "period",
+        id: "period",
+        accessorFn: (record) => periodOrder(record.period),
         header: "Período",
-        cell: ({ getValue }) => getValue() || "—",
+        sortUndefined: "last",
+        sortingFn: "basic",
+        cell: ({ row }) => row.original.period || "—",
       },
       {
         accessorKey: "hours",
@@ -239,21 +356,183 @@ export function JournalApp() {
         cell: ({ getValue }) => (getValue() == null ? "—" : getValue() + " h"),
       },
       {
-        accessorKey: "rating",
+        id: "rating",
+        accessorFn: reviewOrder,
         header: "Reseña",
-        cell: ({ getValue, row }) => (
+        sortingFn: "basic",
+        sortUndefined: "last",
+        sortDescFirst: true,
+        cell: ({ row }) => (
           <span className="score">
-            {getValue() != null
-              ? getValue() + "/100"
+            {row.original.rating != null
+              ? row.original.rating + "/100"
               : row.original.memorability != null
                 ? row.original.memorability + "/10"
                 : "—"}
           </span>
         ),
       },
-    ],
-    [],
-  );
+    ];
+    if (view === "library")
+      return [
+        general[0],
+        general[2],
+        {
+          id: "started",
+          accessorFn: (record) => dateOrder(record.started),
+          header: "Empecé",
+          sortingFn: "basic",
+          sortUndefined: "last",
+          cell: ({ row }) => row.original.started || "—",
+        },
+        {
+          id: "finished",
+          accessorFn: (record) => dateOrder(record.finished),
+          header: "Terminé",
+          sortingFn: "basic",
+          sortUndefined: "last",
+          cell: ({ row }) => row.original.finished || "—",
+        },
+        ...general.slice(4),
+        ...libraryTextFields.map(({ key, label }): ColumnDef<Entry> => ({
+          accessorKey: key,
+          header: label,
+          cell: ({ getValue }) => (
+            <span className="entry-text-cell">{getValue<string>() || "—"}</span>
+          ),
+        })),
+      ];
+    if (view === "journal")
+      return [
+        general[0],
+        general[1],
+        general[3],
+        {
+          ...general[5],
+          accessorFn: (record) => record.rating ?? undefined,
+          cell: ({ getValue }) => (
+            <span className="score">
+              {getValue() == null ? "—" : getValue() + "/100"}
+            </span>
+          ),
+        },
+        {
+          id: "memorability",
+          accessorFn: (record) => record.memorability ?? undefined,
+          header: "Memorabilidad",
+          sortingFn: "basic",
+          sortUndefined: "last",
+          sortDescFirst: true,
+          cell: ({ getValue }) => (
+            <span className="score">
+              {getValue() == null ? "—" : getValue() + "/10"}
+            </span>
+          ),
+        },
+        ...journalTextFields.map(({ key, label }): ColumnDef<Entry> => ({
+          accessorKey: key,
+          header: label,
+          cell: ({ getValue }) => (
+            <span className="entry-text-cell">{getValue<string>() || "—"}</span>
+          ),
+        })),
+      ];
+    const storeName: ColumnDef<Entry> = {
+      ...general[0],
+      header: "Nombre",
+      cell: ({ row }) => (
+        <button
+          className={
+            "game-cell " +
+            (view === "upcoming" ? "upcoming-name" : "wishlist-name")
+          }
+          onClick={() => setEditing(row.original)}
+        >
+          <span>
+            <strong>{row.original.title}</strong>
+            <small>
+              {wishlistPlatforms(
+                row.original,
+                offers.filter((o) => o.game_id === row.original.gameId),
+              ).join(" · ") || "Plataforma sin confirmar"}
+            </small>
+          </span>
+        </button>
+      ),
+    };
+    if (view === "upcoming")
+      return [
+        {
+          ...general[1],
+          header: "Fecha de salida",
+          cell: ({ row }) => (
+            <span className="upcoming-release-date">
+              <span>{releaseLabel(row.original)}</span>
+              {releaseHasArrived(row.original, releaseNow) && (
+                <span className="released-badge">Ya salió</span>
+              )}
+            </span>
+          ),
+        },
+        storeName,
+        {
+          id: "hype",
+          accessorFn: (record) => {
+            const rank = ["Bajo", "Medio", "Dunno", "Alto", "Hyper"].indexOf(
+              record.hype.trim(),
+            );
+            return rank < 0 ? undefined : rank;
+          },
+          header: "Hype",
+          sortingFn: "basic",
+          sortUndefined: "last",
+          sortDescFirst: true,
+          cell: ({ row }) => <HypeBadge value={row.original.hype} />,
+        },
+      ];
+    if (view !== "wishlist") return general;
+    return [
+      {
+        id: "priority",
+        accessorFn: (r) => r.priority ?? undefined,
+        header: "Prioridad",
+        sortUndefined: "last",
+        sortDescFirst: false,
+        sortingFn: (a, b) =>
+          String(a.original.priority ?? "").localeCompare(
+            String(b.original.priority ?? ""),
+            "es",
+            { numeric: true, sensitivity: "base" },
+          ),
+        cell: ({ getValue }) => (
+          <span className="priority-value">{String(getValue() ?? "—")}</span>
+        ),
+      },
+      storeName,
+      {
+        id: "price",
+        header: "Precio",
+        enableSorting: false,
+        cell: ({ row }) => (
+          <WishlistPrice
+            offers={offers.filter((o) => o.game_id === row.original.gameId)}
+          />
+        ),
+      },
+      {
+        accessorKey: "ownership",
+        header: "Comprado",
+        cell: ({ getValue }) => (
+          <OwnershipBadge value={getValue<string>() || ""} />
+        ),
+      },
+      {
+        accessorKey: "estimated",
+        header: "Hs. Estimadas",
+        cell: ({ getValue }) => getValue() || "—",
+      },
+    ];
+  }, [view, offers, sort, releaseNow]);
   const table = useReactTable({
     data: games,
     columns,
@@ -265,14 +544,26 @@ export function JournalApp() {
   const title = nav.find((n) => n[0] === view)?.[1] ?? "Biblioteca";
   const platforms = [
     ...new Set(
-      records.flatMap((r) =>
-        (r.device + ";" + r.platforms)
-          .split(";")
-          .map((v) => v.trim())
-          .filter(Boolean),
-      ),
+      ["wishlist", "upcoming"].includes(view)
+        ? records
+            .filter((r) => (viewStatuses[view] ?? []).includes(r.status))
+            .flatMap((r) =>
+              wishlistPlatforms(
+                r,
+                offers.filter((o) => o.game_id === r.gameId),
+              ),
+            )
+        : records.flatMap((r) =>
+            (r.device + ";" + r.platforms)
+              .split(";")
+              .map((v) => v.trim())
+              .filter(Boolean),
+          ),
     ),
-  ].sort();
+    ...(platform ? [platform] : []),
+  ]
+    .filter((value, index, values) => values.indexOf(value) === index)
+    .sort();
   async function importSheet() {
     setBusy(true);
     try {
@@ -286,11 +577,8 @@ export function JournalApp() {
       setBusy(false);
     }
   }
-  function switchView(v: string) {
+  function switchView(v: JournalView) {
     setView(v);
-    setQuery("");
-    setStatus("");
-    setPlatform("");
     setMenu(false);
   }
   return (
@@ -298,11 +586,8 @@ export function JournalApp() {
       <aside className={"sidebar " + (menu ? "open" : "")}>
         <a href="/" className="brand">
           <span className="brand-icon">gj.</span>
-          <span>
-            game journal<span className="brand-sub">TU HISTORIA JUGANDO</span>
-          </span>
+          <span>Game Journal</span>
         </a>
-        <p className="nav-label">TU ESPACIO</p>
         <nav>
           {nav.map(([key, label, Icon]) => (
             <button
@@ -321,8 +606,6 @@ export function JournalApp() {
           ))}
         </nav>
         <div className="sidebar-bottom">
-          <span className="sync-dot" />
-          Sincronizado con tu cuenta
           <p>{member?.display_name ?? "Game Journal"}</p>
           <button
             className="text-button"
@@ -346,15 +629,15 @@ export function JournalApp() {
           >
             <Menu size={21} />
           </button>
-          <span>
-            MI COLECCIÓN <span className="separator">/</span> {title}
-          </span>
           <span className="topbar-right">
-            <Bell size={16} />
-            {notifications.length ? (
-              <span>{notifications.length} novedades</span>
-            ) : (
-              <span>Una partida a la vez</span>
+            {notifications.length > 0 && (
+              <span
+                className="notification-count"
+                aria-label={notifications.length + " notificaciones"}
+              >
+                <Bell size={16} />
+                {notifications.length}
+              </span>
             )}
             <span className="avatar">
               {(member?.display_name ?? "G").slice(0, 1).toUpperCase()}
@@ -364,26 +647,10 @@ export function JournalApp() {
         <div className="content">
           <div className="page-heading">
             <div>
-              <span className="eyebrow">
-                ARCHIVO PERSONAL / {new Date().getFullYear()}
-              </span>
               <h1>
                 {title}
                 <span className="accent">.</span>
               </h1>
-              <p className="muted">
-                {view === "library"
-                  ? "Cada juego tiene su historia. Esta es la tuya."
-                  : view === "journal"
-                    ? "Las partidas pasan. Los recuerdos quedan."
-                    : view === "wishlist"
-                      ? "La próxima gran aventura, al precio indicado."
-                      : view === "upcoming"
-                        ? "Un ojo en lo que viene."
-                        : view === "shared"
-                          ? "Historias de juego que eligieron compartir con vos."
-                          : "Tu cuenta, tus datos, tus preferencias."}
-              </p>
             </div>
             {!["shared", "settings"].includes(view) && (
               <button
@@ -396,7 +663,9 @@ export function JournalApp() {
                         ? "wishlist"
                         : view === "upcoming"
                           ? "upcoming"
-                          : "backlog",
+                          : view === "journal"
+                            ? "remembered"
+                            : "playing",
                   })
                 }
               >
@@ -421,47 +690,11 @@ export function JournalApp() {
               </button>
             </div>
           )}
-          {["library", "journal"].includes(view) && (
-            <section className="stats">
-              <div>
-                <span>JUEGOS EN TU DIARIO</span>
-                <strong>
-                  {
-                    records.filter(
-                      (r) => !["wishlist", "upcoming"].includes(r.status),
-                    ).length
-                  }
-                  <small>historias por contar</small>
-                </strong>
-              </div>
-              <div>
-                <span>AHORA JUGANDO</span>
-                <strong>
-                  {records.filter((r) => r.status === "playing").length}
-                  <small>partidas en curso</small>
-                </strong>
-              </div>
-              <div>
-                <span>HORAS REGISTRADAS</span>
-                <strong>
-                  {records
-                    .reduce((s, r) => s + (r.hours ?? 0), 0)
-                    .toLocaleString("es-AR")}
-                  <small>tiempo bien invertido</small>
-                </strong>
-              </div>
-            </section>
-          )}
           {view === "settings" ? (
             <section className="settings-grid">
               <article className="panel">
-                <span className="eyebrow">PORTABILIDAD</span>
-                <h2>Tus datos, siempre tuyos.</h2>
-                <p>
-                  Importá tu planilla y revisá los cambios antes de guardarlos.
-                  Las notas editadas acá se conservan hasta que elijas cómo
-                  resolver cada conflicto.
-                </p>
+                <h2>Datos</h2>
+                <p>Revisá los cambios antes de importar.</p>
                 <button
                   className="primary"
                   disabled={busy}
@@ -480,8 +713,7 @@ export function JournalApp() {
                 </div>
               </article>
               <article className="panel">
-                <span className="eyebrow">PREFERENCIAS</span>
-                <h2>A tu manera.</h2>
+                <h2>Preferencias</h2>
                 <button
                   className="secondary"
                   onClick={() => {
@@ -496,10 +728,7 @@ export function JournalApp() {
                 >
                   Cambiar tema
                 </button>
-                <p>
-                  Recibí una notificación cuando empiece una oferta o baje aún
-                  más el precio de un juego que seguís.
-                </p>
+                <p>Alertas de precio para los juegos que seguís.</p>
                 <div className="button-row">
                   <button
                     className="secondary"
@@ -522,17 +751,13 @@ export function JournalApp() {
                   </button>
                 </div>
                 <p className="fine-print">
-                  Actualización de tiendas cada 3 horas, hora argentina. Los
-                  precios conservan la moneda de cada tienda.
+                  Tiendas: cada 3 h · moneda original.
                 </p>
               </article>
               {member?.role === "admin" && (
                 <article className="panel">
                   <h2>Invitaciones privadas</h2>
-                  <p>
-                    Generá un enlace para invitar a alguien o recuperar su
-                    acceso. Solo las cuentas invitadas pueden ver la app.
-                  </p>
+                  <p>Acceso solo por invitación.</p>
                   <AdminInvite onError={setError} />
                 </article>
               )}
@@ -549,10 +774,7 @@ export function JournalApp() {
                     </div>
                   ))
                 ) : (
-                  <p className="muted">
-                    Todavía no hay alertas. Podés seguir ofertas desde la lista
-                    de deseos.
-                  </p>
+                  <p className="muted">Sin alertas.</p>
                 )}
               </article>
             </section>
@@ -577,10 +799,7 @@ export function JournalApp() {
                   </article>
                 ))
               ) : (
-                <Empty
-                  title="Las buenas partidas se comparten."
-                  text="Las entradas que otras personas compartan con vos van a aparecer acá."
-                />
+                <Empty title="Sin juegos compartidos" />
               )}
             </section>
           ) : (
@@ -589,24 +808,48 @@ export function JournalApp() {
                 <div className="search">
                   <Search size={17} />
                   <input
+                    maxLength={500}
                     aria-label="Buscar juegos"
                     value={query}
                     onChange={(e) => setQuery(e.target.value)}
-                    placeholder="Buscar en tu colección…"
+                    placeholder="Buscar…"
                   />
                 </div>
-                <select
-                  aria-label="Filtrar estado"
-                  value={status}
-                  onChange={(e) => setStatus(e.target.value)}
-                >
-                  <option value="">Todos los estados</option>
-                  {Object.entries(statuses).map(([k, v]) => (
-                    <option key={k} value={k}>
-                      {v}
-                    </option>
-                  ))}
-                </select>
+                {["library", "journal"].includes(view) && (
+                  <label className="year-filter">
+                    Año
+                    <select
+                      value={selectedYear}
+                      title={
+                        view === "library"
+                          ? "Terminados en el año o empezados sin fecha de fin. Sin fechas exactas, se usa el período registrado."
+                          : undefined
+                      }
+                      onChange={(e) => setYear(e.target.value)}
+                    >
+                      <option value="">Todos los años</option>
+                      {yearOptions.map((year) => (
+                        <option key={year} value={year}>
+                          {year}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                )}
+                {!["journal", "upcoming"].includes(view) && (
+                  <select
+                    aria-label="Filtrar estado"
+                    value={status}
+                    onChange={(e) => setStatus(e.target.value)}
+                  >
+                    <option value="">Todos los estados</option>
+                    {(viewStatuses[view] ?? []).map((key) => (
+                      <option key={key} value={key}>
+                        {statuses[key]}
+                      </option>
+                    ))}
+                  </select>
+                )}
                 <select
                   aria-label="Filtrar plataforma"
                   value={platform}
@@ -633,105 +876,301 @@ export function JournalApp() {
                   </button>
                 )}
               </div>
-              <section className="table-panel">
-                <div className="table-caption">
-                  <span>
-                    {loading
-                      ? "Cargando…"
-                      : games.length +
-                        " " +
-                        (games.length === 1 ? "juego" : "juegos")}
-                  </span>
-                  <span>EL SIGUIENTE RECUERDO ESTÁ POR EMPEZAR</span>
-                </div>
-                {!loading && games.length === 0 ? (
-                  <Empty
-                    title={
-                      records.length
-                        ? "Nada por acá, todavía."
-                        : "Tu diario empieza con un juego."
-                    }
-                    text={
-                      records.length
-                        ? "Probá otro filtro o agregá un juego a esta lista."
-                        : "Agregá tu primera partida o importá tu planilla desde Configuración."
-                    }
-                  />
-                ) : (
-                  <>
-                    <div className="mobile-games">
-                      {table.getRowModel().rows.map(({ original: r }) => (
-                        <button
-                          className="mobile-game"
-                          key={r.id}
-                          onClick={() => setEditing(r)}
-                        >
-                          <span className="game-mark">
-                            {r.title.slice(0, 2).toUpperCase()}
-                          </span>
-                          <span className="mobile-game-info">
-                            <strong>{r.title}</strong>
-                            <small>
-                              {r.device ||
-                                r.platforms ||
-                                "Plataforma sin definir"}
-                              {r.period ? " · " + r.period : ""}
-                            </small>
-                            <span className={"status " + r.status}>
-                              {statuses[r.status]}
+              <div
+                className={
+                  ["library", "journal"].includes(view)
+                    ? "collection-layout with-summary"
+                    : "collection-layout"
+                }
+              >
+                <section className="table-panel">
+                  <div className="table-caption">
+                    <span>
+                      {loading
+                        ? "Cargando…"
+                        : games.length +
+                          " " +
+                          (games.length === 1 ? "juego" : "juegos")}
+                    </span>
+                  </div>
+                  {!loading && games.length === 0 ? (
+                    <Empty
+                      title="No hay juegos"
+                      text={
+                        records.length
+                          ? "Cambiá los filtros o agregá un juego."
+                          : "Agregá un juego o importá desde Configuración."
+                      }
+                    />
+                  ) : (
+                    <>
+                      <div className="mobile-games">
+                        {table.getRowModel().rows.map(({ original: r }) => (
+                          <button
+                            className={["mobile-game", entryRowClass(r)]
+                              .filter(Boolean)
+                              .join(" ")}
+                            key={r.id}
+                            onClick={() => setEditing(r)}
+                          >
+                            <span className="game-mark">
+                              {r.title.slice(0, 2).toUpperCase()}
                             </span>
-                          </span>
-                          <span className="mobile-game-score">
-                            {r.rating != null
-                              ? r.rating + "/100"
-                              : r.hours != null
-                                ? r.hours + " h"
-                                : "↗"}
-                          </span>
-                        </button>
-                      ))}
-                    </div>
-                    <div className="table-scroll">
-                      <table>
-                        <thead>
-                          {table.getHeaderGroups().map((g) => (
-                            <tr key={g.id}>
-                              {g.headers.map((h) => (
-                                <th key={h.id}>
-                                  <button
-                                    onClick={h.column.getToggleSortingHandler()}
-                                  >
-                                    {flexRender(
-                                      h.column.columnDef.header,
-                                      h.getContext(),
+                            <span className="mobile-game-info">
+                              <strong>{r.title}</strong>
+                              {view === "upcoming" ? (
+                                <>
+                                  <small>
+                                    {wishlistPlatforms(
+                                      r,
+                                      offers.filter(
+                                        (o) => o.game_id === r.gameId,
+                                      ),
+                                    ).join(" · ") || "Plataforma sin confirmar"}
+                                  </small>
+                                  <small>
+                                    Fecha de salida: {releaseLabel(r)}
+                                    {releaseHasArrived(r, releaseNow) && (
+                                      <span className="released-badge">
+                                        Ya salió
+                                      </span>
                                     )}
-                                    <ArrowUpDown size={12} />
-                                  </button>
-                                </th>
-                              ))}
-                            </tr>
-                          ))}
-                        </thead>
-                        <tbody>
-                          {table.getRowModel().rows.map((r) => (
-                            <tr key={r.id}>
-                              {r.getVisibleCells().map((c) => (
-                                <td key={c.id}>
-                                  {flexRender(
-                                    c.column.columnDef.cell,
-                                    c.getContext(),
+                                  </small>
+                                  <small className="upcoming-mobile-hype">
+                                    Hype <HypeBadge value={r.hype} />
+                                  </small>
+                                </>
+                              ) : view === "wishlist" ? (
+                                <>
+                                  <small>
+                                    {wishlistPlatforms(
+                                      r,
+                                      offers.filter(
+                                        (o) => o.game_id === r.gameId,
+                                      ),
+                                    ).join(" · ") || "Plataforma sin confirmar"}
+                                  </small>
+                                  <small className="wishlist-mobile-meta">
+                                    <span className="priority-value">
+                                      Prioridad {r.priority ?? "—"}
+                                    </span>
+                                    <OwnershipBadge value={r.ownership} />
+                                  </small>
+                                  <small>
+                                    Hs. estimadas: {r.estimated || "—"}
+                                  </small>
+                                  <WishlistPrice
+                                    offers={offers.filter(
+                                      (o) => o.game_id === r.gameId,
+                                    )}
+                                  />
+                                </>
+                              ) : (
+                                <>
+                                  <small>
+                                    {r.device ||
+                                      r.platforms ||
+                                      "Plataforma sin definir"}
+                                    {view !== "library" && r.period
+                                      ? " · " + r.period
+                                      : ""}
+                                  </small>
+                                  {view === "library" && (
+                                    <small>
+                                      Empecé: {r.started || "—"} · Terminé:{" "}
+                                      {r.finished || "—"}
+                                    </small>
                                   )}
-                                </td>
-                              ))}
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
+                                  {view !== "journal" && (
+                                    <span className={"status " + r.status}>
+                                      {statuses[r.status]}
+                                    </span>
+                                  )}
+                                  {view === "journal" && (
+                                    <small className="mobile-entry-detail">
+                                      <b>Memorabilidad</b>
+                                      <span>
+                                        {r.memorability == null
+                                          ? "—"
+                                          : r.memorability + "/10"}
+                                      </span>
+                                    </small>
+                                  )}
+                                  {(view === "library" || view === "journal") &&
+                                    (view === "library"
+                                      ? libraryTextFields
+                                      : journalTextFields
+                                    ).map(({ key, label }) =>
+                                      r[key] ? (
+                                        <small
+                                          className="mobile-entry-detail"
+                                          key={key}
+                                        >
+                                          <b>{label}</b>
+                                          <span>{r[key]}</span>
+                                        </small>
+                                      ) : null,
+                                    )}
+                                </>
+                              )}
+                            </span>
+                            {!["wishlist", "upcoming"].includes(view) && (
+                              <span className="mobile-game-score">
+                                {r.rating != null
+                                  ? r.rating + "/100"
+                                  : view !== "journal" && r.hours != null
+                                    ? r.hours + " h"
+                                    : "↗"}
+                              </span>
+                            )}
+                          </button>
+                        ))}
+                      </div>
+                      <div className="table-scroll">
+                        <table
+                          className={
+                            view === "upcoming" ? "upcoming-table" : undefined
+                          }
+                        >
+                          <thead>
+                            {table.getHeaderGroups().map((g) => (
+                              <tr key={g.id}>
+                                {g.headers.map((h) => (
+                                  <th
+                                    key={h.id}
+                                    aria-sort={
+                                      h.column.getIsSorted() === "asc"
+                                        ? "ascending"
+                                        : h.column.getIsSorted() === "desc"
+                                          ? "descending"
+                                          : "none"
+                                    }
+                                  >
+                                    <button
+                                      disabled={!h.column.getCanSort()}
+                                      onClick={h.column.getToggleSortingHandler()}
+                                    >
+                                      {flexRender(
+                                        h.column.columnDef.header,
+                                        h.getContext(),
+                                      )}
+                                      {h.column.getCanSort() && (
+                                        <ArrowUpDown size={12} />
+                                      )}
+                                    </button>
+                                  </th>
+                                ))}
+                              </tr>
+                            ))}
+                          </thead>
+                          <tbody>
+                            {table.getRowModel().rows.map((r) => (
+                              <tr
+                                key={r.id}
+                                className={entryRowClass(r.original)}
+                              >
+                                {r.getVisibleCells().map((c) => (
+                                  <td key={c.id}>
+                                    {flexRender(
+                                      c.column.columnDef.cell,
+                                      c.getContext(),
+                                    )}
+                                  </td>
+                                ))}
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </>
+                  )}
+                </section>
+                {["library", "journal"].includes(view) && (
+                  <section
+                    className="collection-summary"
+                    aria-label="Resumen filtrado"
+                  >
+                    <div className="stats filtered-stats">
+                      <div data-stat="total">
+                        <span>JUEGOS</span>
+                        <strong>{summary.total}</strong>
+                      </div>
+                      <div
+                        data-stat="started"
+                        title={
+                          view === "library" && selectedYear
+                            ? "Con fecha de inicio en " + selectedYear
+                            : "Con fecha de inicio"
+                        }
+                      >
+                        <span>EMPECÉ</span>
+                        <strong>{summary.started}</strong>
+                      </div>
+                      <div
+                        data-stat="finished"
+                        title={
+                          view === "library" && selectedYear
+                            ? "Con fecha de fin en " + selectedYear
+                            : "Con fecha de fin"
+                        }
+                      >
+                        <span>TERMINÉ</span>
+                        <strong>{summary.finished}</strong>
+                      </div>
+                      <div data-stat="playing">
+                        <span>JUGANDO</span>
+                        <strong>{summary.playing}</strong>
+                      </div>
+                      <div
+                        data-stat="hours"
+                        title={summary.hoursCount + " con horas registradas"}
+                      >
+                        <span>HORAS</span>
+                        <strong>
+                          {summary.hours.toLocaleString("es-AR", {
+                            maximumFractionDigits: 2,
+                          })}
+                        </strong>
+                      </div>
+                      <div
+                        data-stat="rating"
+                        title={summary.ratingCount + " reseñas"}
+                      >
+                        <span>RESEÑA MEDIA</span>
+                        <strong>
+                          {summary.averageRating === null
+                            ? "—"
+                            : summary.averageRating.toLocaleString("es-AR", {
+                                maximumFractionDigits: 1,
+                              })}
+                          {summary.averageRating !== null && (
+                            <small>/100</small>
+                          )}
+                        </strong>
+                      </div>
                     </div>
-                  </>
+                    <section
+                      className="console-summary"
+                      aria-label="Juegos por consola"
+                    >
+                      <h2>Juegos por consola</h2>
+                      {summary.consoles.length ? (
+                        <ul>
+                          {summary.consoles.map(({ name, count }) => (
+                            <li key={name}>
+                              <span>{name}</span>
+                              <strong>{count}</strong>
+                            </li>
+                          ))}
+                        </ul>
+                      ) : (
+                        <p>No hay juegos para estos filtros.</p>
+                      )}
+                    </section>
+                  </section>
                 )}
-              </section>
-              {["wishlist", "upcoming"].includes(view) && (
+              </div>
+              {view === "wishlist" && (
                 <section className="offer-grid">
                   {games.map((g) => (
                     <article className="panel" key={g.id}>
@@ -767,9 +1206,7 @@ export function JournalApp() {
                           </div>
                         ))}
                       {!offers.some((o) => o.game_id === g.gameId) && (
-                        <p className="muted">
-                          Agregá un enlace de tienda desde la ficha.
-                        </p>
+                        <p className="muted">Sin precio de tienda.</p>
                       )}
                     </article>
                   ))}
@@ -777,10 +1214,6 @@ export function JournalApp() {
               )}
             </>
           )}
-          <footer className="page-footer">
-            <span>GAME JOURNAL</span>
-            <span>Para recordar lo que valió la pena jugar.</span>
-          </footer>
         </div>
       </main>
       {editing && (
@@ -916,12 +1349,12 @@ export function JournalApp() {
     </div>
   );
 }
-function Empty({ title, text }: { title: string; text: string }) {
+function Empty({ title, text }: { title: string; text?: string }) {
   return (
     <div className="empty">
       <Gamepad2 size={34} />
       <h2>{title}</h2>
-      <p>{text}</p>
+      {text && <p>{text}</p>}
     </div>
   );
 }
@@ -991,13 +1424,28 @@ function EntryEditor({
   const [draft, setDraft] = useState({ ...entry }),
     [url, setUrl] = useState(""),
     [recipient, setRecipient] = useState(""),
-    [history, setHistory] = useState<any[] | null>(null);
-  const set = (k: string, v: unknown) => setDraft({ ...draft, [k]: v });
+    [history, setHistory] = useState<any[] | null>(null),
+    [activeTab, setActiveTab] = useState("main"),
+    [pageError, setPageError] = useState(""),
+    [releaseError, setReleaseError] = useState("");
+  const editorId = useId();
+  const formId = editorId + "-form";
+  const tabs = [
+    { id: "main", label: "Principal" },
+    { id: "playthrough", label: "Partida" },
+    { id: "review", label: "Reseña" },
+    { id: "more", label: "Más" },
+  ];
+  const set = (key: string, value: unknown) =>
+    setDraft((current) => ({ ...current, [key]: value }));
   const field = (key: keyof Entry, label: string, type = "text") => (
     <label key={key}>
       {label}
       <input
+        id={editorId + "-" + key}
+        form={formId}
         type={type}
+        required={key === "title"}
         value={String(draft[key] ?? "")}
         onChange={(e) =>
           set(
@@ -1019,233 +1467,494 @@ function EntryEditor({
       onClose={onClose}
       title={entry.id ? "Tu partida" : "Agregar un juego"}
     >
-      <div className="modal-body">
+      <div className="modal-body entry-editor">
         <form
+          id={formId}
           onSubmit={(e) => {
             e.preventDefault();
-            onSave(draft);
+            if (!draft.title.trim()) {
+              setActiveTab("main");
+              requestAnimationFrame(() => {
+                const name = document.getElementById(
+                  editorId + "-title",
+                ) as HTMLInputElement | null;
+                name?.focus();
+                name?.reportValidity();
+              });
+              return;
+            }
+            const release = releaseSchema.safeParse(draft.release ?? "");
+            if (!release.success) {
+              setReleaseError(release.error.issues[0].message);
+              setActiveTab("more");
+              return;
+            }
+            setReleaseError("");
+            const pages = pagesSchema.safeParse([
+              ...(draft.pages ?? []),
+              ...(url.trim() ? [url] : []),
+            ]);
+            if (!pages.success) {
+              setPageError(
+                pages.error.issues[0]?.message ?? "Revisá las páginas.",
+              );
+              setActiveTab("main");
+              return;
+            }
+            setPageError("");
+            onSave({ ...draft, pages: pages.data });
+          }}
+        />
+        <div
+          className="editor-tabs"
+          role="tablist"
+          aria-label="Secciones del juego"
+          onKeyDown={(event) => {
+            if (!["ArrowLeft", "ArrowRight", "Home", "End"].includes(event.key))
+              return;
+            event.preventDefault();
+            const index = tabs.findIndex((tab) => tab.id === activeTab);
+            const next =
+              event.key === "Home"
+                ? 0
+                : event.key === "End"
+                  ? tabs.length - 1
+                  : (index +
+                      (event.key === "ArrowRight" ? 1 : -1) +
+                      tabs.length) %
+                    tabs.length;
+            setActiveTab(tabs[next].id);
+            document
+              .getElementById(editorId + "-tab-" + tabs[next].id)
+              ?.focus();
           }}
         >
-          {field("title", "Nombre del juego")}
-          <div className="form-grid">
-            {field("year", "Año de lanzamiento", "number")}
-            <label>
-              Estado
-              <select
-                aria-label="Estado"
-                value={draft.status}
-                onChange={(e) => set("status", e.target.value)}
-              >
-                {Object.entries(statuses).map(([k, v]) => (
-                  <option key={k} value={k}>
-                    {v}
-                  </option>
-                ))}
-              </select>
-            </label>
-            {field("device", "Dónde lo jugaste")}
-            {field("platforms", "Plataformas disponibles")}
-            {field("period", "Año o período jugado")}
-            {field("hours", "Horas jugadas", "number")}
-            {field("started", "Fecha de inicio")}
-            {field("finished", "Fecha de finalización")}
-            {field("rating", "Reseña / 100", "number")}
-            {field("memorability", "Memorabilidad / 10", "number")}
-            {field("impression", "Impresiones")}
-            {field("focus", "Historia, gameplay o ambos")}
-            {field("replay", "¿Lo rejugarías?")}
-            {field("ownership", "Comprado / acceso familiar")}
-            {field("priority", "Prioridad", "number")}
-            {field("hype", "Interés")}
-            {field(
-              "estimated",
-              "Horas estimadas (principal / extra / completo)",
-            )}
-          </div>
-          <label>
-            ¿Por qué? · privado
-            <textarea
-              value={draft.reason}
-              onChange={(e) => set("reason", e.target.value)}
-            />
-          </label>
-          <label>
-            Comentarios · privados
-            <textarea
-              rows={4}
-              value={draft.notes}
-              onChange={(e) => set("notes", e.target.value)}
-            />
-          </label>
-          <div className="modal-actions">
-            {entry.id && (
-              <button
-                type="button"
-                className="secondary"
-                onClick={() =>
-                  onSave({
-                    ...draft,
-                    id: undefined,
-                    updated_at: undefined,
-                    sourceKey: "",
-                    status: "playing",
-                    started: new Date().toISOString().slice(0, 10),
-                    finished: "",
-                    period: String(new Date().getFullYear()),
-                    hours: null,
-                    rating: null,
-                    memorability: null,
-                    impression: "",
-                    notes: "",
-                    reason: "",
-                  })
-                }
-                disabled={busy}
-              >
-                Nueva partida
-              </button>
-            )}
-            {entry.id && (
-              <button
-                type="button"
-                className="danger text-button"
-                onClick={onDelete}
-                disabled={busy}
-              >
-                <Trash2 size={15} />
-                Eliminar entrada
-              </button>
-            )}
-            <button className="primary" disabled={busy}>
-              {busy ? "Guardando…" : "Guardar entrada"}
-              <Check size={16} />
+          {tabs.map((tab) => (
+            <button
+              key={tab.id}
+              type="button"
+              role="tab"
+              id={editorId + "-tab-" + tab.id}
+              aria-controls={editorId + "-panel-" + tab.id}
+              aria-selected={activeTab === tab.id}
+              tabIndex={activeTab === tab.id ? 0 : -1}
+              onClick={() => setActiveTab(tab.id)}
+            >
+              {tab.label}
             </button>
-          </div>
-        </form>
-        {entry.id && (
-          <>
-            <section className="editor-section">
-              <h3>Ofertas de tiendas</h3>
-              <p className="muted">
-                Podés agregar varias regiones y tiendas para el mismo juego.
-              </p>
-              {offers.map((o) => (
-                <OfferEditor
-                  key={o.id}
-                  offer={o}
-                  run={run}
-                  showHistory={async () =>
-                    setHistory(await api("/api/offers?id=" + o.id))
-                  }
-                />
-              ))}
-              <form
-                className="inline-form"
-                onSubmit={async (e) => {
-                  e.preventDefault();
-                  if (
-                    await run(
-                      () =>
-                        api("/api/offers", "POST", {
-                          gameId: entry.gameId,
-                          url,
-                        }),
-                      "Enlace agregado.",
-                    )
-                  ) {
-                    setUrl("");
-                    await reload();
-                  }
-                }}
-              >
-                <input
-                  type="url"
-                  aria-label="Enlace Steam o Nintendo"
-                  placeholder="Enlace de Steam o Nintendo"
-                  value={url}
-                  onChange={(e) => setUrl(e.target.value)}
-                  required
-                />
-                <button className="secondary">Agregar</button>
-              </form>
-              {history && (
-                <div className="history">
-                  {history.length ? (
-                    history.map((p) => (
-                      <p key={p.id}>
-                        {new Date(p.created_at).toLocaleString("es-AR")} ·{" "}
-                        {p.currency} {p.price} · {p.discount}% OFF
-                      </p>
-                    ))
-                  ) : (
-                    <p>Todavía no hay cambios de precio registrados.</p>
-                  )}
-                </div>
-              )}
-            </section>
-            <section className="editor-section">
-              <h3>
-                <Share2 size={16} />
-                Compartir esta entrada
-              </h3>
-              <p className="muted">
-                Solo se comparten la partida, las horas, las puntuaciones y las
-                impresiones. Tus comentarios y motivos quedan privados.
-              </p>
-              {grants.map((g) => (
-                <div className="button-row" key={g.id}>
-                  <span>
-                    {members.find((m) => m.id === g.recipient_id)
-                      ?.display_name ?? "Persona invitada"}
-                  </span>
-                  <button
-                    className="text-button"
-                    onClick={() =>
-                      run(
-                        () => api("/api/sharing", "DELETE", { id: g.id }),
-                        "Acceso revocado.",
-                      )
-                    }
+          ))}
+        </div>
+        <section
+          className="editor-panel"
+          role="tabpanel"
+          id={editorId + "-panel-main"}
+          aria-labelledby={editorId + "-tab-main"}
+          hidden={activeTab !== "main"}
+        >
+          {activeTab === "main" && (
+            <>
+              {field("title", "Nombre del juego")}
+              <PlatformPicker
+                label="Plataformas disponibles"
+                value={draft.platforms}
+                onChange={(value) => set("platforms", value)}
+                form={formId}
+                multiple
+              />
+              <div className="form-grid">
+                <label>
+                  Estado
+                  <select
+                    form={formId}
+                    aria-label="Estado"
+                    value={draft.status}
+                    onChange={(e) => set("status", e.target.value)}
                   >
-                    Revocar acceso
-                  </button>
-                </div>
-              ))}
-              <div className="inline-form">
-                <select
-                  aria-label="Compartir con"
-                  value={recipient}
-                  onChange={(e) => setRecipient(e.target.value)}
-                >
-                  <option value="">Elegí una persona</option>
-                  {members
-                    .filter((m) => !grants.some((g) => g.recipient_id === m.id))
-                    .map((m) => (
-                      <option key={m.id} value={m.id}>
-                        {m.display_name}
+                    {Object.entries(statuses).map(([key, value]) => (
+                      <option key={key} value={key}>
+                        {value}
                       </option>
                     ))}
-                </select>
-                <button
-                  className="secondary"
-                  disabled={!recipient}
-                  onClick={() =>
-                    run(
-                      () =>
-                        api("/api/sharing", "POST", {
-                          entry_id: entry.id,
-                          recipient_id: recipient,
-                        }),
-                      "Entrada compartida.",
-                    )
-                  }
-                >
-                  Compartir
-                </button>
+                  </select>
+                </label>
+                <label>
+                  Comprado / acceso familiar
+                  <select
+                    form={formId}
+                    value={getOwnershipInfo(draft.ownership).value}
+                    onChange={(event) => set("ownership", event.target.value)}
+                  >
+                    <option value="" disabled>
+                      Sin definir
+                    </option>
+                    {draft.ownership &&
+                      !ownershipOptions.some(
+                        (option) =>
+                          option.value ===
+                          getOwnershipInfo(draft.ownership).value,
+                      ) && (
+                        <option value={draft.ownership}>
+                          {draft.ownership} (actual)
+                        </option>
+                      )}
+                    {ownershipOptions.map((option) => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                {field("priority", "Prioridad")}
+                {field("estimated", "Horas estimadas")}
               </div>
-            </section>
-          </>
-        )}
+              <section className="editor-section">
+                <h3>
+                  Páginas <span className="muted">· opcional</span>
+                </h3>
+                {offers.map((offer) => (
+                  <OfferEditor
+                    key={offer.id}
+                    offer={offer}
+                    run={run}
+                    showHistory={async () =>
+                      setHistory(await api("/api/offers?id=" + offer.id))
+                    }
+                  />
+                ))}
+                {(draft.pages ?? []).length > 0 && (
+                  <ul className="draft-pages" aria-label="Páginas del juego">
+                    {draft.pages?.map((page) => (
+                      <li key={page}>
+                        <a
+                          href={page}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                        >
+                          {page}
+                          <ExternalLink size={13} />
+                        </a>
+                        <button
+                          type="button"
+                          className="icon-button danger"
+                          aria-label={"Quitar página " + page}
+                          disabled={busy}
+                          onClick={() =>
+                            set(
+                              "pages",
+                              draft.pages?.filter((value) => value !== page),
+                            )
+                          }
+                        >
+                          <Trash2 size={15} />
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+                <form
+                  className="inline-form"
+                  onSubmit={(event) => {
+                    event.preventDefault();
+                    const pages = pagesSchema.safeParse([
+                      ...(draft.pages ?? []),
+                      url,
+                    ]);
+                    if (!pages.success) {
+                      setPageError(
+                        pages.error.issues[0]?.message ?? "Revisá el enlace.",
+                      );
+                      return;
+                    }
+                    set("pages", pages.data);
+                    setUrl("");
+                    setPageError("");
+                  }}
+                >
+                  <input
+                    type="url"
+                    aria-label="Enlace de página"
+                    placeholder="https://…"
+                    value={url}
+                    onChange={(event) => {
+                      setUrl(event.target.value);
+                      setPageError("");
+                    }}
+                    required
+                    disabled={busy}
+                  />
+                  <button className="secondary" disabled={busy}>
+                    Agregar
+                  </button>
+                </form>
+                {pageError && (
+                  <p className="error" role="alert">
+                    {pageError}
+                  </p>
+                )}
+                <p className="fine-print">
+                  Precios: Steam y Nintendo. Otras páginas: referencia.
+                </p>
+                {history && (
+                  <div className="history">
+                    {history.length ? (
+                      history.map((quote) => (
+                        <p key={quote.id}>
+                          {new Date(quote.created_at).toLocaleString("es-AR")} ·{" "}
+                          {quote.currency} {quote.price} · {quote.discount}% OFF
+                        </p>
+                      ))
+                    ) : (
+                      <p>Todavía no hay cambios de precio registrados.</p>
+                    )}
+                  </div>
+                )}
+              </section>
+            </>
+          )}
+        </section>
+        <section
+          className="editor-panel"
+          role="tabpanel"
+          id={editorId + "-panel-playthrough"}
+          aria-labelledby={editorId + "-tab-playthrough"}
+          hidden={activeTab !== "playthrough"}
+        >
+          {activeTab === "playthrough" && (
+            <>
+              <div className="form-grid">
+                {field("started", "Empecé")}
+                {field("finished", "Terminé")}
+              </div>
+              <PlatformPicker
+                label="Consola donde jugué"
+                value={draft.device}
+                onChange={(value) => set("device", value)}
+                form={formId}
+              />
+              <label>
+                ¿Por qué? · privado
+                <textarea
+                  form={formId}
+                  rows={3}
+                  value={draft.reason}
+                  onChange={(e) => set("reason", e.target.value)}
+                />
+              </label>
+            </>
+          )}
+        </section>
+        <section
+          className="editor-panel"
+          role="tabpanel"
+          id={editorId + "-panel-review"}
+          aria-labelledby={editorId + "-tab-review"}
+          hidden={activeTab !== "review"}
+        >
+          {activeTab === "review" && (
+            <>
+              <div className="form-grid">
+                {field("rating", "Reseña / 100", "number")}
+                {field("hours", "Horas jugadas", "number")}
+                {field("impression", "Impresiones")}
+                {field("focus", "Historia, gameplay o ambos")}
+              </div>
+              <label>
+                Comentarios adicionales · privados
+                <textarea
+                  form={formId}
+                  rows={5}
+                  value={draft.notes}
+                  onChange={(e) => set("notes", e.target.value)}
+                />
+              </label>
+            </>
+          )}
+        </section>
+        <section
+          className="editor-panel"
+          role="tabpanel"
+          id={editorId + "-panel-more"}
+          aria-labelledby={editorId + "-tab-more"}
+          hidden={activeTab !== "more"}
+        >
+          <ReleaseField
+            record={draft}
+            form={formId}
+            error={releaseError}
+            onChange={(release) => {
+              const parsed = parseRelease(release);
+              setDraft((current) => ({
+                ...current,
+                release,
+                year: parsed.kind === "unknown" ? null : parsed.year,
+              }));
+              setReleaseError("");
+            }}
+          />
+          {activeTab === "more" && (
+            <>
+              <div className="form-grid">
+                {field("period", "Año o período jugado")}
+                {field("memorability", "Memorabilidad / 10", "number")}
+                {field("replay", "¿Lo rejugarías?")}
+                <label>
+                  Hype
+                  <select
+                    form={formId}
+                    value={draft.hype}
+                    onChange={(event) => set("hype", event.target.value)}
+                  >
+                    <option value="" disabled>
+                      Elegí el hype…
+                    </option>
+                    {draft.hype &&
+                      !["Bajo", "Medio", "Dunno", "Alto", "Hyper"].includes(
+                        draft.hype,
+                      ) && (
+                        <option value={draft.hype}>
+                          {draft.hype} (actual)
+                        </option>
+                      )}
+                    {["Bajo", "Medio", "Dunno", "Alto", "Hyper"].map(
+                      (level) => (
+                        <option key={level} value={level}>
+                          {level}
+                        </option>
+                      ),
+                    )}
+                  </select>
+                </label>
+              </div>
+
+              {entry.id && (
+                <>
+                  <section className="editor-section">
+                    <h3>
+                      <Share2 size={16} />
+                      Compartir esta entrada
+                    </h3>
+                    <p className="muted">
+                      Se comparten la partida, las horas, las puntuaciones y las
+                      impresiones. Motivos y comentarios: privados.
+                    </p>
+                    {grants.map((g) => (
+                      <div className="button-row" key={g.id}>
+                        <span>
+                          {members.find((m) => m.id === g.recipient_id)
+                            ?.display_name ?? "Persona invitada"}
+                        </span>
+                        <button
+                          className="text-button"
+                          onClick={() =>
+                            run(
+                              () => api("/api/sharing", "DELETE", { id: g.id }),
+                              "Acceso revocado.",
+                            )
+                          }
+                        >
+                          Revocar acceso
+                        </button>
+                      </div>
+                    ))}
+                    <div className="inline-form">
+                      <select
+                        aria-label="Compartir con"
+                        value={recipient}
+                        onChange={(e) => setRecipient(e.target.value)}
+                      >
+                        <option value="">Elegí una persona</option>
+                        {members
+                          .filter(
+                            (m) => !grants.some((g) => g.recipient_id === m.id),
+                          )
+                          .map((m) => (
+                            <option key={m.id} value={m.id}>
+                              {m.display_name}
+                            </option>
+                          ))}
+                      </select>
+                      <button
+                        className="secondary"
+                        disabled={!recipient}
+                        onClick={() =>
+                          run(
+                            () =>
+                              api("/api/sharing", "POST", {
+                                entry_id: entry.id,
+                                recipient_id: recipient,
+                              }),
+                            "Entrada compartida.",
+                          )
+                        }
+                      >
+                        Compartir
+                      </button>
+                    </div>
+                  </section>
+                  <div className="editor-extra-actions">
+                    {entry.id && (
+                      <button
+                        type="button"
+                        className="secondary"
+                        onClick={() =>
+                          onSave({
+                            ...draft,
+                            id: undefined,
+                            updated_at: undefined,
+                            sourceKey: "",
+                            status: "playing",
+                            started: new Date().toISOString().slice(0, 10),
+                            finished: "",
+                            period: String(new Date().getFullYear()),
+                            hours: null,
+                            rating: null,
+                            memorability: null,
+                            impression: "",
+                            notes: "",
+                            reason: "",
+                          })
+                        }
+                        disabled={busy}
+                      >
+                        Nueva partida
+                      </button>
+                    )}
+                    {entry.id && (
+                      <button
+                        type="button"
+                        className="danger text-button"
+                        onClick={onDelete}
+                        disabled={busy}
+                      >
+                        <Trash2 size={15} />
+                        Eliminar entrada
+                      </button>
+                    )}
+                  </div>
+                </>
+              )}
+            </>
+          )}
+        </section>
+        <div className="entry-editor-actions">
+          <button
+            type="button"
+            className="text-button"
+            onClick={onClose}
+            disabled={busy}
+          >
+            Cancelar
+          </button>
+          <button
+            type="submit"
+            form={formId}
+            className="primary"
+            disabled={busy}
+          >
+            {busy ? "Guardando…" : "Guardar entrada"}
+            <Check size={16} />
+          </button>
+        </div>
       </div>
     </Modal>
   );

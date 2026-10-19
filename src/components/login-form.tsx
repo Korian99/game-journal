@@ -1,5 +1,6 @@
 "use client";
 import { useState } from "react";
+import { resolveJournalReturnPath } from "@/lib/journal-location";
 import { browserClient } from "@/lib/supabase/client";
 export function LoginForm() {
   const [error, setError] = useState("");
@@ -15,7 +16,8 @@ export function LoginForm() {
         password: String(form.get("password")),
       });
       if (error) throw error;
-      window.location.assign("/");
+      const target = new URLSearchParams(window.location.search).get("next");
+      window.location.assign(resolveJournalReturnPath(target));
     } catch {
       setError("No pudimos iniciar sesión. Revisá el correo y la contraseña.");
       setBusy(false);
@@ -23,9 +25,7 @@ export function LoginForm() {
   }
   return (
     <form className="login-form" onSubmit={submit}>
-      <span className="eyebrow">VOLVÉ A TU PARTIDA</span>
-      <h2>Bienvenido de vuelta.</h2>
-      <p className="muted">Entrá a tu biblioteca personal.</p>
+      <h2>Iniciar sesión</h2>
       <label>
         Correo electrónico
         <input
@@ -55,8 +55,7 @@ export function LoginForm() {
         {busy ? "Entrando…" : "Entrar al diario"} <span>↗</span>
       </button>
       <p className="fine-print">
-        Acceso por invitación. Si necesitás entrar o recuperar tu contraseña,
-        pedile un enlace privado al administrador.
+        Pedí un enlace al administrador para entrar o recuperar tu cuenta.
       </p>
     </form>
   );

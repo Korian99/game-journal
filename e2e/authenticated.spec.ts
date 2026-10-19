@@ -17,18 +17,29 @@ test("invited member can keep separate playthroughs, export and detect concurren
   });
   await page.getByRole("button", { name: "Agregar juego" }).click();
   await page.getByLabel("Nombre del juego").fill("Portal 2 · prueba");
+  await page
+    .getByLabel("Enlace de página")
+    .fill("https://store.steampowered.com/app/620/?cc=US");
+  await page.getByRole("button", { name: "Agregar", exact: true }).click();
+  await page.getByRole("tab", { name: "Partida", exact: true }).click();
+  await page.getByLabel("Empecé", { exact: true }).fill(new Date().toISOString().slice(0, 10));
+  await page
+    .getByRole("combobox", { name: "Consola donde jugué", exact: true })
+    .selectOption("PC");
+  await page.getByRole("tab", { name: "Reseña", exact: true }).click();
+  await page
+    .getByLabel("Comentarios adicionales · privados")
+    .fill("Solo para mi diario");
+  await page.getByRole("tab", { name: "Más", exact: true }).click();
+  await page.getByLabel("Precisión del lanzamiento").selectOption("year");
   await page.getByLabel("Año de lanzamiento").fill("2011");
-  await page.getByLabel("Dónde lo jugaste").fill("PC");
+  await page.getByRole("tab", { name: "Principal", exact: true }).click();
   await page.getByLabel("Estado", { exact: true }).selectOption("playing");
-  await page.getByLabel("Comentarios · privados").fill("Solo para mi diario");
   await page.getByRole("button", { name: "Guardar entrada" }).click();
   await expect(page.getByRole("button", { name: /PO Portal 2/ })).toBeVisible();
   await page.getByRole("button", { name: /PO Portal 2/ }).click();
-  await page
-    .getByLabel("Enlace Steam o Nintendo")
-    .fill("https://store.steampowered.com/app/620/?cc=US");
-  await page.getByRole("button", { name: "Agregar", exact: true }).click();
   await expect(page.getByRole("link", { name: /steam · US/ })).toBeVisible();
+  await page.getByRole("tab", { name: "Más", exact: true }).click();
   await page.getByRole("button", { name: "Nueva partida" }).click();
   await expect(page.getByRole("button", { name: /PO Portal 2/ })).toHaveCount(
     2,
