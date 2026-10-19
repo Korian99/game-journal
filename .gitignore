@@ -8,3 +8,5 @@ test-results/
 supabase/.temp/
 
 .bootstrap-link.txt
+
+.vercel/
