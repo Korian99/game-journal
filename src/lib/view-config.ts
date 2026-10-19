@@ -38,6 +38,42 @@ export function dateOrder(value: string): number | undefined {
     : undefined;
 }
 
+export function formatDate(value: string): string {
+  const text = value.trim();
+  const stamp = dateOrder(text);
+  if (stamp === undefined) return text;
+  const date = new Date(stamp);
+  return [
+    String(date.getUTCDate()).padStart(2, "0"),
+    String(date.getUTCMonth() + 1).padStart(2, "0"),
+    String(date.getUTCFullYear()).padStart(4, "0"),
+  ].join("/");
+}
+
+const argentinaTimestamp = new Intl.DateTimeFormat("es-AR", {
+  timeZone: "America/Buenos_Aires",
+  day: "2-digit",
+  month: "2-digit",
+  year: "numeric",
+  hour: "2-digit",
+  minute: "2-digit",
+  hourCycle: "h23",
+});
+export function formatDateTime(value: string): string {
+  const date = new Date(value);
+  if (!Number.isFinite(date.getTime())) return "—";
+  const parts = argentinaTimestamp.formatToParts(date);
+  const part = (type: Intl.DateTimeFormatPartTypes) =>
+    parts.find((item) => item.type === type)!.value;
+  return (
+    [part("day"), part("month"), part("year")].join("/") +
+    ", " +
+    part("hour") +
+    ":" +
+    part("minute")
+  );
+}
+
 export function periodOrder(value: string): number | undefined {
   const year = /\b(\d{4})\b/.exec(value);
   return year ? Number(year[1]) : undefined;
