@@ -755,13 +755,21 @@ export function JournalApp({
                   Importar desde Google Sheets
                 </button>
                 <div className="button-row">
+                  <a className="secondary" href="/api/export?format=xlsx">
+                    Exportar Excel
+                  </a>
                   <a className="secondary" href="/api/export">
-                    Exportar JSON
+                    Respaldo JSON
                   </a>
                   <a className="secondary" href="/api/export?format=csv">
                     Exportar CSV
                   </a>
                 </div>
+                <p className="fine-print">
+                  Excel y JSON incluyen todos tus juegos, páginas e historial de
+                  precios. CSV incluye los juegos. Guardá una copia fuera de la
+                  app.
+                </p>
               </article>
               <article className="panel">
                 <h2>Preferencias</h2>

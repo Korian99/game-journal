@@ -33,3 +33,15 @@ La prueba autenticada requiere una cuenta **descartable e invitada**, con biblio
 - [Instalación y operaciones](docs/setup.md)
 
 No subir `.env.local`, enlaces de invitación, exportaciones personales ni datos reales al repositorio público.
+
+## Exportaciones personales
+
+En Configuración → Datos se pueden descargar todos los juegos, sin aplicar los filtros de la vista:
+
+- **Excel (.xlsx):** hojas Juegos, Páginas e Historial de precios, con encabezados en español, filtros y fechas dd/mm/aaaa. Incluye todas las partidas, también las pendientes y los recuerdos; los comentarios largos continúan en columnas adicionales para no recortarlos.
+- **Respaldo JSON:** registros originales, páginas de tiendas e historial de precios, incluidos IDs y datos originales de importación.
+- **CSV:** todos los campos de los juegos y sus enlaces, para copiar o importar en otra planilla.
+
+Los archivos solo contienen datos de la cuenta que inició sesión. Se descargan al dispositivo: no escriben en Google Sheets. Guardar versiones fuera de la app, por ejemplo en una carpeta personal de Drive. JSON es una copia de los datos del diario, no una copia de la base entera: no incluye cuentas, contraseñas ni configuración del servicio. La restauración desde JSON todavía es manual; no existe un botón de restauración.
+
+El lector UUID de ExcelJS se fija mediante un override compatible con CommonJS para evitar la dependencia vulnerable anterior.
