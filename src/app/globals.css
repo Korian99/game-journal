@@ -4,6 +4,7 @@
   --surface: #191c16;
   --raised: #20241b;
   --line: #30362a;
+  --row-line: color-mix(in srgb, var(--line) 65%, var(--muted));
   --text: #edece5;
   --muted: #969c8c;
   --accent: #e5bc6b;
@@ -327,6 +328,9 @@ h3 {
   max-width: 1600px;
   margin: auto;
 }
+.content.collection-content {
+  max-width: none;
+}
 .page-heading {
   display: flex;
   align-items: center;
@@ -447,6 +451,9 @@ td {
   padding: 17px 20px;
   border-top: 1px solid var(--line);
   white-space: nowrap;
+}
+tbody tr + tr td {
+  border-top: 2px solid var(--row-line);
 }
 tbody tr:hover {
   background: var(--raised);
@@ -1077,7 +1084,7 @@ tbody tr:hover {
     gap: 12px;
     padding: 19px 16px;
     text-align: left;
-    border-bottom: 1px solid var(--line);
+    border-bottom: 2px solid var(--row-line);
     width: 100%;
   }
   .mobile-game:last-child {
@@ -1474,7 +1481,7 @@ tbody tr:hover {
 }
 @media (min-width: 1200px) {
   .collection-layout.with-summary {
-    grid-template-columns: minmax(0, 1fr) 280px;
+    grid-template-columns: minmax(0, 1fr) 240px;
   }
   .with-summary .table-caption span + span {
     display: none;
@@ -1560,3 +1567,146 @@ tbody tr.wishlist-discounted td:first-child,
 .topbar { height: 56px; }
 .content { padding-top: 30px; }
 .page-heading { margin-bottom: 24px; }
+
+/* Compact library: game, playthrough, and review comments share five columns. */
+.library-table {
+  table-layout: fixed;
+}
+.library-table th,
+.library-table td {
+  padding: 13px 12px;
+  white-space: normal;
+  vertical-align: top;
+}
+.library-table th:first-child {
+  width: 22%;
+}
+.library-table th:nth-child(2) {
+  width: 180px;
+}
+.library-table th:nth-child(3) {
+  width: 21%;
+}
+.library-table th:nth-child(4) {
+  width: 12%;
+}
+.library-table th:nth-child(5) {
+  width: auto;
+}
+.library-table .entry-text-cell {
+  width: auto;
+}
+.library-table .game-cell {
+  max-width: none;
+  align-items: flex-start;
+  gap: 10px;
+}
+.library-game-identity {
+  min-width: 0;
+}
+.library-table .game-cell small {
+  max-width: none;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+.library-game-identity .status {
+  display: inline-block;
+  margin-top: 8px;
+}
+.review-mark {
+  display: inline-flex;
+  flex: 0 0 42px;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  min-height: 48px;
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  color: var(--accent);
+  background: var(--raised);
+  font-variant-numeric: tabular-nums;
+}
+.review-mark b {
+  font:
+    20px Georgia,
+    serif;
+}
+.review-mark small,
+.game-cell .review-mark small {
+  margin: 0;
+  font-size: 9px;
+  color: var(--muted);
+}
+.library-playthrough {
+  display: grid;
+  gap: 5px;
+  font-size: 10px;
+  line-height: 1.5;
+}
+.library-playthrough > span {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px 8px;
+}
+.library-playthrough > span > span:first-child {
+  color: var(--muted);
+}
+.library-playthrough > span > span:last-child {
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+@media (min-width: 1600px) {
+  .library-table th:first-child {
+    width: 260px;
+  }
+}
+@media (max-width: 1399px) {
+  .library-table th:nth-child(2) {
+    width: 160px;
+  }
+}
+@media (max-width: 980px) {
+  .library-table td:nth-child(2),
+  .library-table th:nth-child(2),
+  .library-table td:nth-child(4),
+  .library-table th:nth-child(4) {
+    display: table-cell;
+  }
+  .table-scroll .library-table {
+    min-width: 0;
+  }
+}
+@media (max-width: 760px) {
+  .mobile-game:has(.review-mark) {
+    align-items: flex-start;
+  }
+  .mobile-game-info .library-playthrough {
+    width: 100%;
+  }
+}
+
+.table-caption .library-sort {
+  max-width: 200px;
+  padding: 8px;
+  font-size: 10px;
+}
+
+.library-finish-reason {
+  display: grid;
+  gap: 8px;
+}
+.library-finish-reason .entry-text-cell {
+  width: auto;
+}
+.library-finished {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px 8px;
+  font-size: 10px;
+  line-height: 1.5;
+  font-variant-numeric: tabular-nums;
+}
+.library-finished > span:first-child {
+  color: var(--muted);
+}

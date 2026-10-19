@@ -36,12 +36,12 @@ test("invited member can keep separate playthroughs, export and detect concurren
   await page.getByRole("tab", { name: "Principal", exact: true }).click();
   await page.getByLabel("Estado", { exact: true }).selectOption("playing");
   await page.getByRole("button", { name: "Guardar entrada" }).click();
-  await expect(page.getByRole("button", { name: /PO Portal 2/ })).toBeVisible();
-  await page.getByRole("button", { name: /PO Portal 2/ }).click();
+  await expect(page.getByRole("button", { name: /Portal 2 · prueba/ })).toBeVisible();
+  await page.getByRole("button", { name: /Portal 2 · prueba/ }).click();
   await expect(page.getByRole("link", { name: /steam · US/ })).toBeVisible();
   await page.getByRole("tab", { name: "Más", exact: true }).click();
   await page.getByRole("button", { name: "Nueva partida" }).click();
-  await expect(page.getByRole("button", { name: /PO Portal 2/ })).toHaveCount(
+  await expect(page.getByRole("button", { name: /Portal 2 · prueba/ })).toHaveCount(
     2,
   );
   const data = await (await page.request.get("/api/records")).json();
@@ -60,7 +60,7 @@ test("invited member can keep separate playthroughs, export and detect concurren
   expect(exported.ok()).toBe(true);
   expect(await exported.text()).toContain("Cambio desde otro dispositivo");
   await page.reload();
-  await expect(page.getByRole("button", { name: /PO Portal 2/ })).toHaveCount(
+  await expect(page.getByRole("button", { name: /Portal 2 · prueba/ })).toHaveCount(
     2,
   );
   await page.screenshot({

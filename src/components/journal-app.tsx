@@ -39,6 +39,11 @@ import {
 } from "./ownership-badge";
 import { wishlistPlatforms, hasActiveDiscount } from "@/lib/wishlist-display";
 import { HypeBadge } from "./hype-badge";
+import {
+  ReviewMark,
+  LibraryPlaythrough,
+  LibraryFinishReason,
+} from "./library-game-details";
 import { useJournalLocation } from "@/lib/use-journal-location";
 import type { JournalLocation, JournalView } from "@/lib/journal-location";
 import { summarizeGames } from "@/lib/view-summary";
@@ -54,6 +59,8 @@ import { releaseSchema, pagesSchema } from "@/lib/validation";
 import {
   viewStatuses,
   dateOrder,
+  formatDate,
+  formatDateTime,
   periodOrder,
   reviewOrder,
   matchesViewYear,
@@ -375,15 +382,43 @@ export function JournalApp({
     ];
     if (view === "library")
       return [
-        general[0],
-        general[2],
+        {
+          ...general[0],
+          cell: ({ row }) => (
+            <button
+              className="game-cell library-game-cell"
+              onClick={() => setEditing(row.original)}
+            >
+              <ReviewMark rating={row.original.rating} />
+              <span className="library-game-identity">
+                <strong>{row.original.title}</strong>
+                <small>
+                  {row.original.device ||
+                    row.original.platforms ||
+                    "Plataforma sin definir"}
+                </small>
+                <span className={"status " + row.original.status}>
+                  {statuses[row.original.status]}
+                </span>
+              </span>
+            </button>
+          ),
+        },
+        {
+          ...general[2],
+          sortingFn: (a, b) =>
+            statuses[a.original.status].localeCompare(
+              statuses[b.original.status],
+              "es",
+            ),
+        },
         {
           id: "started",
           accessorFn: (record) => dateOrder(record.started),
-          header: "Empecé",
+          header: "Partida",
           sortingFn: "basic",
           sortUndefined: "last",
-          cell: ({ row }) => row.original.started || "—",
+          cell: ({ row }) => <LibraryPlaythrough record={row.original} />,
         },
         {
           id: "finished",
@@ -391,15 +426,27 @@ export function JournalApp({
           header: "Terminé",
           sortingFn: "basic",
           sortUndefined: "last",
-          cell: ({ row }) => row.original.finished || "—",
+          cell: ({ row }) => formatDate(row.original.finished) || "—",
         },
-        ...general.slice(4),
+        {
+          ...general[4],
+          id: "hours",
+          accessorFn: (record) => record.hours ?? undefined,
+          sortingFn: "basic",
+          sortUndefined: "last",
+        },
+        { ...general[5], accessorFn: (record) => record.rating ?? undefined },
         ...libraryTextFields.map(({ key, label }): ColumnDef<Entry> => ({
           accessorKey: key,
           header: label,
-          cell: ({ getValue }) => (
-            <span className="entry-text-cell">{getValue<string>() || "—"}</span>
-          ),
+          cell: ({ getValue, row }) =>
+            key === "reason" ? (
+              <LibraryFinishReason record={row.original} />
+            ) : (
+              <span className="entry-text-cell">
+                {getValue<string>() || "—"}
+              </span>
+            ),
         })),
       ];
     if (view === "journal")
@@ -407,15 +454,6 @@ export function JournalApp({
         general[0],
         general[1],
         general[3],
-        {
-          ...general[5],
-          accessorFn: (record) => record.rating ?? undefined,
-          cell: ({ getValue }) => (
-            <span className="score">
-              {getValue() == null ? "—" : getValue() + "/100"}
-            </span>
-          ),
-        },
         {
           id: "memorability",
           accessorFn: (record) => record.memorability ?? undefined,
@@ -536,7 +574,13 @@ export function JournalApp({
   const table = useReactTable({
     data: games,
     columns,
-    state: { sorting: sort },
+    state: {
+      sorting: sort,
+      columnVisibility:
+        view === "library"
+          ? { status: false, finished: false, hours: false, rating: false }
+          : {},
+    },
     onSortingChange: setSort,
     getCoreRowModel: getCoreRowModel(),
     getSortedRowModel: getSortedRowModel(),
@@ -644,7 +688,14 @@ export function JournalApp({
             </span>
           </span>
         </header>
-        <div className="content">
+        <div
+          className={
+            "content" +
+            (["library", "journal", "wishlist", "upcoming"].includes(view)
+              ? " collection-content"
+              : "")
+          }
+        >
           <div className="page-heading">
             <div>
               <h1>
@@ -768,9 +819,7 @@ export function JournalApp({
                     <div className="notification" key={n.id}>
                       <strong>{n.title}</strong>
                       <p>{n.body}</p>
-                      <small>
-                        {new Date(n.created_at).toLocaleString("es-AR")}
-                      </small>
+                      <small>{formatDateTime(n.created_at)}</small>
                     </div>
                   ))
                 ) : (
@@ -892,6 +941,64 @@ export function JournalApp({
                           " " +
                           (games.length === 1 ? "juego" : "juegos")}
                     </span>
+                    {view === "library" && (
+                      <select
+                        className="library-sort"
+                        aria-label="Ordenar Biblioteca"
+                        value={
+                          sort[0]
+                            ? sort[0].id + "." + (sort[0].desc ? "desc" : "asc")
+                            : ""
+                        }
+                        onChange={(event) => {
+                          const [id, direction] = event.target.value.split(".");
+                          setSort(
+                            id
+                              ? [
+                                  { id, desc: direction === "desc" },
+                                  ...(id === "title"
+                                    ? []
+                                    : [{ id: "title", desc: false }]),
+                                ]
+                              : [],
+                          );
+                        }}
+                      >
+                        <option value="">Sin ordenar</option>
+                        <option value="title.asc">Juego: A → Z</option>
+                        <option value="title.desc">Juego: Z → A</option>
+                        <option value="status.asc">Estado: A → Z</option>
+                        <option value="status.desc">Estado: Z → A</option>
+                        <option value="started.desc">
+                          Empecé: más reciente
+                        </option>
+                        <option value="started.asc">Empecé: más antiguo</option>
+                        <option value="finished.desc">
+                          Terminé: más reciente
+                        </option>
+                        <option value="finished.asc">
+                          Terminé: más antiguo
+                        </option>
+                        <option value="hours.desc">Horas: mayor a menor</option>
+                        <option value="hours.asc">Horas: menor a mayor</option>
+                        <option value="rating.desc">
+                          Reseña: mayor a menor
+                        </option>
+                        <option value="rating.asc">
+                          Reseña: menor a mayor
+                        </option>
+                        <option value="reason.asc">Por qué: A → Z</option>
+                        <option value="reason.desc">Por qué: Z → A</option>
+                        <option value="impression.asc">
+                          Impresiones: A → Z
+                        </option>
+                        <option value="impression.desc">
+                          Impresiones: Z → A
+                        </option>
+                        <option value="notes.asc">Comentarios: A → Z</option>
+                        <option value="notes.desc">Comentarios: Z → A</option>
+                      </select>
+                    )}
                   </div>
                   {!loading && games.length === 0 ? (
                     <Empty
@@ -913,9 +1020,13 @@ export function JournalApp({
                             key={r.id}
                             onClick={() => setEditing(r)}
                           >
-                            <span className="game-mark">
-                              {r.title.slice(0, 2).toUpperCase()}
-                            </span>
+                            {view === "library" ? (
+                              <ReviewMark rating={r.rating} />
+                            ) : (
+                              <span className="game-mark">
+                                {r.title.slice(0, 2).toUpperCase()}
+                              </span>
+                            )}
                             <span className="mobile-game-info">
                               <strong>{r.title}</strong>
                               {view === "upcoming" ? (
@@ -975,16 +1086,13 @@ export function JournalApp({
                                       ? " · " + r.period
                                       : ""}
                                   </small>
-                                  {view === "library" && (
-                                    <small>
-                                      Empecé: {r.started || "—"} · Terminé:{" "}
-                                      {r.finished || "—"}
-                                    </small>
-                                  )}
                                   {view !== "journal" && (
                                     <span className={"status " + r.status}>
                                       {statuses[r.status]}
                                     </span>
+                                  )}
+                                  {view === "library" && (
+                                    <LibraryPlaythrough record={r} />
                                   )}
                                   {view === "journal" && (
                                     <small className="mobile-entry-detail">
@@ -1001,7 +1109,17 @@ export function JournalApp({
                                       ? libraryTextFields
                                       : journalTextFields
                                     ).map(({ key, label }) =>
-                                      r[key] ? (
+                                      view === "library" && key === "reason" ? (
+                                        <small
+                                          className="mobile-entry-detail"
+                                          key={key}
+                                        >
+                                          <LibraryFinishReason
+                                            record={r}
+                                            showLabel
+                                          />
+                                        </small>
+                                      ) : r[key] ? (
                                         <small
                                           className="mobile-entry-detail"
                                           key={key}
@@ -1013,23 +1131,24 @@ export function JournalApp({
                                     )}
                                 </>
                               )}
+                              {view !== "library" && (
+                                <small className="mobile-game-hours">
+                                  Hs. jugadas:{" "}
+                                  {r.hours == null ? "—" : r.hours + " h"}
+                                </small>
+                              )}
                             </span>
-                            {!["wishlist", "upcoming"].includes(view) && (
-                              <span className="mobile-game-score">
-                                {r.rating != null
-                                  ? r.rating + "/100"
-                                  : view !== "journal" && r.hours != null
-                                    ? r.hours + " h"
-                                    : "↗"}
-                              </span>
-                            )}
                           </button>
                         ))}
                       </div>
                       <div className="table-scroll">
                         <table
                           className={
-                            view === "upcoming" ? "upcoming-table" : undefined
+                            view === "upcoming"
+                              ? "upcoming-table"
+                              : view === "library"
+                                ? "library-table"
+                                : undefined
                           }
                         >
                           <thead>
@@ -1132,22 +1251,24 @@ export function JournalApp({
                           })}
                         </strong>
                       </div>
-                      <div
-                        data-stat="rating"
-                        title={summary.ratingCount + " reseñas"}
-                      >
-                        <span>RESEÑA MEDIA</span>
-                        <strong>
-                          {summary.averageRating === null
-                            ? "—"
-                            : summary.averageRating.toLocaleString("es-AR", {
-                                maximumFractionDigits: 1,
-                              })}
-                          {summary.averageRating !== null && (
-                            <small>/100</small>
-                          )}
-                        </strong>
-                      </div>
+                      {view === "library" && (
+                        <div
+                          data-stat="rating"
+                          title={summary.ratingCount + " reseñas"}
+                        >
+                          <span>RESEÑA MEDIA</span>
+                          <strong>
+                            {summary.averageRating === null
+                              ? "—"
+                              : summary.averageRating.toLocaleString("es-AR", {
+                                  maximumFractionDigits: 1,
+                                })}
+                            {summary.averageRating !== null && (
+                              <small>/100</small>
+                            )}
+                          </strong>
+                        </div>
+                      )}
                     </div>
                     <section
                       className="console-summary"
@@ -1446,7 +1567,14 @@ function EntryEditor({
         form={formId}
         type={type}
         required={key === "title"}
-        value={String(draft[key] ?? "")}
+        value={
+          key === "started" || key === "finished"
+            ? formatDate(String(draft[key] ?? ""))
+            : String(draft[key] ?? "")
+        }
+        placeholder={
+          key === "started" || key === "finished" ? "dd/mm/aaaa" : undefined
+        }
         onChange={(e) =>
           set(
             key,
@@ -1699,8 +1827,8 @@ function EntryEditor({
                     {history.length ? (
                       history.map((quote) => (
                         <p key={quote.id}>
-                          {new Date(quote.created_at).toLocaleString("es-AR")} ·{" "}
-                          {quote.currency} {quote.price} · {quote.discount}% OFF
+                          {formatDateTime(quote.created_at)} · {quote.currency}{" "}
+                          {quote.price} · {quote.discount}% OFF
                         </p>
                       ))
                     ) : (
@@ -1983,11 +2111,10 @@ function OfferEditor({
       </div>
       <small className="muted">
         {o.checked_at
-          ? "Última consulta: " + new Date(o.checked_at).toLocaleString("es-AR")
+          ? "Última consulta: " + formatDateTime(o.checked_at)
           : "Consulta pendiente"}
         {o.last_success_at
-          ? " · Último precio válido: " +
-            new Date(o.last_success_at).toLocaleString("es-AR")
+          ? " · Último precio válido: " + formatDateTime(o.last_success_at)
           : ""}
         {o.error ? " · " + o.error : ""}
       </small>
