@@ -1,5 +1,6 @@
 import { authorized, apiError } from "@/lib/auth";
 import { bodyJson, recordSchema } from "@/lib/validation";
+import { parseStoreUrl } from "@/lib/domain";
 export const dynamic = "force-dynamic";
 export async function GET() {
   try {
@@ -19,11 +20,27 @@ export async function POST(request: Request) {
   try {
     const { db } = await authorized();
     const input = recordSchema.parse(await bodyJson(request));
-    const { data, error } = await db.rpc("save_record", {
-      input,
-      record_id: input.id ?? null,
-      expected: input.updated_at ?? null,
-    });
+    if (input.pages) {
+      input.pages = [
+        ...new Set(
+          input.pages.map((page) => {
+            try {
+              return parseStoreUrl(page).url;
+            } catch {
+              return page;
+            }
+          }),
+        ),
+      ];
+    }
+    const { data, error } = await db.rpc(
+      input.pages ? "save_record_with_pages" : "save_record",
+      {
+        input,
+        record_id: input.id ?? null,
+        expected: input.updated_at ?? null,
+      },
+    );
     if (error) throw Error(error.message);
     return Response.json(data);
   } catch (e) {

@@ -11,6 +11,7 @@ export type JournalRecord = {
   id?: string;
   title: string;
   year: number | null;
+  release?: string;
   platforms: string;
   device: string;
   period: string;
@@ -18,7 +19,7 @@ export type JournalRecord = {
   finished: string;
   status: Status;
   ownership: string;
-  priority: number | null;
+  priority: number | string | null;
   hype: string;
   hours: number | null;
   estimated: string;
@@ -30,6 +31,7 @@ export type JournalRecord = {
   reason: string;
   notes: string;
   sourceKey: string;
+  pages?: string[];
   sourceSnapshot?: Record<string, unknown>;
   updated_at?: string;
   offers?: Offer[];
@@ -65,7 +67,7 @@ export const statuses: Record<Status, string> = {
   playing: "Jugando",
   completed: "Terminado",
   paused: "En pausa",
-  abandoned: "Abandonado",
+  abandoned: "No terminado",
   remembered: "Recuerdo",
   wishlist: "Lista de deseos",
   upcoming: "Próximo",

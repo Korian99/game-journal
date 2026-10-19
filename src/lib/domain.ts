@@ -55,6 +55,11 @@ export function parseStoreUrl(raw: string) {
   }
   throw Error("Tienda no compatible");
 }
+function storeTitle(value: unknown): string | undefined {
+  if (typeof value !== "string") return undefined;
+  const title = value.replace(/\s+/g, " ").trim();
+  return title.length > 0 && title.length <= 300 ? title : undefined;
+}
 export function parseSteam(response: any): Price {
   const d = response?.success && response?.data;
   if (!d)
@@ -68,7 +73,7 @@ export function parseSteam(response: any): Price {
   const p = d.price_overview;
   const early = (d.genres ?? []).some((g: any) => String(g.id) === "70");
   return {
-    name: d.name,
+    name: storeTitle(d.name),
     status: d.release_date?.coming_soon
       ? "upcoming"
       : early
@@ -94,6 +99,7 @@ export function parseNintendo(html: string, url: string): Price {
   const $ = load(html);
   const nodes: any[] = [];
   const quotes: any[] = [];
+  let verifiedName: string | undefined;
   function structured(v: any) {
     if (Array.isArray(v)) {
       v.forEach(structured);
@@ -166,6 +172,8 @@ export function parseNintendo(html: string, url: string): Price {
     }
     if (!candidate && nodes.filter((v) => v.offers && v.name).length !== 1)
       continue;
+    const name = storeTitle(n.name);
+    if (candidate && name) verifiedName = name;
     const offer = Array.isArray(n.offers) ? n.offers[0] : n.offers;
     if (
       offer &&
@@ -185,7 +193,7 @@ export function parseNintendo(html: string, url: string): Price {
       );
       const regular = quote ? Number(quote.regularPrice) : final;
       return {
-        name: n.name,
+        name,
         status: final === 0 ? "free" : "available",
         price: final,
         regular,
@@ -197,6 +205,15 @@ export function parseNintendo(html: string, url: string): Price {
       };
     }
   }
+  if (verifiedName)
+    return {
+      name: verifiedName,
+      status: "unavailable",
+      price: null,
+      regular: null,
+      currency: null,
+      discount: 0,
+    };
   throw Error(
     "Nintendo no devolvió un precio verificable; se conserva el último.",
   );
@@ -277,13 +294,32 @@ export function parseWorkbook(tabs: WorkbookTab[]): ImportRecord[] {
             norm(mode === "wishlist" ? "Nombre" : "Proximos"),
           );
           if (start < 0) continue;
+          const urlHeaders = headers.flatMap((h, i) =>
+            ["url", "link", "enlace"].includes(h) ? [i] : [],
+          );
+          // Some sheets put each URL before its title; keep both tables separate.
+          const leadingLinks = urlHeaders.filter((i) => i < start);
+          const precedingLink = leadingLinks.at(-1);
+          const usesLeadingLinks =
+            urlHeaders.length > 0 && urlHeaders[0] < headers.indexOf("nombre");
+          const sectionStart = usesLeadingLinks
+            ? mode === "wishlist"
+              ? 0
+              : (precedingLink ?? start)
+            : start;
           const next = headers.findIndex(
             (h, i) => i > start && ["nombre", "proximos"].includes(h),
           );
-          const end = next < 0 ? headers.length : next;
+          const end =
+            next < 0
+              ? headers.length
+              : usesLeadingLinks
+                ? (urlHeaders.find((i) => i > start && i < next) ?? next)
+                : next;
           const get = (...names: string[]) => {
             const index = headers.findIndex(
-              (h, i) => i >= start && i < end && names.map(norm).includes(h),
+              (h, i) =>
+                i >= sectionStart && i < end && names.map(norm).includes(h),
             );
             return index < 0 ? "" : (row[index] ?? "");
           };
@@ -312,7 +348,9 @@ export function parseWorkbook(tabs: WorkbookTab[]): ImportRecord[] {
             title,
             status: mode,
             ownership: String(get("Comprado")),
-            priority: num(get("Prioridad")),
+            priority:
+              num(get("Prioridad")) ??
+              (String(get("Prioridad")).trim() || null),
             hype: String(get("Hype")),
             estimated: String(get("Hs. Estimadas")),
             sourceKey: key,

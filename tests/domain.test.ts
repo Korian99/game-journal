@@ -176,3 +176,58 @@ describe("reviewed imports", () => {
     ).toBe(true);
   });
 });
+
+describe("store titles", () => {
+  it("normalizes a verified Steam title even when there is no current price", () => {
+    expect(
+      parseSteam({ success: true, data: { name: "  Portal \n 2  " } }),
+    ).toMatchObject({ name: "Portal 2", price: null });
+    expect(
+      parseSteam({ success: true, data: { name: { unexpected: "object" } } })
+        .name,
+    ).toBeUndefined();
+    expect(
+      parseSteam({ success: true, data: { name: " \n " } }).name,
+    ).toBeUndefined();
+    expect(
+      parseSteam({ success: true, data: { name: "a".repeat(301) } }).name,
+    ).toBeUndefined();
+  });
+  it("retains a matching Nintendo product title without inventing a price", () => {
+    const url = "https://www.nintendo.com/es-ar/store/products/test-switch/";
+    const html =
+      '<script type="application/ld+json">' +
+      JSON.stringify({
+        "@type": "Product",
+        url,
+        name: "  Nintendo \n Title  ",
+      }) +
+      "</script>";
+    expect(parseNintendo(html, url)).toMatchObject({
+      name: "Nintendo Title",
+      status: "unavailable",
+      price: null,
+      currency: null,
+    });
+  });
+  it("rejects missing or unrelated Nintendo metadata instead of accepting page chrome", () => {
+    const url = "https://www.nintendo.com/es-ar/store/products/test-switch/";
+    for (const node of [
+      { "@type": "Product", url, name: " " },
+      {
+        "@type": "Product",
+        url: url.replace("test-switch", "other-switch"),
+        name: "Other game",
+      },
+    ]) {
+      expect(() =>
+        parseNintendo(
+          '<script type="application/ld+json">' +
+            JSON.stringify(node) +
+            "</script>",
+          url,
+        ),
+      ).toThrow();
+    }
+  });
+});
