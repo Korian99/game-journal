@@ -1839,3 +1839,25 @@ tbody tr.wishlist-discounted td:first-child,
 .backup-details {
   margin-bottom: 20px;
 }
+
+.notification-settings {
+  margin-top: 24px;
+}
+.notification-options {
+  display: grid;
+  gap: 12px;
+  margin: 16px 0;
+}
+.notification-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.notification-heading h2 {
+  margin-bottom: 0;
+}
+.notification-feedback {
+  overflow-wrap: anywhere;
+}

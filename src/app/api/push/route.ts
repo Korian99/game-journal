@@ -1,6 +1,7 @@
 import { authorized, apiError } from "@/lib/auth";
 import { bodyJson } from "@/lib/validation";
 import { z } from "zod";
+import { allowedPushEndpoint } from "../../../../supabase/functions/notification-worker/delivery";
 export async function GET() {
   try {
     const { db } = await authorized();
@@ -10,7 +11,9 @@ export async function GET() {
       .order("created_at", { ascending: false })
       .limit(100);
     if (error) throw Error(error.message);
-    return Response.json(data);
+    return Response.json(data, {
+      headers: { "Cache-Control": "private, no-store" },
+    });
   } catch (e) {
     return apiError(e);
   }
@@ -20,7 +23,7 @@ export async function POST(request: Request) {
     const { db, user } = await authorized();
     const subscription = z
       .object({
-        endpoint: z.url(),
+        endpoint: z.url().max(2000).refine(allowedPushEndpoint),
         keys: z.object({ p256dh: z.string(), auth: z.string() }),
       })
       .parse(await bodyJson(request));
@@ -46,6 +49,21 @@ export async function DELETE(request: Request) {
       .from("push_subscriptions")
       .delete()
       .eq("endpoint", endpoint);
+    if (error) throw Error(error.message);
+    return Response.json({ ok: true });
+  } catch (e) {
+    return apiError(e);
+  }
+}
+
+export async function PATCH() {
+  try {
+    const { db, user } = await authorized();
+    const { error } = await db
+      .from("notifications")
+      .update({ read_at: new Date().toISOString() })
+      .eq("owner_id", user.id)
+      .is("read_at", null);
     if (error) throw Error(error.message);
     return Response.json({ ok: true });
   } catch (e) {

@@ -6,3 +6,6 @@ minimum_password_length = 8
 verify_jwt = false
 [functions.price-worker]
 verify_jwt = false
+
+[functions.notification-worker]
+verify_jwt = false

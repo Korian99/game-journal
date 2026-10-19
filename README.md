@@ -59,3 +59,7 @@ Supabase Cron ejecuta private.run_daily_backups() a las **06:00 UTC / 03:00 Arge
 - Configuración ofrece la última copia guardada y exportaciones actuales. La restauración todavía es manual: elegir la copia, validar el hash y restaurar primero en un proyecto de prueba; mantener UUID y orden games → playthroughs/offers → price_history, revisar importaciones y permisos de compartir. Nunca aplicar restauración automática sobre datos actuales.
 
 Estas son copias de los **datos de la aplicación dentro del mismo proyecto**, no backups físicos ni PITR de Supabase. Ayudan frente a ediciones y borrados accidentales de juegos; **no sobreviven a borrar/perder el proyecto ni reemplazan una copia externa**. Exportar periódicamente JSON/Excel a otro servicio o dispositivo. Si el proyecto se pausa o la base queda indisponible, Cron no ejecuta y el aviso aparecerá cuando la app pueda consultarlo.
+
+## Notificaciones
+
+Configuración permite activar este dispositivo, elegir descuentos, ofertas por debajo de Objetivo y lanzamientos, y enviar una prueba. [Uso, horarios y verificación](docs/notifications.md).

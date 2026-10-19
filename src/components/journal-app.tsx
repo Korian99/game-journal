@@ -77,7 +77,8 @@ import {
   type Offer,
 } from "@/lib/types";
 import { pickSpreadsheet } from "@/lib/google";
-import { enablePush, disablePush } from "@/lib/push-client";
+import { NotificationSettings } from "./notification-settings";
+import { disablePush } from "@/lib/push-client";
 import type { ImportPlan } from "@/lib/domain";
 type Entry = JournalRecord & { gameId?: string };
 const nav = [
@@ -196,6 +197,11 @@ export function JournalApp({
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "shared_entries" },
+        () => load(),
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "notifications" },
         () => load(),
       )
       .subscribe();
@@ -679,15 +685,14 @@ export function JournalApp({
             <Menu size={21} />
           </button>
           <span className="topbar-right">
-            {notifications.length > 0 && (
-              <span
-                className="notification-count"
-                aria-label={notifications.length + " notificaciones"}
-              >
-                <Bell size={16} />
-                {notifications.length}
-              </span>
-            )}
+            <button
+              className="notification-count"
+              aria-label="Ver notificaciones"
+              onClick={() => setView("settings")}
+            >
+              <Bell size={16} />
+              {notifications.filter((n) => !n.read_at).length || ""}
+            </button>
             <span className="avatar">
               {(member?.display_name ?? "G").slice(0, 1).toUpperCase()}
             </span>
@@ -793,31 +798,7 @@ export function JournalApp({
                 >
                   Cambiar tema
                 </button>
-                <p>Alertas de precio para los juegos que seguís.</p>
-                <div className="button-row">
-                  <button
-                    className="secondary"
-                    onClick={() =>
-                      perform(
-                        enablePush,
-                        "Notificaciones activadas en este dispositivo.",
-                      )
-                    }
-                  >
-                    Activar notificaciones
-                  </button>
-                  <button
-                    className="text-button"
-                    onClick={() =>
-                      perform(disablePush, "Notificaciones desactivadas.")
-                    }
-                  >
-                    Desactivar
-                  </button>
-                </div>
-                <p className="fine-print">
-                  Tiendas: cada 3 h · moneda original.
-                </p>
+                <NotificationSettings onChanged={load} />
               </article>
               {member?.role === "admin" && (
                 <article className="panel">
@@ -827,11 +808,24 @@ export function JournalApp({
                 </article>
               )}
               <article className="panel">
-                <h2>Últimas novedades</h2>
+                <div className="notification-heading">
+                  <h2>Últimas novedades</h2>
+                  {notifications.some((n) => !n.read_at) && (
+                    <button
+                      className="text-button"
+                      disabled={busy}
+                      onClick={() => perform(() => api("/api/push", "PATCH"))}
+                    >
+                      Marcar como leídas
+                    </button>
+                  )}
+                </div>
                 {notifications.length ? (
                   notifications.slice(0, 10).map((n) => (
                     <div className="notification" key={n.id}>
-                      <strong>{n.title}</strong>
+                      <a href={n.url ?? "/?tab=wishlist"}>
+                        <strong>{n.title}</strong>
+                      </a>
                       <p>{n.body}</p>
                       <small>{formatDateTime(n.created_at)}</small>
                     </div>
@@ -1032,12 +1026,12 @@ export function JournalApp({
                               .filter(Boolean)
                               .join(" ")}
                             key={r.id}
-                            ) : view === "wishlist" ? (
-                              <PriorityMark value={r.priority} />
                             onClick={() => setEditing(r)}
                           >
                             {view === "library" ? (
                               <ReviewMark rating={r.rating} />
+                            ) : view === "wishlist" ? (
+                              <PriorityMark value={r.priority} />
                             ) : (
                               <span className="game-mark">
                                 {r.title.slice(0, 2).toUpperCase()}
@@ -2143,12 +2137,11 @@ function OfferEditor({
                 api("/api/offers", "PATCH", {
                   id: o.id,
                   watched: e.target.checked,
-                  target_price: target === "" ? null : Number(target),
                 }),
               )
             }
           />
-          Seguir oferta
+          Avisarme de descuentos
         </label>
         <label className="target-label">
           Objetivo ({o.currency ?? "moneda de tienda"})

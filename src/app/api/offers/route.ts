@@ -33,11 +33,30 @@ export async function PATCH(request: Request) {
     const { id, ...input } = z
       .object({
         id: z.uuid(),
-        watched: z.boolean(),
-        target_price: z.number().nonnegative().nullable(),
+        watched: z.boolean().optional(),
+        target_price: z.number().nonnegative().nullable().optional(),
       })
       .parse(await bodyJson(request));
-    const { error } = await db.from("offers").update(input).eq("id", id);
+
+    const { data: current, error: readError } = await db
+      .from("offers")
+      .select("currency")
+      .eq("id", id)
+      .single();
+    if (readError || !current) throw Error("Página no encontrada.");
+    const { error } = await db
+      .from("offers")
+      .update({
+        ...input,
+        ...(input.target_price === undefined
+          ? {}
+          : {
+              target_currency:
+                input.target_price === null ? null : current.currency,
+            }),
+      })
+      .eq("id", id);
+
     if (error) throw Error(error.message);
     return Response.json({ ok: true });
   } catch (e) {

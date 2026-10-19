@@ -43,18 +43,6 @@ Deno.serve(async(req:Request)=>{
  }catch(e){failed++;await db.from("offers").update({error:String((e as Error).message??e).slice(0,400),checked_at:new Date().toISOString(),lease_until:null}).eq("id",offer.id);}
  }
  for(let i=0;i<offers.length;i+=2)await Promise.all(offers.slice(i,i+2).map(process));
- if(config.game_journal_vapid_public&&config.game_journal_vapid_private){
- webpush.setVapidDetails("https://github.com/Korian99/game-journal",config.game_journal_vapid_public,config.game_journal_vapid_private);
- let query=db.from("notifications").select("*").is("delivered_at",null).gt("created_at",new Date(Date.now()-86400000).toISOString()).limit(40);if(owner)query=query.eq("owner_id",owner);
- const {data:events}=await query;
- for(const event of events??[]){
- const {data:subs}=await db.from("push_subscriptions").select("*").eq("owner_id",event.owner_id);let delivered=true;
- for(const sub of subs??[]){try{const endpoint=new URL(sub.endpoint);if(endpoint.protocol!=="https:"||endpoint.port||!["fcm.googleapis.com","updates.push.services.mozilla.com","web.push.apple.com"].includes(endpoint.hostname))continue;
- await webpush.sendNotification(sub.subscription,JSON.stringify({title:event.title,body:event.body,tag:event.id}),{TTL:3600});
- }catch(e:any){if([404,410].includes(e.statusCode))await db.from("push_subscriptions").delete().eq("id",sub.id);else delivered=false;}}
- if(delivered)await db.from("notifications").update({delivered_at:new Date().toISOString()}).eq("id",event.id);
- }
- }
  if(run)await db.from("refresh_runs").update({finished_at:new Date().toISOString(),processed:offers.length,failed}).eq("id",run.id);
  if(offers.length===8){const next=fetch(base+"/functions/v1/price-worker",{method:"POST",headers:{"Content-Type":"application/json",...(owner?{Authorization:req.headers.get("authorization")!}:{"x-cron-secret":cronToken!})},body:"{}"});(globalThis as any).EdgeRuntime?.waitUntil(next);}
  return Response.json({processed:offers.length,failed,continued:offers.length===8});
