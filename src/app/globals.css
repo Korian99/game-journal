@@ -1155,17 +1155,24 @@ tbody tr:hover {
   font-size: 9px;
 }
 .ownership {
-  display: inline-block;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   padding: 5px 9px;
-  border-radius: 4px;
+  border: 1px solid transparent;
+  border-radius: 5px;
+  font-weight: 500;
+  line-height: 1.4;
 }
 .ownership.owned {
   color: #a3cba3;
   background: #80b7801c;
+  border-color: #80b78066;
 }
 .ownership.not-owned {
-  color: var(--accent);
-  background: color-mix(in srgb, var(--accent) 12%, transparent);
+  color: var(--muted);
+  background: var(--raised);
+  border-color: var(--line);
 }
 .wishlist-mobile-meta {
   display: flex;
@@ -1352,6 +1359,7 @@ tbody tr:hover {
 .ownership.family {
   color: #b3cefa;
   background: #76a5ed20;
+  border-color: #76a5ed77;
 }
 :root.light .ownership.family {
   color: #345c95;
@@ -1519,8 +1527,16 @@ tbody tr:hover {
   }
 }
 
-.release-field { margin: 0 0 20px; padding: 0; border: 0; min-width: 0; }
-.release-field legend { margin-bottom: 12px; font-weight: 600; }
+.release-field {
+  margin: 0 0 20px;
+  padding: 0;
+  border: 0;
+  min-width: 0;
+}
+.release-field legend {
+  margin-bottom: 12px;
+  font-weight: 600;
+}
 
 /* Active wishlist offers use the collection's green accent. */
 tbody tr.wishlist-discounted,
@@ -1544,29 +1560,91 @@ tbody tr.wishlist-discounted td:first-child,
   box-shadow: inset 3px 0 #80b780;
 }
 
-.upcoming-table td { padding-top: 14px; padding-bottom: 14px; }
-.upcoming-table th:first-child { width: 180px; }
-.upcoming-table th:last-child { width: 120px; }
-.upcoming-name { min-width: 220px; max-width: none; }
-.hype-badge { display: inline-block; padding: 5px 9px; border-radius: 4px; font-size: 10px; color: var(--muted); background: #ffffff0a; }
-.hype-badge[data-level="medio"] { color: var(--accent); background: color-mix(in srgb, var(--accent) 12%, transparent); }
-.hype-badge[data-level="alto"] { color: #a3cba3; background: #80b7801c; }
-.hype-badge[data-level="hyper"] { color: #f4b9a4; background: #da8d7022; }
-.upcoming-mobile-hype { display: flex; align-items: center; gap: 9px; }
+.upcoming-table td {
+  padding-top: 14px;
+  padding-bottom: 14px;
+}
+.upcoming-table th:first-child {
+  width: 180px;
+}
+.upcoming-table th:last-child {
+  width: 120px;
+}
+.upcoming-name {
+  min-width: 220px;
+  max-width: none;
+}
+.hype-badge {
+  display: inline-block;
+  padding: 5px 9px;
+  border-radius: 4px;
+  font-size: 10px;
+  color: var(--muted);
+  background: #ffffff0a;
+}
+.hype-badge[data-level="medio"] {
+  color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+}
+.hype-badge[data-level="alto"] {
+  color: #a3cba3;
+  background: #80b7801c;
+}
+.hype-badge[data-level="hyper"] {
+  color: #f4b9a4;
+  background: #da8d7022;
+}
+.upcoming-mobile-hype {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
 
-.upcoming-release-date { display: inline-flex; align-items: center; gap: 8px; }
-.released-badge { display: inline-block; padding: 4px 7px; border-radius: 4px; font-size: 9px; color: #a3cba3; background: #80b78022; white-space: nowrap; }
-.mobile-game-info .released-badge { margin-left: 8px; }
+.upcoming-release-date {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.released-badge {
+  display: inline-block;
+  padding: 4px 7px;
+  border-radius: 4px;
+  font-size: 9px;
+  color: #a3cba3;
+  background: #80b78022;
+  white-space: nowrap;
+}
+.mobile-game-info .released-badge {
+  margin-left: 8px;
+}
 
-.sidebar nav { margin-top: 30px; }
-.sidebar-bottom p { margin-top: 0; }
-.topbar-right { margin-left: auto; }
-.notification-count { display: inline-flex; align-items: center; gap: 8px; }
-.login-story > div { margin-block: auto; }
+.sidebar nav {
+  margin-top: 30px;
+}
+.sidebar-bottom p {
+  margin-top: 0;
+}
+.topbar-right {
+  margin-left: auto;
+}
+.notification-count {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.login-story > div {
+  margin-block: auto;
+}
 
-.topbar { height: 56px; }
-.content { padding-top: 30px; }
-.page-heading { margin-bottom: 24px; }
+.topbar {
+  height: 56px;
+}
+.content {
+  padding-top: 30px;
+}
+.page-heading {
+  margin-bottom: 24px;
+}
 
 /* Compact library: game, playthrough, and review comments share five columns. */
 .library-table {
@@ -1678,7 +1756,8 @@ tbody tr.wishlist-discounted td:first-child,
   }
 }
 @media (max-width: 760px) {
-  .mobile-game:has(.review-mark) {
+  .mobile-game:has(.review-mark),
+  .mobile-game:has(.priority-mark) {
     align-items: flex-start;
   }
   .mobile-game-info .library-playthrough {
@@ -1709,4 +1788,42 @@ tbody tr.wishlist-discounted td:first-child,
 }
 .library-finished > span:first-child {
   color: var(--muted);
+}
+
+:root.light .ownership.owned {
+  color: #326737;
+  background: #e7f2e5;
+  border-color: #78a66b80;
+}
+.priority-mark {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  width: 42px;
+  min-height: 42px;
+  padding: 6px;
+  border: 1px solid color-mix(in srgb, var(--accent) 40%, var(--line));
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--accent) 9%, var(--surface));
+  color: var(--accent);
+  font:
+    18px Georgia,
+    serif;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.2;
+  overflow-wrap: anywhere;
+}
+.priority-mark-named {
+  width: auto;
+  min-width: 42px;
+  max-width: 80px;
+  font-family: var(--font-body);
+  font-size: 12px;
+}
+.wishlist-table th:first-child {
+  width: 90px;
+}
+.ownership svg {
+  flex-shrink: 0;
 }

@@ -39,6 +39,7 @@ import {
 } from "./ownership-badge";
 import { wishlistPlatforms, hasActiveDiscount } from "@/lib/wishlist-display";
 import { HypeBadge } from "./hype-badge";
+import { PriorityMark } from "./priority-mark";
 import {
   ReviewMark,
   LibraryPlaythrough,
@@ -542,9 +543,7 @@ export function JournalApp({
             "es",
             { numeric: true, sensitivity: "base" },
           ),
-        cell: ({ getValue }) => (
-          <span className="priority-value">{String(getValue() ?? "—")}</span>
-        ),
+        cell: ({ row }) => <PriorityMark value={row.original.priority} />,
       },
       storeName,
       {
@@ -559,7 +558,12 @@ export function JournalApp({
       },
       {
         accessorKey: "ownership",
-        header: "Comprado",
+        header: "Acceso",
+        sortingFn: (a, b) =>
+          getOwnershipInfo(a.original.ownership).label.localeCompare(
+            getOwnershipInfo(b.original.ownership).label,
+            "es",
+          ),
         cell: ({ getValue }) => (
           <OwnershipBadge value={getValue<string>() || ""} />
         ),
@@ -1026,6 +1030,8 @@ export function JournalApp({
                               .filter(Boolean)
                               .join(" ")}
                             key={r.id}
+                            ) : view === "wishlist" ? (
+                              <PriorityMark value={r.priority} />
                             onClick={() => setEditing(r)}
                           >
                             {view === "library" ? (
@@ -1070,9 +1076,6 @@ export function JournalApp({
                                     ).join(" · ") || "Plataforma sin confirmar"}
                                   </small>
                                   <small className="wishlist-mobile-meta">
-                                    <span className="priority-value">
-                                      Prioridad {r.priority ?? "—"}
-                                    </span>
                                     <OwnershipBadge value={r.ownership} />
                                   </small>
                                   <small>
@@ -1156,7 +1159,9 @@ export function JournalApp({
                               ? "upcoming-table"
                               : view === "library"
                                 ? "library-table"
-                                : undefined
+                                : view === "wishlist"
+                                  ? "wishlist-table"
+                                  : undefined
                           }
                         >
                           <thead>
@@ -1714,7 +1719,7 @@ function EntryEditor({
                   </select>
                 </label>
                 <label>
-                  Comprado / acceso familiar
+                  Acceso al juego
                   <select
                     form={formId}
                     value={getOwnershipInfo(draft.ownership).value}
