@@ -40,6 +40,7 @@ import {
 import { wishlistPlatforms, hasActiveDiscount } from "@/lib/wishlist-display";
 import { HypeBadge } from "./hype-badge";
 import { PriorityMark } from "./priority-mark";
+import { BackupStatus } from "./backup-status";
 import {
   ReviewMark,
   LibraryPlaythrough,
@@ -745,6 +746,7 @@ export function JournalApp({
               </button>
             </div>
           )}
+          <BackupStatus details={view === "settings"} />
           {view === "settings" ? (
             <section className="settings-grid">
               <article className="panel">
