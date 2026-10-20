@@ -66,6 +66,7 @@ import {
   releaseHasArrived,
 } from "@/lib/releases";
 import { releaseSchema, pagesSchema } from "@/lib/validation";
+import { statusAfterDateEdits } from "@/lib/entry-status";
 import {
   viewStatuses,
   dateOrder,
@@ -1749,7 +1750,11 @@ function EntryEditor({
               return;
             }
             setPageError("");
-            onSave({ ...draft, pages: pages.data });
+            onSave({
+              ...draft,
+              pages: pages.data,
+              status: statusAfterDateEdits(draft, entry),
+            });
           }}
         />
         <div
