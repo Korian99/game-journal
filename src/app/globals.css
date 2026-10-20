@@ -903,6 +903,10 @@ tbody tr:hover {
     display: inline-flex;
   }
   .topbar {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    background: var(--bg);
     height: 65px;
     padding: 0 18px;
     gap: 10px;
