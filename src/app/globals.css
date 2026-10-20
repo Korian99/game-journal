@@ -1865,3 +1865,84 @@ tbody tr.wishlist-discounted td:first-child,
 .notification-feedback {
   overflow-wrap: anywhere;
 }
+
+.modal-header-controls {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.entry-actions-menu {
+  position: relative;
+}
+.entry-actions-menu > summary {
+  list-style: none;
+  width: 36px;
+  height: 36px;
+  cursor: pointer;
+}
+.entry-actions-menu > summary::-webkit-details-marker {
+  display: none;
+}
+.entry-actions-menu > summary:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+.entry-actions-menu > summary[aria-disabled="true"] {
+  opacity: 0.5;
+  cursor: wait;
+}
+.entry-menu-popover {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 6px);
+  width: 190px;
+  padding: 5px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  box-shadow: 0 10px 30px #0004;
+}
+.entry-menu-popover button {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 12px;
+  border-radius: 4px;
+  text-align: left;
+}
+.entry-menu-popover button:hover {
+  background: var(--raised);
+}
+.delete-entry-confirmation strong {
+  overflow-wrap: anywhere;
+}
+.delete-entry-buttons {
+  display: flex;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 24px;
+}
+.delete-entry-confirm {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 11px 16px;
+  border: 1px solid var(--error);
+  border-radius: 7px;
+  background: color-mix(in srgb, var(--error) 12%, var(--surface));
+}
+.delete-entry-error {
+  color: var(--error);
+}
+@media (max-width: 760px) {
+  .entry-actions-menu > summary {
+    width: 44px;
+    height: 44px;
+  }
+  .delete-entry-buttons > button {
+    flex: 1 1 auto;
+  }
+}

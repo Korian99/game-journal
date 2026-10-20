@@ -1,5 +1,12 @@
 "use client";
-import { useCallback, useEffect, useId, useMemo, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useId,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import {
   BookOpen,
   Library,
@@ -30,6 +37,7 @@ import {
   type ColumnDef,
 } from "@tanstack/react-table";
 import { Modal } from "./ui/dialog";
+import { EntryActionsMenu } from "./entry-actions-menu";
 import { WishlistPrice } from "./wishlist-price";
 import { PlatformPicker } from "./platform-picker";
 import {
@@ -1364,13 +1372,12 @@ export function JournalApp({
               setEditing(null);
           }}
           onDelete={async () => {
-            if (
-              await perform(
-                () => api("/api/records", "DELETE", { id: editing.id }),
-                "Entrada eliminada.",
-              )
-            )
-              setEditing(null);
+            const removed = await perform(
+              () => api("/api/records", "DELETE", { id: editing.id }),
+              "Entrada eliminada.",
+            );
+            if (removed) setEditing(null);
+            return removed;
           }}
           run={perform}
           reload={load}
@@ -1547,7 +1554,7 @@ function EntryEditor({
   busy: boolean;
   onClose: () => void;
   onSave: (e: Entry) => Promise<void>;
-  onDelete: () => Promise<void>;
+  onDelete: () => Promise<boolean>;
   run: (f: () => Promise<unknown>, s?: string) => Promise<boolean>;
   reload: () => Promise<void>;
 }) {
@@ -1557,8 +1564,36 @@ function EntryEditor({
     [history, setHistory] = useState<any[] | null>(null),
     [activeTab, setActiveTab] = useState("main"),
     [pageError, setPageError] = useState(""),
-    [releaseError, setReleaseError] = useState("");
+    [releaseError, setReleaseError] = useState(""),
+    [confirmDelete, setConfirmDelete] = useState(false),
+    [deleteError, setDeleteError] = useState("");
   const editorId = useId();
+  const cancelDelete = useRef<HTMLButtonElement>(null);
+  const wasConfirming = useRef(false);
+  const deleting = useRef(false);
+  useEffect(() => {
+    if (confirmDelete) cancelDelete.current?.focus();
+    else if (wasConfirming.current)
+      document.getElementById(editorId + "-options")?.focus();
+    wasConfirming.current = confirmDelete;
+  }, [confirmDelete, editorId]);
+  async function deleteEntry() {
+    if (busy || deleting.current) return;
+    deleting.current = true;
+    setDeleteError("");
+    try {
+      if (!(await onDelete()))
+        setDeleteError(
+          "No se pudo eliminar la entrada. Podés volver a intentarlo.",
+        );
+    } catch {
+      setDeleteError(
+        "No se pudo eliminar la entrada. Podés volver a intentarlo.",
+      );
+    } finally {
+      deleting.current = false;
+    }
+  }
   const formId = editorId + "-form";
   const tabs = [
     { id: "main", label: "Principal" },
@@ -1598,11 +1633,86 @@ function EntryEditor({
       />
     </label>
   );
+  if (confirmDelete && entry.id)
+    return (
+      <Modal
+        open
+        title="Eliminar entrada"
+        onClose={() => {
+          if (!busy) setConfirmDelete(false);
+        }}
+      >
+        <div className="modal-body delete-entry-confirmation">
+          <p>
+            ¿Querés eliminar esta entrada de <strong>{entry.title}</strong>?
+          </p>
+          <p className="muted delete-entry-context">
+            {[
+              statuses[entry.status],
+              entry.device,
+              entry.started ? "Empecé: " + formatDate(entry.started) : "",
+            ]
+              .filter(Boolean)
+              .join(" · ")}
+          </p>
+          <p className="fine-print">
+            Las demás partidas de este juego se conservan. Esta acción no se
+            puede deshacer desde la app.
+          </p>
+          {deleteError && (
+            <p className="delete-entry-error" role="alert">
+              {deleteError}
+            </p>
+          )}
+          <div className="delete-entry-buttons">
+            <button
+              ref={cancelDelete}
+              type="button"
+              className="secondary"
+              disabled={busy}
+              onClick={() => setConfirmDelete(false)}
+            >
+              Cancelar
+            </button>
+            <button
+              type="button"
+              className="danger delete-entry-confirm"
+              disabled={busy}
+              onClick={deleteEntry}
+            >
+              <Trash2 size={16} />
+              {busy ? "Eliminando…" : "Confirmar eliminación"}
+            </button>
+          </div>
+        </div>
+      </Modal>
+    );
   return (
     <Modal
       open
       onClose={onClose}
       title={entry.id ? "Tu partida" : "Agregar un juego"}
+      onEscapeKeyDown={(event) => {
+        const trigger = document.getElementById(editorId + "-options");
+        const menu = trigger?.closest("details");
+        if (menu?.open) {
+          event.preventDefault();
+          menu.open = false;
+          trigger?.focus();
+        }
+      }}
+      headerActions={
+        entry.id ? (
+          <EntryActionsMenu
+            triggerId={editorId + "-options"}
+            busy={busy}
+            onDeleteRequest={() => {
+              setDeleteError("");
+              setConfirmDelete(true);
+            }}
+          />
+        ) : undefined
+      }
     >
       <div className="modal-body entry-editor">
         <form
@@ -2054,17 +2164,6 @@ function EntryEditor({
                         disabled={busy}
                       >
                         Nueva partida
-                      </button>
-                    )}
-                    {entry.id && (
-                      <button
-                        type="button"
-                        className="danger text-button"
-                        onClick={onDelete}
-                        disabled={busy}
-                      >
-                        <Trash2 size={15} />
-                        Eliminar entrada
                       </button>
                     )}
                   </div>

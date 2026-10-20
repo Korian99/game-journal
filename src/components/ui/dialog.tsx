@@ -6,22 +6,34 @@ export function Modal({
   onClose,
   title,
   children,
+  headerActions,
+  onEscapeKeyDown,
 }: {
   open: boolean;
   onClose: () => void;
   title: string;
   children: React.ReactNode;
+  headerActions?: React.ReactNode;
+  onEscapeKeyDown?: (event: KeyboardEvent) => void;
 }) {
   return (
     <Dialog.Root open={open} onOpenChange={(v) => !v && onClose()}>
       <Dialog.Portal>
         <Dialog.Overlay className="modal-overlay" />
-        <Dialog.Content className="modal-content" aria-describedby={undefined}>
+        <Dialog.Content
+          className="modal-content"
+          aria-describedby={undefined}
+          onEscapeKeyDown={onEscapeKeyDown}
+        >
           <div className="modal-header">
             <Dialog.Title>{title}</Dialog.Title>
-            <Dialog.Close className="icon-button" aria-label="Cerrar">
-              <X size={20} />
-            </Dialog.Close>
+
+            <div className="modal-header-controls">
+              {headerActions}
+              <Dialog.Close className="icon-button" aria-label="Cerrar">
+                <X size={20} />
+              </Dialog.Close>
+            </div>
           </div>
           {children}
         </Dialog.Content>
