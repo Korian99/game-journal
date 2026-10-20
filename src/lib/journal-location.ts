@@ -10,10 +10,12 @@ export const journalViews = [
   "settings",
 ] as const;
 export type JournalView = (typeof journalViews)[number];
+export type DiscountFilter = "" | "discounted" | "not-discounted";
 export type JournalLocation = {
   view: JournalView;
   query: string;
   status: string;
+  discount: DiscountFilter;
   platform: string;
   year: string;
   sort: SortingState;
@@ -36,7 +38,15 @@ const columns: Record<JournalView, string[]> = {
   shared: [],
   settings: [],
 };
-const locationKeys = ["tab", "q", "status", "platform", "year", "sort"];
+const locationKeys = [
+  "tab",
+  "q",
+  "status",
+  "discount",
+  "platform",
+  "year",
+  "sort",
+];
 export function defaultJournalLocation(
   view: JournalView = "library",
   present = currentYear(),
@@ -45,6 +55,7 @@ export function defaultJournalLocation(
     view,
     query: "",
     status: "",
+    discount: "",
     platform: "",
     year: view === "library" ? present : view === "journal" ? "2024" : "",
     sort: columns[view].length ? defaultViewSort(view) : [],
@@ -68,10 +79,16 @@ export function readJournalLocation(
   state.platform = bounded(params.get("platform"), 200);
   const status = params.get("status");
   if (
-    !["journal", "upcoming"].includes(view) &&
+    view === "library" &&
     viewStatuses[view]?.some((value) => value === status)
   )
     state.status = status!;
+  const discount = params.get("discount");
+  if (
+    view === "wishlist" &&
+    (discount === "discounted" || discount === "not-discounted")
+  )
+    state.discount = discount;
   if (["library", "journal"].includes(view)) {
     const year = params.get("year");
     if (year === "all") state.year = "";
@@ -111,8 +128,10 @@ export function writeJournalLocation(
   params.set("tab", state.view);
   if (columns[state.view].length) {
     if (state.query) params.set("q", state.query);
-    if (state.status && !["journal", "upcoming"].includes(state.view))
+    if (state.status && state.view === "library")
       params.set("status", state.status);
+    if (state.discount && state.view === "wishlist")
+      params.set("discount", state.discount);
     if (state.platform) params.set("platform", state.platform);
     const defaults = defaultJournalLocation(state.view, present);
     if (

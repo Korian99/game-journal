@@ -6,6 +6,7 @@ import {
   readJournalLocation,
   writeJournalLocation,
   type JournalLocation,
+  type DiscountFilter,
   type JournalView,
 } from "./journal-location";
 
@@ -71,6 +72,7 @@ export function useJournalLocation(initialLocation?: JournalLocation) {
     setSort,
     setQuery: (query: string) => update({ query }, "replace"),
     setStatus: (status: string) => update({ status }),
+    setDiscount: (discount: DiscountFilter) => update({ discount }),
     setPlatform: (platform: string) => update({ platform }),
     setYear: (year: string) => update({ year }),
   };

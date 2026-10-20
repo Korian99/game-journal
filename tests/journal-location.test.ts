@@ -11,6 +11,7 @@ it("restores a bookmarked tab, year, search, filters, and sort", () => {
     year: "2025",
     query: "Pokémon",
     status: "completed",
+    discount: "",
     platform: "Nintendo DS",
     sort: [
       { id: "rating", desc: true },
@@ -113,4 +114,58 @@ it("does not accept external or non-journal sign-in destinations", () => {
     "/api/records",
   ])
     expect(location.resolveJournalReturnPath(target, "2026")).toBe("/");
+});
+
+it.each(["discounted", "not-discounted"])(
+  "restores and round trips the wishlist discount filter %s",
+  (discount) => {
+    const state = location.readJournalLocation(
+      "?tab=wishlist&discount=" + discount,
+      "2026",
+    );
+    expect(state).toMatchObject({ view: "wishlist", discount, status: "" });
+    expect(
+      location.readJournalLocation(
+        location.writeJournalLocation(state, "", "2026"),
+        "2026",
+      ),
+    ).toEqual(state);
+  },
+);
+it("replaces the old wishlist status filter rather than retaining it", () => {
+  const state = location.readJournalLocation(
+    "?tab=wishlist&status=wishlist&discount=discounted",
+    "2026",
+  );
+  expect(state.status).toBe("");
+  const params = new URLSearchParams(
+    location.writeJournalLocation(state, "status=wishlist", "2026"),
+  );
+  expect(params.has("status")).toBe(false);
+  expect(params.get("discount")).toBe("discounted");
+});
+it.each(["library", "journal", "upcoming", "settings"])(
+  "does not apply wishlist discounts to %s",
+  (view) => {
+    const state = location.readJournalLocation(
+      "?tab=" + view + "&discount=discounted",
+      "2026",
+    );
+    expect(state).toHaveProperty("discount", "");
+    expect(
+      new URLSearchParams(
+        location.writeJournalLocation(state, "discount=discounted", "2026"),
+      ).has("discount"),
+    ).toBe(false);
+  },
+);
+it("ignores invalid discount filters and omits the default from the URL", () => {
+  const state = location.readJournalLocation(
+    "?tab=wishlist&discount=invalid",
+    "2026",
+  );
+  expect(state).toHaveProperty("discount", "");
+  expect(location.writeJournalLocation(state, "discount=invalid", "2026")).toBe(
+    "tab=wishlist",
+  );
 });

@@ -55,7 +55,11 @@ import {
   LibraryFinishReason,
 } from "./library-game-details";
 import { useJournalLocation } from "@/lib/use-journal-location";
-import type { JournalLocation, JournalView } from "@/lib/journal-location";
+import type {
+  DiscountFilter,
+  JournalLocation,
+  JournalView,
+} from "@/lib/journal-location";
 import { summarizeGames } from "@/lib/view-summary";
 import { ReleaseField } from "./release-field";
 import {
@@ -132,12 +136,14 @@ export function JournalApp({
     view,
     query,
     status,
+    discount,
     platform,
     year: selectedYear,
     sort,
     setView,
     setQuery,
     setStatus,
+    setDiscount,
     setPlatform,
     setYear,
     setSort,
@@ -290,6 +296,13 @@ export function JournalApp({
             ),
         )
         .filter((r) => !status || r.status === status)
+        .filter((r) => {
+          if (view !== "wishlist" || !discount) return true;
+          const discounted = hasActiveDiscount(
+            offers.filter((offer) => offer.game_id === r.gameId),
+          );
+          return discount === "discounted" ? discounted : !discounted;
+        })
         .filter(
           (r) =>
             !platform ||
@@ -301,7 +314,7 @@ export function JournalApp({
               : (r.device + ";" + r.platforms).split(";").map((p) => p.trim())
             ).includes(platform),
         ),
-    [entriesInView, query, status, platform, view, offers],
+    [entriesInView, query, status, discount, platform, view, offers],
   );
   const summary = useMemo(
     () => summarizeGames(games, view === "library" ? selectedYear : ""),
@@ -902,7 +915,20 @@ export function JournalApp({
                     </select>
                   </label>
                 )}
-                {!["journal", "upcoming"].includes(view) && (
+                {view === "wishlist" && (
+                  <select
+                    aria-label="Filtrar descuentos"
+                    value={discount}
+                    onChange={(e) =>
+                      setDiscount(e.target.value as DiscountFilter)
+                    }
+                  >
+                    <option value="">Descuentos: todos</option>
+                    <option value="discounted">Con descuento</option>
+                    <option value="not-discounted">Sin descuento</option>
+                  </select>
+                )}
+                {view === "library" && (
                   <select
                     aria-label="Filtrar estado"
                     value={status}
