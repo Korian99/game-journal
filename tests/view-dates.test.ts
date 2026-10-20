@@ -6,7 +6,7 @@ import {
   currentYear,
   matchesViewYear,
   viewYears,
-} from "../src/lib/view-config";
+} from "../src/lib/journal/view-config";
 
 it("sorts ISO and Argentine day/month dates consistently", () => {
   expect(dateOrder("02/10/2026")).toBe(dateOrder("2026-10-02"));

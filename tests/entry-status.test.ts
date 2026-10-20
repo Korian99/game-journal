@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { statusAfterDateEdits } from "../src/lib/entry-status";
+import { statusAfterDateEdits } from "../src/lib/journal/entry-status";
 import { emptyRecord } from "../src/lib/types";
 
 describe("status when saving play dates", () => {

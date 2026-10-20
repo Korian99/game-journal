@@ -1,5 +1,5 @@
 import { expect, it } from "vitest";
-import * as display from "../src/lib/wishlist-display";
+import * as display from "../src/lib/offers/wishlist-display";
 import type { Offer } from "../src/lib/types";
 
 it("shows the platforms from added store pages and deduplicates regional offers", () => {

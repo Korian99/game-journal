@@ -1,6 +1,6 @@
 import { expect, it } from "vitest";
 import * as releases from "../src/lib/releases";
-import { defaultViewSort } from "../src/lib/view-config";
+import { defaultViewSort } from "../src/lib/journal/view-config";
 import { recordSchema } from "../src/lib/validation";
 import { emptyRecord } from "../src/lib/types";
 

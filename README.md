@@ -28,6 +28,7 @@ La prueba autenticada requiere una cuenta **descartable e invitada**, con biblio
 
 ## Configuración
 
+- [Mapa del código](docs/codebase-map.md)
 - [Plan aprobado](docs/implementation-plan.md)
 - [Estado y verificaciones](docs/status.md)
 - [Instalación y operaciones](docs/setup.md)

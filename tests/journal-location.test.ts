@@ -1,5 +1,5 @@
 import { expect, it } from "vitest";
-import * as location from "../src/lib/journal-location";
+import * as location from "../src/lib/journal/journal-location";
 
 it("restores a bookmarked tab, year, search, filters, and sort", () => {
   const state = location.readJournalLocation(

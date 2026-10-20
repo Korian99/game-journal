@@ -1,4 +1,4 @@
-import type { JournalRecord, Status } from "./types";
+import type { JournalRecord, Status } from "../types";
 
 export const viewStatuses: Record<string, Status[]> = {
   library: ["playing", "completed", "paused", "abandoned"],

@@ -1,6 +1,6 @@
 import { expect, it } from "vitest";
 import { emptyRecord } from "../src/lib/types";
-import { summarizeGames } from "../src/lib/view-summary";
+import { summarizeGames } from "../src/lib/journal/view-summary";
 
 it("counts recorded start and finish dates and sums played hours", () => {
   const summary = summarizeGames([

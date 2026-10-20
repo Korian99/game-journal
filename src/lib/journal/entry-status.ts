@@ -1,4 +1,4 @@
-import type { JournalRecord, Status } from "./types";
+import type { JournalRecord, Status } from "../types";
 import { dateOrder } from "./view-config";
 
 type DatedEntry = Pick<JournalRecord, "started" | "finished" | "status">;

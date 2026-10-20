@@ -1,4 +1,4 @@
-import type { JournalRecord, Offer } from "./types";
+import type { JournalRecord, Offer } from "../types";
 
 function pagePlatform(raw: string): string | undefined {
   try {

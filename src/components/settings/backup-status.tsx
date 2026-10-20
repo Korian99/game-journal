@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import { backupWarning, type BackupStatus as Status } from "@/lib/backups";
-import { formatDateTime } from "@/lib/view-config";
+import { formatDateTime } from "@/lib/journal/view-config";
 export function BackupStatus({ details = false }: { details?: boolean }) {
   const [status, setStatus] = useState<Status | null>(null);
   const [checked, setChecked] = useState(false);

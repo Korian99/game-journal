@@ -1,6 +1,6 @@
 import ExcelJS from "exceljs";
 import { emptyRecord, statuses, type JournalRecord, type Offer } from "./types";
-import { formatDate, formatDateTime } from "./view-config";
+import { formatDate, formatDateTime } from "./journal/view-config";
 import { releaseLabel } from "./releases";
 
 export type ExportRecord = JournalRecord & { gameId?: string };

@@ -1,4 +1,4 @@
-import type { Offer } from "../lib/types";
+import type { Offer } from "../../lib/types";
 
 export function WishlistPrice({ offers }: { offers: Offer[] }) {
   if (!offers.length) return <span className="muted">Sin precio</span>;

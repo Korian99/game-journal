@@ -1,6 +1,6 @@
 "use client";
 import { useState } from "react";
-import { resolveJournalReturnPath } from "@/lib/journal-location";
+import { resolveJournalReturnPath } from "@/lib/journal/journal-location";
 import { browserClient } from "@/lib/supabase/client";
 export function LoginForm() {
   const [error, setError] = useState("");

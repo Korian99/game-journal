@@ -1,4 +1,4 @@
-import { formatDate } from "@/lib/view-config";
+import { formatDate } from "@/lib/journal/view-config";
 import type { JournalRecord } from "@/lib/types";
 
 export function ReviewMark({ rating }: Pick<JournalRecord, "rating">) {

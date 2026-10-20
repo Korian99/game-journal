@@ -1,0 +1,111 @@
+"use client";
+
+import type { DiscountFilter } from "@/lib/journal/journal-location";
+import { statuses } from "@/lib/types";
+import { useJournalLocation } from "@/hooks/use-journal-location";
+import { viewStatuses } from "@/lib/journal/view-config";
+import { RefreshCw, Search } from "lucide-react";
+
+export function JournalToolbar({
+  location,
+  platforms,
+  yearOptions,
+  busy,
+  onRefresh,
+}: {
+  location: ReturnType<typeof useJournalLocation>;
+  platforms: string[];
+  yearOptions: string[];
+  busy: boolean;
+  onRefresh: () => void;
+}) {
+  const {
+    view,
+    query,
+    status,
+    discount,
+    platform,
+    year: selectedYear,
+    setQuery,
+    setStatus,
+    setDiscount,
+    setPlatform,
+    setYear,
+  } = location;
+  return (
+    <div className="list-toolbar">
+      <div className="search">
+        <Search size={17} />
+        <input
+          maxLength={500}
+          aria-label="Buscar juegos"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          placeholder="Buscar…"
+        />
+      </div>
+      {["library", "journal"].includes(view) && (
+        <label className="year-filter">
+          Año
+          <select
+            value={selectedYear}
+            title={
+              view === "library"
+                ? "Terminados en el año o empezados sin fecha de fin. Sin fechas exactas, se usa el período registrado."
+                : undefined
+            }
+            onChange={(e) => setYear(e.target.value)}
+          >
+            <option value="">Todos los años</option>
+            {yearOptions.map((year) => (
+              <option key={year} value={year}>
+                {year}
+              </option>
+            ))}
+          </select>
+        </label>
+      )}
+      {view === "wishlist" && (
+        <select
+          aria-label="Filtrar descuentos"
+          value={discount}
+          onChange={(e) => setDiscount(e.target.value as DiscountFilter)}
+        >
+          <option value="">Descuentos: todos</option>
+          <option value="discounted">Con descuento</option>
+          <option value="not-discounted">Sin descuento</option>
+        </select>
+      )}
+      {view === "library" && (
+        <select
+          aria-label="Filtrar estado"
+          value={status}
+          onChange={(e) => setStatus(e.target.value)}
+        >
+          <option value="">Todos los estados</option>
+          {(viewStatuses[view] ?? []).map((key) => (
+            <option key={key} value={key}>
+              {statuses[key]}
+            </option>
+          ))}
+        </select>
+      )}
+      <select
+        aria-label="Filtrar plataforma"
+        value={platform}
+        onChange={(e) => setPlatform(e.target.value)}
+      >
+        <option value="">Todas las plataformas</option>
+        {platforms.map((p) => (
+          <option key={p}>{p}</option>
+        ))}
+      </select>
+      {["wishlist", "upcoming"].includes(view) && (
+        <button className="secondary" disabled={busy} onClick={onRefresh}>
+          <RefreshCw size={15} />
+          Actualizar precios
+        </button>
+      )}
+    </div>
+  );
+}

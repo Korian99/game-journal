@@ -2,7 +2,7 @@ import { expect, it } from "vitest";
 import {
   formatDate as format,
   formatDateTime as timestamp,
-} from "../src/lib/view-config";
+} from "../src/lib/journal/view-config";
 it("pads ISO calendar dates without shifting the day", () => {
   expect(format("2026-02-01")).toBe("01/02/2026");
   expect(format("2024-02-29")).toBe("29/02/2024");

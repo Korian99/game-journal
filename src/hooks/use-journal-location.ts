@@ -8,7 +8,7 @@ import {
   type JournalLocation,
   type DiscountFilter,
   type JournalView,
-} from "./journal-location";
+} from "../lib/journal/journal-location";
 
 export function useJournalLocation(initialLocation?: JournalLocation) {
   const [state, setState] = useState(

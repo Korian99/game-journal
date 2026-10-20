@@ -1,6 +1,6 @@
 import { authorized, apiError } from "@/lib/auth";
 import { csvExport, excelExport, type ExportData } from "@/lib/export";
-import { formatDateTime } from "@/lib/view-config";
+import { formatDateTime } from "@/lib/journal/view-config";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 type DB = Awaited<ReturnType<typeof authorized>>["db"];

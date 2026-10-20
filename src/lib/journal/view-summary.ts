@@ -1,4 +1,4 @@
-import type { JournalRecord } from "./types";
+import type { JournalRecord } from "../types";
 import { dateOrder } from "./view-config";
 
 export function summarizeGames(records: JournalRecord[], year = "") {
