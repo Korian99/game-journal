@@ -217,6 +217,18 @@ export function useJournalData() {
     setNotice,
     reloadJournal,
     performAction,
+    removeRecord: (id: string) => {
+      const current = resources.records.getSnapshot().data;
+      resources.records.setData({
+        ...current,
+        records: current.records.filter((record) => record.id !== id),
+      });
+      const sharing = resources.sharing.getSnapshot().data;
+      resources.sharing.setData({
+        ...sharing,
+        grants: sharing.grants.filter((grant) => grant.entry_id !== id),
+      });
+    },
     replaceRecords: (records: JournalEntry[]) =>
       resources.records.setData({
         ...resources.records.getSnapshot().data,

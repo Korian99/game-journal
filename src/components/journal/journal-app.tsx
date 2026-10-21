@@ -108,6 +108,7 @@ export function JournalApp({
     setNotice,
     reloadJournal,
     performAction,
+    removeRecord,
   } = useJournalData();
   const [releaseNow, setReleaseNow] = useState(() => new Date());
   const [editingEntry, setEditingEntry] = useState<JournalEntry | null>(null);
@@ -745,14 +746,13 @@ export function JournalApp({
               setError("Eliminar requiere conexión.");
               return false;
             }
-            const removed = await performAction(
-              () =>
-                apiRequest("/api/records", "DELETE", {
-                  id: editingEntry.id,
-                  expected: editingEntry.updated_at,
-                }),
-              "Entrada movida a Papelera.",
-            );
+            const removed = await performAction(async () => {
+              await apiRequest("/api/records", "DELETE", {
+                id: editingEntry.id,
+                expected: editingEntry.updated_at,
+              });
+              removeRecord(editingEntry.id!);
+            }, "Entrada movida a Papelera.");
             if (removed) {
               setUndoEntry({
                 id: editingEntry.id!,
