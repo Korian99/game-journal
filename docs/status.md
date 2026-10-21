@@ -1,48 +1,17 @@
-# Estado de Game Journal — 16/10/2026
+# Estado local — 21/10/2026
 
-## Implementado
+La aplicación publicada y sus datos no se modificaron durante este trabajo. Los cambios siguientes están en el árbol de trabajo local, sin commit, push ni deploy.
 
-- Aplicación en español: Biblioteca, Diario, Deseos, Próximos, Compartido conmigo y Configuración.
-- Tablas con búsqueda/filtros/orden en escritorio; listas en móvil, tema oscuro/claro y formularios accesibles.
-- Cuenta administradora inicial creada; invitaciones y recuperación por enlaces privados. No se eligió una contraseña por el titular.
-- Juegos y partidas separados; varias partidas del mismo juego, campos históricos y comentarios privados.
-- Sincronización mediante Supabase Realtime y control de versiones al guardar, incluso entre partidas del mismo juego.
-- RLS por propietario; compartir entradas con destinatarios concretos mediante una proyección limitada y revocación en servidor.
-- Google Picker y OAuth drive.file, preview, conflictos por campo, importación transaccional e idempotencia por lote. No modifica Sheets.
-- Exportación JSON y CSV.
-- Ofertas Steam/Nintendo por región, monedas explícitas, objetivo de precio, historial, último intento y último precio válido.
-- Worker desplegado y cron activo cada tres horas en el horario acordado.
-- VAPID generado dentro de Supabase; suscripción push voluntaria, deduplicación de eventos y manifiesto PWA con iconos PNG.
-- Plan, instrucciones y limitaciones guardados en Markdown.
+Implementado: recursos tipados y validados, errores con código/HTTP, recargas independientes y agrupadas, formulario dividido en cuatro componentes con protección de cambios, Papelera de 30 días con Deshacer/restaurar, copias externas privadas en Drive, advertencias de duplicados, acciones rápidas, historial de notificaciones y Estadísticas.
 
-## Verificaciones completadas
+La edición sin conexión se retiró del alcance por pedido del titular. No quedan una cola local, IndexedDB ni una migración de sincronización.
 
-- 18 pruebas automatizadas de dominio, más una prueba opcional contra HTML real de Nintendo: **19 pasaron** al habilitar el fixture local.
-- Producción: `npm run build` correcto; `npm run typecheck` correcto.
-- Cuatro E2E pasaron: login privado, acceso anónimo rechazado, móvil sin desborde y recorrido autenticado con altas, enlaces, nuevas partidas, exportación y conflicto de edición.
-- Inspección visual de la biblioteca en 1280 px y 390 px.
-- SQL de aislamiento entre dos usuarios, proyección compartida y revocación: aprobado en la primera verificación.
-- SQL de importación atómica, enlaces regionales, rechazo de lotes repetidos y ediciones viejas: aprobado.
-- SQL de concurrencia entre partidas del mismo juego: aprobado.
-- Worker alojado consultó Steam y guardó región, moneda, precio e historial sin navegador. Primera referencia sin notificación.
-- Parser Nintendo comprobado con el enlace del script original: moneda ARS, precio normal/final y descuento leídos del producto correspondiente.
-- Auditoría de dependencias: sin vulnerabilidades reportadas en la instalación.
-- Credenciales y datos personales excluidos del repositorio.
+Las migraciones nuevas todavía requieren revisión del SQL y autorización antes de ejecutarse en producción. Google Drive requiere configurar un cliente OAuth y autorizar una vez la cuenta desde Configuración. No se activaron servicios pagos ni se escribió en Sheets.
 
-## Pendiente de configuración externa
+La recuperación automatizada se verifica con datos sintéticos y dos bases PostgreSQL descartables: aplica migraciones, prueba RLS y permisos, verifica el bundle JSON/Excel/manifiesto y restaura con otro propietario. Esto no sustituye una prueba real con Google Drive una vez configurado.
 
-- Google Cloud: cliente OAuth, número de proyecto y API key restringida para importar la planilla real.
-- Vercel y dominio HTTPS. El servidor actual corre localmente en http://localhost:3000.
-- Verificar en el proyecto remoto que el registro público esté deshabilitado y el mínimo de contraseña sea 8. La configuración local ya impide signup.
-- Prueba de Web Push en un Android real, incluyendo denegación de permisos y suscripciones vencidas.
-- Prueba de la importación con la planilla real una vez que el propietario tenga acceso. No se importaron datos personales.
+- [Roadmap y alcance](improvement-roadmap.md)
+- [Configuración y recuperación](improvements-setup.md)
+- [Mapa del código](codebase-map.md)
 
-El asesor de Supabase solo mantiene el aviso de protección de contraseñas filtradas deshabilitada. Revisar disponibilidad del plan en [Supabase Password Security](https://supabase.com/docs/guides/auth/password-security#password-strength-and-leaked-password-protection); no se activaron servicios pagos.
-
-## Observaciones operativas
-
-Las llamadas de MCP que contienen borrados devolvieron `Invalid or expired requestState`. La cuenta QA se dejó deshabilitada, bloqueada y con contraseña aleatoria; sus ofertas no se procesan por pertenecer a un miembro inactivo. La limpieza definitiva del fixture queda pendiente. No se borraron datos de ninguna cuenta personal.
-
-Los títulos renombrados en Sheets pueden necesitar asociación manual: la v1 reconoce filas por pestaña y título normalizado, no por coincidencia aproximada. Al eliminar una entrada se elimina la partida; sus metadatos y ofertas pueden conservarse para otras partidas/historial.
-
-La publicación en GitHub y el despliegue siguen pendientes. Ninguna planilla original fue modificada.
+El estado anterior del 16/10/2026 se conserva como registro histórico en archive/status-2026-10-16.md; sus pendientes de despliegue y configuración no describen el entorno actual.

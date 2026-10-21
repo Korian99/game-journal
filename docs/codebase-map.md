@@ -67,8 +67,43 @@ The components handle presentation, hooks handle state and effects, and small he
 - supabase/functions/: Deno workers for prices, notifications, and invitations.
 - supabase/migrations/: versioned database changes and database functions.
 
-This readability refactor keeps the API contracts, database schema, styles, UI labels, and existing behavior unchanged.
+The earlier folder refactor preserved behavior. The additional reliability and app changes are described below.
 
 ## Checks
 
 Run npm test for the unit tests, npm run build for the production build, and npm run typecheck for TypeScript. Browser tests live under e2e; authenticated tests require a disposable fixture account as described in the README. SQL integration checks live under tests and use rollback transactions.
+
+## Reliability and daily-use improvements
+
+JournalApp still composes the page. The additional feature modules keep new behavior out of the main screen:
+
+- components/games/editor/{main,playthrough,review,more}-tab.tsx render the four editor panels. EntryEditor owns one draft, validates it once, warns on every unsaved close path, and retains it after failed saves. There is no persistent offline queue.
+- lib/contracts.ts and lib/imports/contracts.ts define Zod response schemas. TypeScript describes expected values at build time; Zod checks the JSON actually received at runtime.
+- lib/resource.ts models independent loading, freshness and errors while retaining successful data. useJournalData coalesces Realtime bursts and refreshes only affected resources. A failed notifications request cannot erase the library.
+- lib/api-errors.ts adds stable codes and HTTP status while retaining the existing error text. apiRequest throws ApiRequestError, including structured field errors/details.
+- lib/journal/duplicates.ts compares normalized titles and canonical store identities, including separately stored offers. Warnings require an explicit choice; existing games are never merged automatically.
+- components/games/quick-actions.tsx edits status, priority and access using the same validated save endpoint and server revision as the editor. It does not manufacture start/finish dates.
+- lib/journal/statistics.ts calculates Biblioteca year cohorts, unique games, recorded hours, ratings and interpretable estimates. statistics-panel.tsx displays the comparison. Missing/ambiguous values never become zero samples.
+- lib/notifications/history.ts and app/api/notifications provide keyset pagination, exact unread counts and owner-scoped read actions. components/notifications/notification-drawer.tsx is the accessible bell drawer; push subscription behavior remains in api/push.
+
+The URL state also contains statistics controls and notification filters/open state. Refreshing or bookmarking preserves them.
+
+## Recovery and deletion
+
+The game/playthrough separation is retained. playthroughs.deleted_at controls visibility, sharing and worker eligibility. Only controlled trash functions can change deletion state or permanently delete a trashed playthrough. Browser game deletion is revoked to prevent cascades bypassing trash. Imports identify trash matches and require restoration or skipping.
+
+lib/backups/ contains snapshot validation, deterministic JSON/Excel bundles, Drive ownership checks, resumable uploads, worker coordination and recovery SQL generation. Credentials remain on the server and in Vault; public.external_backup_runs contains owner-readable metadata, and private tables hold connections/jobs.
+
+The protected Next Node worker is invoked by Supabase Cron. It exports a saved internal snapshot rather than re-reading changing live tables. A successful copy requires verified JSON, Excel and manifest files.
+
+Follow a save now: editor/quick action → Zod request validation → membership/duplicate checks → save_record_result → canonical record plus revision in the same transaction → adopt that entry → refresh affected data. A later refresh failure is reported separately from the successful save.
+
+## Repeatable verification
+
+npm run lint, npm test, npm run build, npm run typecheck and npm run test:browser are required by CI. Mocked browser tests use real components with synthetic API data; they require no private account.
+
+npm run test:database creates isolated Docker PostgreSQL databases, applies every migration, runs rollback integration tests and restores a simulated external bundle into a second empty database with a new owner. It has no production connection-string option.
+
+node scripts/sync-worker-domain.mjs updates the Deno worker's domain/type copies; --check verifies them in CI.
+
+See improvements-setup.md for exact SQL rollout and real Google authorization/recovery steps. Production SQL, deployment and a real external backup cycle remain separate setup actions.
