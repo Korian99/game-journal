@@ -1,6 +1,6 @@
 # Reliability, trash and Drive backup operations
 
-These changes are local and uncommitted. Nothing in this document grants permission to deploy, execute production SQL, or restore over personal data. The spreadsheet connection remains read-only.
+The reliability foundation, Diario redesign and review fixes are committed. Publishing was requested after the local review. This guide itself grants no permission to execute production SQL or restore over personal data; follow the owner's explicit approvals. The spreadsheet connection remains read-only.
 
 ## Database rollout
 

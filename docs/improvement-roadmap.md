@@ -1,6 +1,6 @@
 # Game Journal improvement roadmap
 
-Approved 21/10/2026. Offline creation/editing was removed from this rollout at the owner's request before release. The app remains online for saving. No spreadsheet edits, paid services, pushes, deployments, or production SQL execution are authorized by this work.
+Approved 21/10/2026. Offline creation/editing was removed from this rollout at the owner's request before release. The app remains online for saving. The original implementation scope excluded spreadsheet edits, paid services, pushes, deployments and production SQL execution. The owner later requested commit, push and deployment on 21/10/2026. Production SQL still requires review and explicit approval.
 
 ## Retained scope
 
@@ -31,3 +31,7 @@ See improvements-setup.md for private OAuth setup, Cron configuration and recove
 ## Verified before the Diario redesign
 
 161 unit tests passed (one optional live-store test skipped); seven mocked browser tests passed; fourteen SQL checks plus a separate empty-database recovery passed. Lint, TypeScript and the production build passed. These are local results, not deployment or Google authorization confirmation.
+
+## Review after the Diario corrections
+
+See [implementation-review.md](implementation-review.md) for the requirement matrix, four reproduced and fixed reliability gaps, latest verification, and live setup still pending. The final badge fallback is numeric Impresiones × 10, never Memorabilidad. The foundation and later UI/review changes are committed. Publishing must follow the approved database rollout.

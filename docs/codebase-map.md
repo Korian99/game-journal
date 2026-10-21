@@ -107,3 +107,7 @@ npm run test:database creates isolated Docker PostgreSQL databases, applies ever
 node scripts/sync-worker-domain.mjs updates the Deno worker's domain/type copies; --check verifies them in CI.
 
 See improvements-setup.md for exact SQL rollout and real Google authorization/recovery steps. Production SQL, deployment and a real external backup cycle remain separate setup actions.
+
+## Diario
+
+Diario reúne Recuerdo, Jugando, Terminado, No terminado y En pausa. Mantiene el año inicial 2024 y el orden por período; el filtro de estado y el orden de valoración se guardan en la URL. journal-review.tsx reúne reseña, memorabilidad e impresiones, usando reseña o impresiones numéricas × 10 en la insignia. Los campos originales se conservan sin conversión.
