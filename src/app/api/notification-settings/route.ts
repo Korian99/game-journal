@@ -1,4 +1,4 @@
-import { databaseError } from "@/lib/api-errors";
+import { databaseError, HttpError } from "@/lib/api-errors";
 import { authorized, apiError } from "@/lib/auth";
 import { bodyJson } from "@/lib/validation";
 import { allowedPushEndpoint } from "../../../../supabase/functions/notification-worker/delivery";
@@ -20,7 +20,13 @@ export async function GET() {
       .select("*")
       .eq("owner_id", user.id)
       .single();
-    if (error || !data) throw Error("No se pudieron cargar las preferencias.");
+    if (error) databaseError(error);
+    if (!data)
+      throw new HttpError(
+        "TEMPORARY",
+        "No se pudieron cargar las preferencias.",
+        503,
+      );
     return Response.json(data, { headers });
   } catch (e) {
     return apiError(e);
@@ -36,7 +42,13 @@ export async function PUT(request: Request) {
       .eq("owner_id", user.id)
       .select("*")
       .single();
-    if (error || !data) throw Error("No se pudieron guardar las preferencias.");
+    if (error) databaseError(error);
+    if (!data)
+      throw new HttpError(
+        "TEMPORARY",
+        "No se pudieron guardar las preferencias.",
+        503,
+      );
     return Response.json(data, { headers });
   } catch (e) {
     return apiError(e);
@@ -58,7 +70,7 @@ export async function POST(request: Request) {
       .eq("owner_id", user.id)
       .eq("endpoint", endpoint)
       .maybeSingle();
-    if (error) throw Error("No se pudo comprobar este dispositivo.");
+    if (error) databaseError(error);
     if (action === "status")
       return Response.json({ subscribed: !!device }, { headers });
     if (!device)

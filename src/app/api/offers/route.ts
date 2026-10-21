@@ -1,7 +1,7 @@
 import { authorized, apiError } from "@/lib/auth";
 import { parseStoreUrl } from "@/lib/domain";
 import { bodyJson } from "@/lib/validation";
-import { databaseError } from "@/lib/api-errors";
+import { databaseError, HttpError } from "@/lib/api-errors";
 import { z } from "zod";
 export async function POST(request: Request) {
   try {
@@ -43,8 +43,10 @@ export async function PATCH(request: Request) {
       .from("offers")
       .select("currency")
       .eq("id", id)
-      .single();
-    if (readError || !current) throw Error("Página no encontrada.");
+      .maybeSingle();
+    if (readError) databaseError(readError);
+    if (!current)
+      throw new HttpError("NOT_FOUND", "Página no encontrada.", 404);
     const { error } = await db
       .from("offers")
       .update({
