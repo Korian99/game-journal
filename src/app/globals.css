@@ -2120,3 +2120,75 @@ tbody tr.wishlist-discounted td:first-child,
 .statistics table td {
   display: table-cell;
 }
+
+.journal-review-summary {
+  display: grid;
+  gap: 6px;
+  font-size: 0.8rem;
+  line-height: 1.5;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.journal-review-summary > span {
+  display: block;
+}
+.journal-review-summary b {
+  color: var(--muted);
+  font-weight: 400;
+}
+.journal-game-cell {
+  align-items: flex-start;
+}
+.mobile-game-info > .journal-review-summary {
+  margin-top: 8px;
+}
+.journal-table {
+  table-layout: fixed;
+}
+.journal-table th,
+.journal-table td {
+  display: table-cell;
+  padding: 13px 10px;
+  white-space: normal;
+  vertical-align: top;
+}
+.journal-table th button {
+  gap: 4px;
+}
+.journal-table th:first-child {
+  width: 24%;
+}
+.journal-table th:nth-child(2) {
+  width: 14%;
+}
+.journal-table th:nth-child(3) {
+  width: 10%;
+}
+.journal-table th:nth-child(4) {
+  width: 24%;
+}
+.journal-table th:nth-child(5) {
+  width: 16%;
+}
+.journal-table th:last-child {
+  width: 12%;
+}
+.journal-table .entry-text-cell {
+  width: auto;
+}
+.journal-table .game-cell {
+  max-width: none;
+  gap: 10px;
+}
+.journal-table .game-cell small {
+  max-width: none;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+.journal-table .quick-actions {
+  min-width: 0;
+}
+.journal-table .quick-actions > summary {
+  white-space: normal;
+  overflow-wrap: anywhere;
+}

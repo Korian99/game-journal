@@ -63,7 +63,7 @@ it("rejects unknown tabs and sorts, invalid years, and mismatched status filters
   ).toEqual(location.readJournalLocation("", "2026"));
   expect(
     location.readJournalLocation(
-      "?tab=journal&status=completed&year=99999&sort=started.desc",
+      "?tab=journal&status=wishlist&year=99999&sort=started.desc",
       "2026",
     ),
   ).toEqual(location.readJournalLocation("?tab=journal", "2026"));

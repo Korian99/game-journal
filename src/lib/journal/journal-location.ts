@@ -38,7 +38,7 @@ const columns: Record<JournalView, string[]> = {
     "impression",
     "notes",
   ],
-  journal: ["title", "year", "period", "memorability", "impression", "notes"],
+  journal: ["title", "year", "period", "rating", "notes"],
   wishlist: ["priority", "title", "ownership", "estimated"],
   upcoming: ["year", "title", "hype"],
   shared: [],
@@ -118,7 +118,7 @@ export function readJournalLocation(
   state.platform = bounded(params.get("platform"), 200);
   const status = params.get("status");
   if (
-    view === "library" &&
+    ["library", "journal"].includes(view) &&
     viewStatuses[view]?.some((value) => value === status)
   )
     state.status = status!;
@@ -144,7 +144,11 @@ export function readJournalLocation(
   else if (sort && sort.length <= 500) {
     const parsed: SortingState = [];
     for (const item of sort.split(",")) {
-      const match = /^([a-z]+)\.(asc|desc)$/.exec(item);
+      const legacy =
+        view === "journal"
+          ? item.replace(/^(memorability|impression)\./, "rating.")
+          : item;
+      const match = /^([a-z]+)\.(asc|desc)$/.exec(legacy);
       if (
         !match ||
         !columns[view].includes(match[1]) ||
@@ -177,7 +181,7 @@ export function writeJournalLocation(
   }
   if (columns[state.view].length) {
     if (state.query) params.set("q", state.query);
-    if (state.status && state.view === "library")
+    if (state.status && ["library", "journal"].includes(state.view))
       params.set("status", state.status);
     if (state.discount && state.view === "wishlist")
       params.set("discount", state.discount);

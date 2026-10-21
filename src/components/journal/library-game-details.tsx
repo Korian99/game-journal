@@ -1,11 +1,15 @@
 import { formatDate } from "@/lib/journal/view-config";
 import type { JournalRecord } from "@/lib/types";
 
-export function ReviewMark({ rating }: Pick<JournalRecord, "rating">) {
+export function ReviewMark({
+  rating,
+  label = "Reseña",
+  emptyLabel = "Sin reseña",
+}: Pick<JournalRecord, "rating"> & { label?: string; emptyLabel?: string }) {
   return (
     <span
       className="review-mark"
-      aria-label={rating == null ? "Sin reseña" : "Reseña: " + rating + "/100"}
+      aria-label={rating == null ? emptyLabel : label + ": " + rating + "/100"}
     >
       <b>{rating ?? "—"}</b>
       <small>/100</small>

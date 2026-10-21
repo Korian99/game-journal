@@ -7,6 +7,7 @@ import { wishlistPlatforms } from "@/lib/offers/wishlist-display";
 import type { Table } from "@tanstack/react-table";
 import { flexRender } from "@tanstack/react-table";
 import { ArrowUpDown } from "lucide-react";
+import { JournalReview, JournalScoreMark } from "./journal-review";
 import { QuickActions } from "../games/quick-actions";
 import { HypeBadge } from "../games/hype-badge";
 import { journalTextFields, libraryTextFields } from "./journal-columns";
@@ -52,6 +53,8 @@ export function JournalGameTable({
             >
               {view === "library" ? (
                 <ReviewMark rating={r.rating} />
+              ) : view === "journal" ? (
+                <JournalScoreMark record={r} />
               ) : view === "wishlist" ? (
                 <PriorityMark value={r.priority} />
               ) : (
@@ -101,22 +104,11 @@ export function JournalGameTable({
                       {r.device || r.platforms || "Plataforma sin definir"}
                       {view !== "library" && r.period ? " · " + r.period : ""}
                     </small>
-                    {view !== "journal" && (
-                      <span className={"status " + r.status}>
-                        {statuses[r.status]}
-                      </span>
-                    )}
+                    <span className={"status " + r.status}>
+                      {statuses[r.status]}
+                    </span>
                     {view === "library" && <LibraryPlaythrough record={r} />}
-                    {view === "journal" && (
-                      <small className="mobile-entry-detail">
-                        <b>Memorabilidad</b>
-                        <span>
-                          {r.memorability == null
-                            ? "—"
-                            : r.memorability + "/10"}
-                        </span>
-                      </small>
-                    )}
+                    {view === "journal" && <JournalReview record={r} />}
                     {(view === "library" || view === "journal") &&
                       (view === "library"
                         ? libraryTextFields
@@ -153,9 +145,11 @@ export function JournalGameTable({
               ? "upcoming-table"
               : view === "library"
                 ? "library-table"
-                : view === "wishlist"
-                  ? "wishlist-table"
-                  : undefined
+                : view === "journal"
+                  ? "journal-table"
+                  : view === "wishlist"
+                    ? "wishlist-table"
+                    : undefined
           }
         >
           <thead>

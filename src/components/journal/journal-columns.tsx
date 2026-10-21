@@ -13,11 +13,13 @@ import {
   formatDate,
   periodOrder,
   reviewOrder,
+  journalReviewOrder,
 } from "@/lib/journal/view-config";
 import { wishlistPlatforms } from "@/lib/offers/wishlist-display";
 import type { SortingState } from "@tanstack/react-table";
 import { type ColumnDef } from "@tanstack/react-table";
 import { useMemo } from "react";
+import { JournalReview, JournalScoreMark } from "./journal-review";
 import { HypeBadge } from "../games/hype-badge";
 import {
   LibraryFinishReason,
@@ -34,7 +36,7 @@ export const libraryTextFields = [
   { key: "notes", label: "Comentarios adicionales" },
 ] as const;
 export const journalTextFields = libraryTextFields.filter(
-  ({ key }) => key !== "reason",
+  ({ key }) => key === "notes",
 );
 
 export function useJournalColumns({
@@ -210,21 +212,38 @@ export function useJournalColumns({
       ]);
     if (view === "journal")
       return withActions([
-        commonColumns.title,
+        {
+          ...commonColumns.title,
+          cell: ({ row }) => (
+            <button
+              className="game-cell journal-game-cell"
+              onClick={() => onEdit(row.original)}
+            >
+              <JournalScoreMark record={row.original} />
+              <span className="library-game-identity">
+                <strong>{row.original.title}</strong>
+                <small>
+                  {row.original.device ||
+                    row.original.platforms ||
+                    "Plataforma sin definir"}
+                </small>
+                <span className={"status " + row.original.status}>
+                  {statuses[row.original.status]}
+                </span>
+              </span>
+            </button>
+          ),
+        },
         commonColumns.release,
         commonColumns.period,
         {
-          id: "memorability",
-          accessorFn: (record) => record.memorability ?? undefined,
-          header: "Memorabilidad",
+          id: "rating",
+          accessorFn: journalReviewOrder,
+          header: "Valoración",
           sortingFn: "basic",
           sortUndefined: "last",
           sortDescFirst: true,
-          cell: ({ getValue }) => (
-            <span className="score">
-              {getValue() == null ? "—" : getValue() + "/10"}
-            </span>
-          ),
+          cell: ({ row }) => <JournalReview record={row.original} />,
         },
         ...journalTextFields.map(({ key, label }): ColumnDef<JournalEntry> => ({
           accessorKey: key,

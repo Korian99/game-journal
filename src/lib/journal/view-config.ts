@@ -2,7 +2,7 @@ import type { JournalRecord, Status } from "../types";
 
 export const viewStatuses: Record<string, Status[]> = {
   library: ["playing", "completed", "paused", "abandoned"],
-  journal: ["remembered"],
+  journal: ["remembered", "playing", "completed", "abandoned", "paused"],
   wishlist: ["wishlist"],
   upcoming: ["upcoming"],
 };
@@ -146,4 +146,15 @@ export function reviewOrder(
     record.rating ??
     (record.memorability == null ? undefined : record.memorability * 10)
   );
+}
+
+/** Diario uses numeric impressions out of ten when no review was recorded. */
+export function journalReviewOrder(
+  record: Pick<JournalRecord, "rating" | "impression">,
+): number | undefined {
+  if (record.rating != null) return record.rating;
+  const text = record.impression.trim();
+  if (!/^\d+(?:[.,]\d+)?$/.test(text)) return undefined;
+  const impression = Number(text.replace(",", "."));
+  return impression >= 0 && impression <= 10 ? impression * 10 : undefined;
 }

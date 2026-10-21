@@ -76,7 +76,7 @@ export function JournalToolbar({
           <option value="not-discounted">Sin descuento</option>
         </select>
       )}
-      {view === "library" && (
+      {["library", "journal"].includes(view) && (
         <select
           aria-label="Filtrar estado"
           value={status}
