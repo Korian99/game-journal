@@ -51,24 +51,26 @@ export function NotificationDrawer({
     resource.getSnapshot,
     resource.getSnapshot,
   );
-  const [extra, setExtra] = useState<JournalNotification[]>([]),
-    [cursor, setCursor] = useState<string | null>(null),
-    [busy, setBusy] = useState(false),
+  // A page belongs to the exact successful head response it followed.
+  const [pages, setPages] = useState<{
+    head: typeof state.data;
+    items: JournalNotification[];
+    cursor: string;
+  } | null>(null);
+  const currentPages = pages?.head === state.data ? pages : null;
+  const cursor = currentPages?.cursor ?? state.data?.nextCursor;
+  const [busy, setBusy] = useState(false),
     [error, setError] = useState("");
   useEffect(() => {
     if (open) {
-      setExtra([]);
-      setCursor(null);
+      setError("");
       void resource.load();
     }
   }, [open, resource, version]);
-  useEffect(() => {
-    setExtra([]);
-    setCursor(null);
-  }, [state.checkedAt]);
   async function next() {
-    const nextCursor = cursor ?? state.data?.nextCursor;
-    if (!nextCursor) return;
+    const nextCursor = cursor;
+    const head = state.data;
+    if (!nextCursor || !head) return;
     setBusy(true);
     setError("");
     try {
@@ -79,8 +81,14 @@ export function NotificationDrawer({
         undefined,
         notificationPageSchema,
       );
-      setExtra((items) => [...items, ...result.items]);
-      setCursor(result.nextCursor ?? "");
+      setPages((previous) => ({
+        head,
+        items: [
+          ...(previous?.head === head ? previous.items : []),
+          ...result.items,
+        ],
+        cursor: result.nextCursor ?? "",
+      }));
     } catch (failure) {
       setError((failure as Error).message);
     } finally {
@@ -101,7 +109,9 @@ export function NotificationDrawer({
   }
   const items = [
     ...new Map(
-      [...(state.data?.items ?? []), ...extra].map((item) => [item.id, item]),
+      [...(state.data?.items ?? []), ...(currentPages?.items ?? [])].map(
+        (item) => [item.id, item],
+      ),
     ).values(),
   ];
   const safeLink = (url: string) => {
@@ -160,7 +170,14 @@ export function NotificationDrawer({
         {(state.error || error) && (
           <p role="alert" className="error">
             {error || state.error}{" "}
-            <button onClick={() => void resource.load()}>Reintentar</button>
+            <button
+              onClick={() => {
+                setError("");
+                void resource.load();
+              }}
+            >
+              Reintentar
+            </button>
           </p>
         )}
         {state.data && (
@@ -205,7 +222,7 @@ export function NotificationDrawer({
             </li>
           ))}
         </ol>
-        {!!(cursor ?? state.data?.nextCursor) && (
+        {!!cursor && (
           <button
             className="secondary"
             disabled={busy || !online}
