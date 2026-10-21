@@ -30,7 +30,10 @@ export function DriveBackupPanel({
     [busy, setBusy] = useState(false),
     [confirmDisconnect, setConfirmDisconnect] = useState(false),
     error = actionError || state.error;
-  const reload = resource.load;
+  async function reload() {
+    setError("");
+    await resource.load();
+  }
   useEffect(() => {
     if (new URLSearchParams(window.location.search).get("backup") === "error")
       setError(
@@ -53,6 +56,7 @@ export function DriveBackupPanel({
   }, [resource]);
   async function connect() {
     setBusy(true);
+    setError("");
     try {
       const result = await apiRequest(
         "/api/backups/drive",
@@ -68,6 +72,7 @@ export function DriveBackupPanel({
   }
   async function retry() {
     setBusy(true);
+    setError("");
     try {
       await apiRequest(
         "/api/backups/drive",
@@ -85,6 +90,7 @@ export function DriveBackupPanel({
   }
   async function disconnect() {
     setBusy(true);
+    setError("");
     try {
       await apiRequest("/api/backups/drive", "DELETE");
       setConfirmDisconnect(false);
