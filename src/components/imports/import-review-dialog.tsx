@@ -1,11 +1,11 @@
 "use client";
 
 import { apiRequest } from "@/lib/api-client";
-import type { ImportPlan } from "@/lib/domain";
+import type { ImportBatch } from "@/lib/imports/contracts";
+export type { ImportBatch } from "@/lib/imports/contracts";
 import type { PerformJournalAction } from "@/lib/journal/journal-types";
 import { Modal } from "../ui/dialog";
 
-export type ImportBatch = { batchId: string; plan: ImportPlan[] };
 export type ImportResolutions = Record<string, Record<string, string>>;
 export function ImportReviewDialog({
   batch,
@@ -36,6 +36,12 @@ export function ImportReviewDialog({
           .map((p, i) => (
             <article className="import-item" key={i}>
               <strong>{p.incoming.title}</strong>
+              {p.conflicts.includes("trash") && (
+                <p className="error">
+                  Esta entrada está en Papelera. Restaurala desde Configuración
+                  antes de actualizarla.
+                </p>
+              )}
               <span className="muted">
                 {" "}
                 ·{" "}
@@ -72,10 +78,8 @@ export function ImportReviewDialog({
                     }
                   >
                     <option value="">Elegí qué conservar</option>
-                    {field === "duplicate" ? (
-                      <option value="skip">
-                        Omitir duplicado para revisar después
-                      </option>
+                    {["duplicate", "trash"].includes(field) ? (
+                      <option value="skip">Omitir y revisar en la app</option>
                     ) : (
                       <>
                         <option value="app">
@@ -83,7 +87,11 @@ export function ImportReviewDialog({
                         </option>
                         <option value="sheet">
                           Usar planilla:{" "}
-                          {String((p.incoming as any)[field] ?? "vacío")}
+                          {String(
+                            (p.incoming as unknown as Record<string, unknown>)[
+                              field
+                            ] ?? "vacío",
+                          )}
                         </option>
                       </>
                     )}

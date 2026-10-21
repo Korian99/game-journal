@@ -1,3 +1,4 @@
+import { databaseError } from "@/lib/api-errors";
 import { authorized, apiError } from "@/lib/auth";
 export const dynamic = "force-dynamic";
 export async function GET(request: Request) {
@@ -8,7 +9,7 @@ export async function GET(request: Request) {
     const { data, error } = await db.rpc(
       download ? "read_latest_backup" : "backup_status",
     );
-    if (error) throw Error(error.message);
+    if (error) databaseError(error);
     const headers: Record<string, string> = {
       "Cache-Control": "private, no-store",
     };

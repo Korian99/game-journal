@@ -1,3 +1,4 @@
+import { databaseError } from "@/lib/api-errors";
 import { authorized, apiError } from "@/lib/auth";
 import { bodyJson } from "@/lib/validation";
 import { allowedPushEndpoint } from "../../../../supabase/functions/notification-worker/delivery";
@@ -66,7 +67,7 @@ export async function POST(request: Request) {
       "request_test_notification",
       { endpoint },
     );
-    if (queueError) throw Error(queueError.message);
+    if (queueError) databaseError(queueError);
     const { data, error: workerError } = await db.functions.invoke(
       "notification-worker",
       { body: {} },

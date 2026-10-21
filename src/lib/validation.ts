@@ -99,3 +99,5 @@ export async function bodyJson(request: Request) {
   if (text.length > 5_000_000) throw Error("Carga demasiado grande");
   return JSON.parse(text);
 }
+
+export { recordsResponseSchema, offersSchema } from "./contracts";

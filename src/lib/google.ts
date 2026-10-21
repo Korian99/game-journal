@@ -1,8 +1,38 @@
 "use client";
+interface PickerBuilder {
+  addView: (view: unknown) => PickerBuilder;
+  setOAuthToken: (token: string) => PickerBuilder;
+  setDeveloperKey: (key: string) => PickerBuilder;
+  setAppId: (id: string) => PickerBuilder;
+  setOrigin: (origin: string) => PickerBuilder;
+  setCallback: (
+    callback: (data: { action: string; docs?: { id: string }[] }) => void,
+  ) => PickerBuilder;
+  build: () => { setVisible: (visible: boolean) => void };
+}
 declare global {
   interface Window {
-    google: any;
-    gapi: any;
+    google: {
+      accounts: {
+        oauth2: {
+          initTokenClient: (config: {
+            client_id: string;
+            scope: string;
+            error_callback: () => void;
+            callback: (response: {
+              error?: string;
+              access_token: string;
+            }) => void;
+          }) => { requestAccessToken: (options: { prompt: string }) => void };
+        };
+      };
+      picker: {
+        PickerBuilder: new () => PickerBuilder;
+        DocsView: new (view: string) => unknown;
+        ViewId: { SPREADSHEETS: string };
+      };
+    };
+    gapi: { load: (name: string, ready: () => void) => void };
   }
 }
 function script(src: string) {
@@ -41,10 +71,10 @@ export async function pickSpreadsheet(): Promise<{
   await new Promise<void>((r) => window.gapi.load("picker", r));
   return new Promise((resolve, reject) => {
     const oauth = window.google.accounts.oauth2.initTokenClient({
-      client_id: process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID,
+      client_id: process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID!,
       scope: "https://www.googleapis.com/auth/drive.file",
       error_callback: () => reject(Error("Se canceló la conexión con Google")),
-      callback: (response: any) => {
+      callback: (response) => {
         if (response.error) {
           reject(Error("Google no autorizó el acceso"));
           return;
@@ -57,11 +87,11 @@ export async function pickSpreadsheet(): Promise<{
             ),
           )
           .setOAuthToken(token)
-          .setDeveloperKey(process.env.NEXT_PUBLIC_GOOGLE_API_KEY)
-          .setAppId(process.env.NEXT_PUBLIC_GOOGLE_APP_ID)
+          .setDeveloperKey(process.env.NEXT_PUBLIC_GOOGLE_API_KEY!)
+          .setAppId(process.env.NEXT_PUBLIC_GOOGLE_APP_ID!)
           .setOrigin(window.location.origin)
-          .setCallback((data: any) => {
-            if (data.action === "picked")
+          .setCallback((data) => {
+            if (data.action === "picked" && data.docs?.[0])
               resolve({ token, spreadsheetId: data.docs[0].id });
             if (data.action === "cancel")
               reject(Error("Importación cancelada"));

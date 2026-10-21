@@ -19,11 +19,8 @@ with required_tables(role_name, table_name, privilege) as (
     ('authenticated','games','SELECT'),
     ('authenticated','games','INSERT'),
     ('authenticated','games','UPDATE'),
-    ('authenticated','games','DELETE'),
     ('authenticated','playthroughs','SELECT'),
     ('authenticated','playthroughs','INSERT'),
-    ('authenticated','playthroughs','UPDATE'),
-    ('authenticated','playthroughs','DELETE'),
     ('authenticated','offers','SELECT'),
     ('authenticated','offers','INSERT'),
     ('authenticated','offers','UPDATE'),
@@ -53,6 +50,8 @@ with required_tables(role_name, table_name, privilege) as (
     ('service_role','refresh_runs','failed'),
     ('service_role','notifications','delivered_at'),
     ('authenticated','notifications','read_at'),
+    ('authenticated','playthroughs','data'),
+    ('authenticated','playthroughs','updated_at'),
     ('authenticated','notification_preferences','discounts'),
     ('authenticated','notification_preferences','targets'),
     ('authenticated','notification_preferences','releases')
@@ -75,6 +74,8 @@ with required_tables(role_name, table_name, privilege) as (
   union all
   select 'Missing service_role schema usage'
   where not has_schema_privilege('service_role','public','USAGE')
+  union all
+  select 'Playthrough deletion metadata bypasses the trash functions' where has_column_privilege('authenticated','public.playthroughs','deleted_at','UPDATE') or has_table_privilege('authenticated','public.playthroughs','DELETE') or has_table_privilege('authenticated','public.games','DELETE')
   union all
   select 'Notification body is editable by authenticated users'
   where has_column_privilege('authenticated','public.notifications','body','UPDATE')

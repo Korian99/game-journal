@@ -1,77 +1,151 @@
 "use client";
+import { notificationPageSchema } from "@/lib/notifications/history";
 import { browserClient } from "@/lib/supabase/client";
-import { useCallback, useEffect, useState } from "react";
-import { apiRequest } from "../lib/api-client";
-import type { JournalEntry } from "../lib/journal/journal-types";
-import { emptyRecord, type Offer } from "../lib/types";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+  useSyncExternalStore,
+} from "react";
+import { apiRequest, createResource } from "@/lib/api-client";
+import {
+  recordsResponseSchema,
+  offersSchema,
+  sharingResponseSchema,
+  saveResponseSchema,
+  type SharingData,
+} from "@/lib/contracts";
+import type { JournalEntry } from "@/lib/journal/journal-types";
+import type { Offer } from "@/lib/types";
 
 export function useJournalData() {
-  const [records, setRecords] = useState<JournalEntry[]>([]);
-  const [offers, setOffers] = useState<Offer[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
-  const [notice, setNotice] = useState("");
-  const [busy, setBusy] = useState(false);
-  const [member, setMember] = useState<any>(null);
-  const [sharing, setSharing] = useState<any>({
-    shared: [],
-    members: [],
-    grants: [],
-  });
-  const [notifications, setNotifications] = useState<any[]>([]);
+  const resources = useMemo(
+    () => ({
+      records: createResource<ReturnType<typeof recordsResponseSchema.parse>>(
+        { records: [], member: null },
+        () =>
+          apiRequest(
+            "/api/records?includeOffers=false",
+            "GET",
+            undefined,
+            recordsResponseSchema,
+          ),
+      ),
+      offers: createResource<Offer[]>([], () =>
+        apiRequest("/api/offers", "GET", undefined, offersSchema),
+      ),
+      sharing: createResource<SharingData>(
+        { shared: [], members: [], grants: [] },
+        () =>
+          apiRequest("/api/sharing", "GET", undefined, sharingResponseSchema),
+      ),
+      notifications: createResource<
+        ReturnType<typeof notificationPageSchema.parse>
+      >({ items: [], unreadCount: 0, nextCursor: null, checkedAt: "" }, () =>
+        apiRequest(
+          "/api/notifications",
+          "GET",
+          undefined,
+          notificationPageSchema,
+        ),
+      ),
+    }),
+    [],
+  );
+  const recordsState = useSyncExternalStore(
+    resources.records.subscribe,
+    resources.records.getSnapshot,
+    resources.records.getSnapshot,
+  );
+  const offersState = useSyncExternalStore(
+    resources.offers.subscribe,
+    resources.offers.getSnapshot,
+    resources.offers.getSnapshot,
+  );
+  const sharingState = useSyncExternalStore(
+    resources.sharing.subscribe,
+    resources.sharing.getSnapshot,
+    resources.sharing.getSnapshot,
+  );
+  const notificationsState = useSyncExternalStore(
+    resources.notifications.subscribe,
+    resources.notifications.getSnapshot,
+    resources.notifications.getSnapshot,
+  );
+  const [error, setError] = useState(""),
+    [notice, setNotice] = useState(""),
+    [busy, setBusy] = useState(false),
+    [online, setOnline] = useState(true);
   const reloadJournal = useCallback(async () => {
-    try {
-      const [data, shared, alerts] = await Promise.all([
-        apiRequest("/api/records"),
-        apiRequest("/api/sharing"),
-        apiRequest("/api/push"),
-      ]);
-      setRecords(data.records.map((r: any) => ({ ...emptyRecord, ...r })));
-      setOffers(data.offers);
-      setMember(data.member);
-      setSharing(shared);
-      setNotifications(alerts);
-      setError("");
-    } catch (e) {
-      setError((e as Error).message);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+    await Promise.all(
+      Object.values(resources).map((resource) => resource.load()),
+    );
+  }, [resources]);
   useEffect(() => {
     document.documentElement.classList.toggle(
       "light",
       localStorage.getItem("journal-theme") === "light",
     );
-    reloadJournal();
+    setOnline(navigator.onLine);
+    void reloadJournal();
     const db = browserClient();
+    const queued = new Set<keyof typeof resources>();
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const schedule = (...names: (keyof typeof resources)[]) => {
+      names.forEach((name) => queued.add(name));
+      clearTimeout(timer);
+      timer = setTimeout(() => {
+        queued.forEach((name) => resources[name].invalidate());
+        queued.clear();
+      }, 150);
+    };
     const channel = db
       .channel("journal-updates")
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "playthroughs" },
-        () => reloadJournal(),
+        () => schedule("records"),
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "games" },
+        () => schedule("records"),
       )
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "offers" },
-        () => reloadJournal(),
+        () => schedule("offers"),
       )
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "shared_entries" },
-        () => reloadJournal(),
+        () => schedule("sharing"),
       )
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "notifications" },
-        () => reloadJournal(),
+        () => schedule("notifications"),
       )
       .subscribe();
-    return () => {
-      db.removeChannel(channel);
+    const connected = () => {
+      setOnline(navigator.onLine);
+      if (navigator.onLine) void reloadJournal();
     };
-  }, [reloadJournal]);
+    const focused = () => {
+      if (navigator.onLine) void reloadJournal();
+    };
+    window.addEventListener("online", connected);
+    window.addEventListener("offline", connected);
+    window.addEventListener("focus", focused);
+    return () => {
+      clearTimeout(timer);
+      void db.removeChannel(channel);
+      window.removeEventListener("online", connected);
+      window.removeEventListener("offline", connected);
+      window.removeEventListener("focus", focused);
+    };
+  }, [reloadJournal, resources]);
   async function performAction(
     operation: () => Promise<unknown>,
     successMessage?: string,
@@ -79,32 +153,74 @@ export function useJournalData() {
     setBusy(true);
     setError("");
     try {
-      await operation();
+      const result = await operation();
+      const saved = saveResponseSchema.safeParse(result);
+      if (saved.success && saved.data.record) {
+        const entry = saved.data.record;
+        const current = resources.records.getSnapshot().data;
+        resources.records.setData({
+          ...current,
+          records: [
+            ...current.records.filter((record) => record.id !== entry.id),
+            entry,
+          ],
+        });
+      }
       if (successMessage) setNotice(successMessage);
       await reloadJournal();
       return true;
-    } catch (e) {
-      setError((e as Error).message);
+    } catch (failure) {
+      setError(
+        failure instanceof Error
+          ? failure.message
+          : "No se pudo completar la operación.",
+      );
       return false;
     } finally {
       setBusy(false);
     }
   }
-
+  const resourceStates = {
+    records: recordsState,
+    offers: offersState,
+    sharing: sharingState,
+    notifications: notificationsState,
+  };
+  const warnings = Object.entries(resourceStates)
+    .filter(([, state]) => state.error)
+    .map(([name, state]) => ({
+      name,
+      message: state.error,
+      stale: state.checkedAt !== null,
+    }));
   return {
-    records,
-    offers,
-    loading,
+    records: recordsState.data.records,
+    offers: offersState.data,
+    member: recordsState.data.member,
+    sharing: sharingState.data,
+    notifications: notificationsState.data.items,
+    unreadCount: notificationsState.checkedAt
+      ? notificationsState.data.unreadCount
+      : null,
+    notificationsCheckedAt: notificationsState.checkedAt,
+    loading:
+      !recordsState.data.records.length &&
+      (recordsState.status === "idle" || recordsState.status === "loading"),
     error,
     notice,
     busy,
-    member,
-    sharing,
-    notifications,
+    online,
+    warnings,
+    resourceStates,
     setBusy,
     setError,
     setNotice,
     reloadJournal,
     performAction,
+    replaceRecords: (records: JournalEntry[]) =>
+      resources.records.setData({
+        ...resources.records.getSnapshot().data,
+        records,
+      }),
   };
 }

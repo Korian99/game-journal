@@ -1,6 +1,12 @@
 "use client";
+import { ApiRequestError } from "@/lib/api-client";
+import { findDuplicates } from "@/lib/journal/duplicates";
+import { DuplicateWarning } from "../games/duplicate-warning";
+import { recordSchema } from "@/lib/validation";
+import { recordsResponseSchema } from "@/lib/contracts";
 import { apiRequest } from "@/lib/api-client";
 import { formatOfferPrice } from "@/lib/offers/format-offer-price";
+import { importBatchSchema } from "@/lib/imports/contracts";
 import { pickSpreadsheet } from "@/lib/google";
 import type {
   JournalLocation,
@@ -23,6 +29,7 @@ import {
 } from "@tanstack/react-table";
 import {
   ArrowUpRight,
+  ChartNoAxesCombined,
   Bell,
   BookOpen,
   CalendarDays,
@@ -38,7 +45,10 @@ import {
   Users,
 } from "lucide-react";
 import { useEffect, useState } from "react";
+import { saveResponseSchema } from "@/lib/contracts";
 import { AdminInvite } from "../settings/admin-invite";
+import { DriveBackupPanel } from "../settings/drive-backup-panel";
+import { TrashPanel } from "../settings/trash-panel";
 import { BackupStatus } from "../settings/backup-status";
 import { EntryEditor } from "../games/entry-editor";
 import {
@@ -50,6 +60,8 @@ import { useJournalColumns } from "./journal-columns";
 import { JournalGameTable } from "./journal-game-table";
 import { JournalSummary } from "./journal-summary";
 import { JournalToolbar } from "./journal-toolbar";
+import { NotificationDrawer } from "../notifications/notification-drawer";
+import { StatisticsPanel } from "./statistics-panel";
 import { NotificationSettings } from "../settings/notification-settings";
 
 const nav = [
@@ -57,6 +69,7 @@ const nav = [
   ["journal", "Diario", BookOpen],
   ["wishlist", "Lista de deseos", Heart],
   ["upcoming", "Próximos", CalendarDays],
+  ["statistics", "Estadísticas", ChartNoAxesCombined],
   ["shared", "Compartido conmigo", Users],
   ["settings", "Configuración", Settings],
 ] as const;
@@ -79,12 +92,17 @@ export function JournalApp({
     records,
     offers,
     loading,
+    online,
+    warnings,
+    resourceStates,
     error,
     notice,
     busy,
     member,
     sharing,
     notifications,
+    unreadCount,
+    notificationsCheckedAt,
     setBusy,
     setError,
     setNotice,
@@ -93,6 +111,74 @@ export function JournalApp({
   } = useJournalData();
   const [releaseNow, setReleaseNow] = useState(() => new Date());
   const [editingEntry, setEditingEntry] = useState<JournalEntry | null>(null);
+  const [undoEntry, setUndoEntry] = useState<{
+    id: string;
+    expires: number;
+  } | null>(null);
+  useEffect(() => {
+    if (!undoEntry) return;
+    const timeout = setTimeout(
+      () => setUndoEntry(null),
+      Math.max(0, undoEntry.expires - Date.now()),
+    );
+    return () => clearTimeout(timeout);
+  }, [undoEntry]);
+  function openEntry(entry: JournalEntry) {
+    setEditingEntry(entry);
+  }
+  async function signOut() {
+    try {
+      await disablePush().catch(() => {});
+      const result = await browserClient().auth.signOut({ scope: "local" });
+      if (result.error) throw result.error;
+      location.assign("/login");
+    } catch {
+      setError("No se pudo cerrar sesión. Conectate y volvé a intentarlo.");
+    }
+  }
+  const [duplicate, setDuplicate] = useState<{
+    candidate: JournalEntry;
+    matches: JournalEntry[];
+  } | null>(null);
+  async function saveEntry(candidate: JournalEntry, allowDuplicate = false) {
+    if (!navigator.onLine) {
+      setError("Necesitás conexión para guardar.");
+      return false;
+    }
+    const matches = !candidate.gameId
+      ? findDuplicates(candidate, records, offers)
+      : [];
+    if (matches.length && !allowDuplicate) {
+      setDuplicate({ candidate, matches });
+      return false;
+    }
+    const saved = await performAction(async () => {
+      try {
+        return await apiRequest(
+          "/api/records",
+          "POST",
+          { ...recordSchema.parse(candidate), allowDuplicate },
+          saveResponseSchema,
+        );
+      } catch (failure) {
+        if (
+          failure instanceof ApiRequestError &&
+          failure.code === "DUPLICATE"
+        ) {
+          const result = recordsResponseSchema.shape.records.safeParse(
+            (failure.details as { matches?: unknown })?.matches,
+          );
+          if (result.success) setDuplicate({ candidate, matches: result.data });
+        }
+        throw failure;
+      }
+    }, "Entrada guardada.");
+    if (saved) {
+      setEditingEntry(null);
+      setDuplicate(null);
+    }
+    return saved;
+  }
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [batch, setBatch] = useState<ImportBatch | null>(null);
   const [resolutions, setResolutions] = useState<ImportResolutions>({});
@@ -134,10 +220,11 @@ export function JournalApp({
     offers,
     sort,
     releaseNow,
-    onEdit: setEditingEntry,
+    onEdit: openEntry,
   });
   const table = useReactTable({
     data: games,
+    getRowId: (entry) => entry.id ?? entry.sourceKey,
     columns,
     state: {
       sorting: sort,
@@ -155,7 +242,12 @@ export function JournalApp({
     setBusy(true);
     try {
       const selection = await pickSpreadsheet();
-      const result = await apiRequest("/api/import", "POST", selection);
+      const result = await apiRequest(
+        "/api/import",
+        "POST",
+        selection,
+        importBatchSchema,
+      );
       setBatch(result);
       setResolutions({});
     } catch (e) {
@@ -197,9 +289,7 @@ export function JournalApp({
           <button
             className="text-button"
             onClick={async () => {
-              await disablePush().catch(() => {});
-              await browserClient().auth.signOut();
-              location.assign("/login");
+              await signOut();
             }}
           >
             <LogOut size={15} />
@@ -220,10 +310,10 @@ export function JournalApp({
             <button
               className="notification-count"
               aria-label="Ver notificaciones"
-              onClick={() => setView("settings")}
+              onClick={() => journalLocation.setNotificationOpen(true)}
             >
               <Bell size={16} />
-              {notifications.filter((n) => !n.read_at).length || ""}
+              {unreadCount ?? "?"}
             </button>
             <span className="avatar">
               {(member?.display_name ?? "G").slice(0, 1).toUpperCase()}
@@ -245,11 +335,11 @@ export function JournalApp({
                 <span className="accent">.</span>
               </h1>
             </div>
-            {!["shared", "settings"].includes(view) && (
+            {!["shared", "settings", "statistics"].includes(view) && (
               <button
                 className="primary"
                 onClick={() =>
-                  setEditingEntry({
+                  openEntry({
                     ...emptyRecord,
                     status:
                       view === "wishlist"
@@ -267,6 +357,29 @@ export function JournalApp({
               </button>
             )}
           </div>
+          {!online && (
+            <div className="banner" role="status">
+              Sin conexión. Los precios pueden estar desactualizados.
+            </div>
+          )}
+          {online &&
+            warnings.map((warning) => (
+              <div className="banner error" role="alert" key={warning.name}>
+                {
+                  (
+                    {
+                      records: "Juegos",
+                      offers: "Precios",
+                      sharing: "Compartidos",
+                      notifications: "Notificaciones",
+                    } as Record<string, string>
+                  )[warning.name]
+                }
+                : {warning.message}{" "}
+                {warning.stale && "Se conserva la última versión."}
+                <button onClick={() => void reloadJournal()}>Reintentar</button>
+              </div>
+            ))}
           {error && (
             <div className="banner error" role="alert">
               {error}
@@ -283,15 +396,46 @@ export function JournalApp({
               </button>
             </div>
           )}
-          <BackupStatus details={view === "settings"} />
+          {undoEntry && (
+            <div className="banner" role="status">
+              Entrada en Papelera.
+              <button
+                disabled={busy}
+                onClick={async () => {
+                  if (
+                    await performAction(
+                      () =>
+                        apiRequest("/api/trash", "PATCH", { id: undoEntry.id }),
+                      "Entrada restaurada.",
+                    )
+                  )
+                    setUndoEntry(null);
+                }}
+              >
+                Deshacer
+              </button>
+            </div>
+          )}
+          {online && (
+            <>
+              <BackupStatus details={view === "settings"} />
+              <DriveBackupPanel details={view === "settings"} />
+            </>
+          )}
           {view === "settings" ? (
             <section className="settings-grid">
+              <TrashPanel
+                onChanged={async () => {
+                  setUndoEntry(null);
+                  await reloadJournal();
+                }}
+              />
               <article className="panel">
                 <h2>Datos</h2>
                 <p>Revisá los cambios antes de importar.</p>
                 <button
                   className="primary"
-                  disabled={busy}
+                  disabled={busy || !online}
                   onClick={importSheet}
                 >
                   <Download size={16} />
@@ -365,14 +509,20 @@ export function JournalApp({
                     </div>
                   ))
                 ) : (
-                  <p className="muted">Sin alertas.</p>
+                  <p className="muted">
+                    {resourceStates.notifications.error
+                      ? "No se pudieron cargar las alertas."
+                      : "Sin alertas."}
+                  </p>
                 )}
               </article>
             </section>
+          ) : view === "statistics" ? (
+            <StatisticsPanel records={records} location={journalLocation} />
           ) : view === "shared" ? (
             <section className="panel">
               {sharing.shared.length ? (
-                sharing.shared.map((r: any) => (
+                sharing.shared.map((r) => (
                   <article className="shared-entry" key={r.shareId}>
                     <span className="eyebrow">
                       {r.owner} · {r.period}
@@ -390,7 +540,13 @@ export function JournalApp({
                   </article>
                 ))
               ) : (
-                <Empty title="Sin juegos compartidos" />
+                <Empty
+                  title={
+                    resourceStates.sharing.error
+                      ? "No se pudieron cargar los compartidos"
+                      : "Sin juegos compartidos"
+                  }
+                />
               )}
             </section>
           ) : (
@@ -484,11 +640,17 @@ export function JournalApp({
                   </div>
                   {!loading && games.length === 0 ? (
                     <Empty
-                      title="No hay juegos"
+                      title={
+                        resourceStates.records.error && !records.length
+                          ? "No se pudieron cargar los juegos"
+                          : "No hay juegos"
+                      }
                       text={
-                        records.length
-                          ? "Cambiá los filtros o agregá un juego."
-                          : "Agregá un juego o importá desde Configuración."
+                        resourceStates.records.error && !records.length
+                          ? "Reintentá la carga cuando vuelva la conexión."
+                          : records.length
+                            ? "Cambiá los filtros o agregá un juego."
+                            : "Agregá un juego o importá desde Configuración."
                       }
                     />
                   ) : (
@@ -497,7 +659,9 @@ export function JournalApp({
                       view={view}
                       offers={offers}
                       releaseNow={releaseNow}
-                      onEdit={setEditingEntry}
+                      onEdit={openEntry}
+                      onQuickSave={(entry) => saveEntry(entry)}
+                      disabled={busy || !online}
                       entryRowClass={entryRowClass}
                     />
                   )}
@@ -516,7 +680,7 @@ export function JournalApp({
                     <article className="panel" key={g.id}>
                       <button
                         className="game-title-button"
-                        onClick={() => setEditingEntry(g)}
+                        onClick={() => openEntry(g)}
                       >
                         <h2>{g.title}</h2>
                         <ArrowUpRight size={17} />
@@ -556,35 +720,72 @@ export function JournalApp({
           )}
         </div>
       </main>
+      <NotificationDrawer
+        location={journalLocation}
+        online={online}
+        version={notificationsCheckedAt}
+        onChanged={reloadJournal}
+      />
       {editingEntry && (
         <EntryEditor
+          key={editingEntry.id ?? "new"}
           entry={editingEntry}
+          actionError={error}
           offers={offers.filter((o) => o.game_id === editingEntry.gameId)}
           members={sharing.members}
-          grants={sharing.grants.filter(
-            (g: any) => g.entry_id === editingEntry.id,
-          )}
+          grants={sharing.grants.filter((g) => g.entry_id === editingEntry.id)}
           busy={busy}
+          online={online}
           onClose={() => setEditingEntry(null)}
           onSave={async (entry) => {
-            if (
-              await performAction(
-                () => apiRequest("/api/records", "POST", entry),
-                "Entrada guardada.",
-              )
-            )
-              setEditingEntry(null);
+            await saveEntry(entry);
           }}
           onDelete={async () => {
+            if (!online) {
+              setError("Eliminar requiere conexión.");
+              return false;
+            }
             const removed = await performAction(
               () =>
-                apiRequest("/api/records", "DELETE", { id: editingEntry.id }),
-              "Entrada eliminada.",
+                apiRequest("/api/records", "DELETE", {
+                  id: editingEntry.id,
+                  expected: editingEntry.updated_at,
+                }),
+              "Entrada movida a Papelera.",
             );
-            if (removed) setEditingEntry(null);
+            if (removed) {
+              setUndoEntry({
+                id: editingEntry.id!,
+                expires: Date.now() + 10000,
+              });
+              setEditingEntry(null);
+            }
             return removed;
           }}
           runAction={performAction}
+        />
+      )}
+      {duplicate && (
+        <DuplicateWarning
+          matches={duplicate.matches}
+          busy={busy}
+          onClose={() => setDuplicate(null)}
+          onOpen={(record) => {
+            setDuplicate(null);
+            setEditingEntry(record);
+          }}
+          onReplay={(record) =>
+            void saveEntry(
+              {
+                ...duplicate.candidate,
+                id: undefined,
+                gameId: record.gameId,
+                updated_at: undefined,
+              },
+              true,
+            )
+          }
+          onSeparate={() => void saveEntry(duplicate.candidate, true)}
         />
       )}
       {batch && (

@@ -17,6 +17,7 @@ export type ExportData = {
   offers: Offer[];
   priceHistory: ExportHistory[];
   exportedAt: string;
+  trash?: (ExportRecord & { deleted_at: string })[];
 };
 type Value = string | number | boolean | null;
 type Table = { name: string; headers: string[]; rows: Value[][] };
@@ -264,7 +265,27 @@ export async function excelExport(
   const book = new ExcelJS.Workbook();
   book.creator = "Game Journal";
   book.created = new Date(data.exportedAt);
-  for (const original of [gameTable(data), ...pageTables(data)]) {
+  book.modified = new Date(data.exportedAt);
+  const trashed = data.trash
+    ? gameTable({ ...data, records: data.trash })
+    : null;
+  const trashTable: Table[] = trashed
+    ? [
+        {
+          name: "Papelera",
+          headers: [...trashed.headers, "Eliminada"],
+          rows: trashed.rows.map((row, index) => [
+            ...row,
+            formatDateTime(data.trash![index].deleted_at),
+          ]),
+        },
+      ]
+    : [];
+  for (const original of [
+    gameTable(data),
+    ...trashTable,
+    ...pageTables(data),
+  ]) {
     const table = fitExcel(original);
     if (table.rows.length > 1048575 || table.headers.length > 16384)
       throw Error(

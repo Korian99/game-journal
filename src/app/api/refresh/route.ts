@@ -1,3 +1,4 @@
+import { databaseError } from "@/lib/api-errors";
 import { authorized, apiError } from "@/lib/auth";
 export async function POST() {
   try {
@@ -5,7 +6,7 @@ export async function POST() {
     const { data, error } = await db.functions.invoke("price-worker", {
       body: { manual: true },
     });
-    if (error) throw Error("No se pudo actualizar: " + error.message);
+    if (error) databaseError(error);
     return Response.json(data);
   } catch (e) {
     return apiError(e);

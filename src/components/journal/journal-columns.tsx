@@ -51,6 +51,17 @@ export function useJournalColumns({
   onEdit: (entry: JournalEntry) => void;
 }) {
   return useMemo<ColumnDef<JournalEntry>[]>(() => {
+    const withActions = (
+      columns: ColumnDef<JournalEntry>[],
+    ): ColumnDef<JournalEntry>[] => [
+      ...columns,
+      {
+        id: "actions",
+        header: "",
+        enableSorting: false,
+        cell: () => null,
+      },
+    ];
     const commonColumns = {
       title: {
         accessorKey: "title",
@@ -126,7 +137,7 @@ export function useJournalColumns({
       },
     } satisfies Record<string, ColumnDef<JournalEntry>>;
     if (view === "library")
-      return [
+      return withActions([
         {
           ...commonColumns.title,
           cell: ({ row }) => (
@@ -196,9 +207,9 @@ export function useJournalColumns({
               </span>
             ),
         })),
-      ];
+      ]);
     if (view === "journal")
-      return [
+      return withActions([
         commonColumns.title,
         commonColumns.release,
         commonColumns.period,
@@ -222,7 +233,7 @@ export function useJournalColumns({
             <span className="entry-text-cell">{getValue<string>() || "—"}</span>
           ),
         })),
-      ];
+      ]);
     const storeName: ColumnDef<JournalEntry> = {
       ...commonColumns.title,
       header: "Nombre",
@@ -247,7 +258,7 @@ export function useJournalColumns({
       ),
     };
     if (view === "upcoming")
-      return [
+      return withActions([
         {
           ...commonColumns.release,
           header: "Fecha de salida",
@@ -275,9 +286,9 @@ export function useJournalColumns({
           sortDescFirst: true,
           cell: ({ row }) => <HypeBadge value={row.original.hype} />,
         },
-      ];
-    if (view !== "wishlist") return Object.values(commonColumns);
-    return [
+      ]);
+    if (view !== "wishlist") return withActions(Object.values(commonColumns));
+    return withActions([
       {
         id: "priority",
         accessorFn: (r) => r.priority ?? undefined,
@@ -320,6 +331,6 @@ export function useJournalColumns({
         header: "Hs. Estimadas",
         cell: ({ getValue }) => getValue() || "—",
       },
-    ];
+    ]);
   }, [view, offers, sort, releaseNow, onEdit]);
 }

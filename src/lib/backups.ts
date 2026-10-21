@@ -1,3 +1,17 @@
+import { z } from "zod";
+export const backupRunSchema = z.object({
+  id: z.string(),
+  status: z.string(),
+  started_at: z.string().optional(),
+  completed_at: z.string().nullable().optional(),
+  record_count: z.number().optional(),
+  byte_count: z.number().optional(),
+});
+export const backupStatusSchema = z.object({
+  latest: backupRunSchema.nullable(),
+  lastSuccess: backupRunSchema.nullable(),
+  checkedAt: z.string().refine((value) => Number.isFinite(Date.parse(value))),
+});
 export type BackupRun = {
   id: string;
   status: string;

@@ -60,9 +60,15 @@ function storeTitle(value: unknown): string | undefined {
   const title = value.replace(/\s+/g, " ").trim();
   return title.length > 0 && title.length <= 300 ? title : undefined;
 }
-export function parseSteam(response: any): Price {
-  const d = response?.success && response?.data;
-  if (!d)
+function object(value: unknown): Record<string, unknown> {
+  return value !== null && typeof value === "object" && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : {};
+}
+export function parseSteam(response: unknown): Price {
+  const result = object(response),
+    d = object(result.data);
+  if (!result.success || !result.data)
     return {
       status: "unavailable",
       price: null,
@@ -70,51 +76,60 @@ export function parseSteam(response: any): Price {
       currency: null,
       discount: 0,
     };
-  const p = d.price_overview;
-  const early = (d.genres ?? []).some((g: any) => String(g.id) === "70");
+  const p = object(d.price_overview),
+    release = object(d.release_date);
+  const early =
+    Array.isArray(d.genres) &&
+    d.genres.some((genre) => String(object(genre).id) === "70");
   return {
     name: storeTitle(d.name),
-    status: d.release_date?.coming_soon
+    status: release.coming_soon
       ? "upcoming"
       : early
         ? "early_access"
         : d.is_free
           ? "free"
-          : p
+          : d.price_overview
             ? "available"
             : "unavailable",
-    price: d.is_free ? 0 : p && Number.isFinite(p.final) ? p.final / 100 : null,
+    price: d.is_free
+      ? 0
+      : typeof p.final === "number" && Number.isFinite(p.final)
+        ? p.final / 100
+        : null,
     regular: d.is_free
       ? 0
-      : p && Number.isFinite(p.initial)
+      : typeof p.initial === "number" && Number.isFinite(p.initial)
         ? p.initial / 100
         : null,
-    currency: p?.currency ?? null,
-    discount: p?.discount_percent ?? 0,
-    release: d.release_date?.date,
+    currency: typeof p.currency === "string" ? p.currency : null,
+    discount: typeof p.discount_percent === "number" ? p.discount_percent : 0,
+    release: typeof release.date === "string" ? release.date : undefined,
   };
 }
 export function parseNintendo(html: string, url: string): Price {
   const target = parseStoreUrl(url);
   const $ = load(html);
-  const nodes: any[] = [];
-  const quotes: any[] = [];
+  const nodes: Record<string, unknown>[] = [];
+  const quotes: Record<string, unknown>[] = [];
   let verifiedName: string | undefined;
-  function structured(v: any) {
+  function structured(v: unknown) {
     if (Array.isArray(v)) {
       v.forEach(structured);
       return;
     }
     if (v && typeof v === "object") {
-      nodes.push(v);
-      if (v["@graph"]) structured(v["@graph"]);
+      const node = object(v);
+      nodes.push(node);
+      if (node["@graph"]) structured(node["@graph"]);
     }
   }
-  function cached(v: any, depth = 0) {
+  function cached(input: unknown, depth = 0) {
     if (depth > 40) return;
-    if (typeof v === "string" && v.trim().startsWith("{")) {
+    const v = object(input);
+    if (typeof input === "string" && input.trim().startsWith("{")) {
       try {
-        cached(JSON.parse(v), depth + 1);
+        cached(JSON.parse(input), depth + 1);
       } catch {}
       return;
     }
@@ -134,7 +149,7 @@ export function parseNintendo(html: string, url: string): Price {
           value &&
           typeof value === "object"
         )
-          quotes.push(value);
+          quotes.push(object(value));
     }
     for (const child of Object.values(v)) cached(child, depth + 1);
   }
@@ -153,11 +168,12 @@ export function parseNintendo(html: string, url: string): Price {
       ![n["@type"]]
         .flat()
         .some((t) =>
-          ["Product", "VideoGame", "SoftwareApplication"].includes(t),
+          ["Product", "VideoGame", "SoftwareApplication"].includes(String(t)),
         )
     )
       continue;
-    const candidate = n.url ?? n.offers?.url;
+    const offer = object(Array.isArray(n.offers) ? n.offers[0] : n.offers);
+    const candidate = n.url ?? offer.url;
     if (candidate) {
       try {
         const identity = parseStoreUrl(new URL(String(candidate), url).href);
@@ -174,7 +190,7 @@ export function parseNintendo(html: string, url: string): Price {
       continue;
     const name = storeTitle(n.name);
     if (candidate && name) verifiedName = name;
-    const offer = Array.isArray(n.offers) ? n.offers[0] : n.offers;
+
     if (
       offer &&
       offer.price !== undefined &&
@@ -441,7 +457,11 @@ const fields = [
 ] as const;
 export function makeImportPlan(
   incoming: ImportRecord[],
-  existing: any[],
+  existing: (Partial<JournalRecord> & {
+    source_key?: string;
+    source_snapshot?: Record<string, unknown>;
+    deleted_at?: string | null;
+  })[],
 ): ImportPlan[] {
   return incoming.map((row) => {
     const matches = existing.filter(
@@ -457,9 +477,19 @@ export function makeImportPlan(
         changes: { ...row },
         conflicts: row.sourceKey.includes(":duplicate:") ? ["duplicate"] : [],
       };
+    if (old.deleted_at)
+      return {
+        incoming: row,
+        id: old.id,
+        expectedUpdatedAt: old.updated_at,
+        kind: "conflict",
+        changes: {},
+        conflicts: ["trash"],
+      };
     const baseline = old.sourceSnapshot ?? old.source_snapshot ?? {};
     const newLinks = (row.links ?? []).filter(
-      (link) => !(baseline.links ?? []).includes(link),
+      (link) =>
+        !(Array.isArray(baseline.links) ? baseline.links : []).includes(link),
     );
     if (newLinks.length) changes.links = newLinks;
     for (const field of fields) {

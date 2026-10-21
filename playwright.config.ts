@@ -5,6 +5,7 @@ const proxyUrl = process.env.PLAYWRIGHT_PROXY_FROM_ENV
 const proxy = proxyUrl ? new URL(proxyUrl) : null;
 export default defineConfig({
   testDir: "./e2e",
+  testIgnore: "**/mocked/**",
   timeout: 60000,
   use: {
     baseURL: "http://127.0.0.1:3000",

@@ -1,5 +1,6 @@
 "use client";
 import { apiRequest } from "@/lib/api-client";
+import { invitationSchema } from "@/lib/contracts";
 import { useState } from "react";
 
 export function AdminInvite({ onError }: { onError: (s: string) => void }) {
@@ -12,7 +13,12 @@ export function AdminInvite({ onError }: { onError: (s: string) => void }) {
         e.preventDefault();
         setBusy(true);
         try {
-          const r = await apiRequest("/api/admin", "POST", { email });
+          const r = await apiRequest(
+            "/api/admin",
+            "POST",
+            { email },
+            invitationSchema,
+          );
           setLink(r.link);
         } catch (e) {
           onError((e as Error).message);

@@ -7,6 +7,11 @@ it("restores a bookmarked tab, year, search, filters, and sort", () => {
     "2026",
   );
   expect(state).toEqual({
+    compareYear: "",
+    estimateTarget: "story",
+    notificationOpen: false,
+    notificationRead: "unread",
+    notificationKind: "",
     view: "library",
     year: "2025",
     query: "Pokémon",
@@ -168,4 +173,16 @@ it("ignores invalid discount filters and omits the default from the URL", () => 
   expect(location.writeJournalLocation(state, "discount=invalid", "2026")).toBe(
     "tab=wishlist",
   );
+});
+
+it("persists statistics and notification drawer controls", () => {
+  const query =
+    "tab=statistics&year=2025&compareYear=2024&estimateTarget=extras&notifications=open&notificationRead=all&notificationType=target";
+  const state = location.readJournalLocation(query, "2026");
+  expect(state.compareYear).toBe("2024");
+  expect(state.estimateTarget).toBe("extras");
+  expect(state.notificationOpen).toBe(true);
+  expect(
+    location.readJournalLocation(location.writeJournalLocation(state), "2026"),
+  ).toEqual(state);
 });

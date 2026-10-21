@@ -8,6 +8,7 @@ export const journalViews = [
   "upcoming",
   "shared",
   "settings",
+  "statistics",
 ] as const;
 export type JournalView = (typeof journalViews)[number];
 export type DiscountFilter = "" | "discounted" | "not-discounted";
@@ -19,6 +20,11 @@ export type JournalLocation = {
   platform: string;
   year: string;
   sort: SortingState;
+  compareYear: string;
+  estimateTarget: "story" | "extras" | "completionist";
+  notificationOpen: boolean;
+  notificationRead: "all" | "unread";
+  notificationKind: "" | "discount" | "target" | "release" | "test";
 };
 const columns: Record<JournalView, string[]> = {
   library: [
@@ -37,6 +43,7 @@ const columns: Record<JournalView, string[]> = {
   upcoming: ["year", "title", "hype"],
   shared: [],
   settings: [],
+  statistics: [],
 };
 const locationKeys = [
   "tab",
@@ -46,6 +53,11 @@ const locationKeys = [
   "platform",
   "year",
   "sort",
+  "compareYear",
+  "estimateTarget",
+  "notifications",
+  "notificationRead",
+  "notificationType",
 ];
 export function defaultJournalLocation(
   view: JournalView = "library",
@@ -57,8 +69,17 @@ export function defaultJournalLocation(
     status: "",
     discount: "",
     platform: "",
-    year: view === "library" ? present : view === "journal" ? "2024" : "",
+    year: ["library", "statistics"].includes(view)
+      ? present
+      : view === "journal"
+        ? "2024"
+        : "",
     sort: columns[view].length ? defaultViewSort(view) : [],
+    compareYear: view === "statistics" ? String(Number(present) - 1) : "",
+    estimateTarget: "story",
+    notificationOpen: false,
+    notificationRead: "unread",
+    notificationKind: "",
   };
 }
 function bounded(value: string | null, length: number): string {
@@ -74,6 +95,24 @@ export function readJournalLocation(
     ? (tab as JournalView)
     : "library";
   const state = defaultJournalLocation(view, present);
+  state.notificationOpen = params.get("notifications") === "open";
+  state.notificationRead =
+    params.get("notificationRead") === "all" ? "all" : "unread";
+  const kind = params.get("notificationType");
+  if (["discount", "target", "release", "test"].includes(kind ?? ""))
+    state.notificationKind = kind as JournalLocation["notificationKind"];
+  if (view === "statistics") {
+    const year = params.get("year"),
+      compare = params.get("compareYear"),
+      target = params.get("estimateTarget");
+    if (year && /^(19|20|21)\d{2}$/.test(year)) state.year = year;
+    if (compare === "none") state.compareYear = "";
+    else if (compare && /^(19|20|21)\d{2}$/.test(compare))
+      state.compareYear = compare;
+    if (target === "story" || target === "extras" || target === "completionist")
+      state.estimateTarget = target;
+    state.platform = bounded(params.get("platform"), 200);
+  }
   if (!columns[view].length) return state;
   state.query = bounded(params.get("q"), 500);
   state.platform = bounded(params.get("platform"), 200);
@@ -126,6 +165,16 @@ export function writeJournalLocation(
   const params = new URLSearchParams(search);
   for (const key of locationKeys) params.delete(key);
   params.set("tab", state.view);
+  if (state.notificationOpen) params.set("notifications", "open");
+  if (state.notificationRead === "all") params.set("notificationRead", "all");
+  if (state.notificationKind)
+    params.set("notificationType", state.notificationKind);
+  if (state.view === "statistics") {
+    params.set("year", state.year);
+    params.set("compareYear", state.compareYear || "none");
+    params.set("estimateTarget", state.estimateTarget);
+    if (state.platform) params.set("platform", state.platform);
+  }
   if (columns[state.view].length) {
     if (state.query) params.set("q", state.query);
     if (state.status && state.view === "library")

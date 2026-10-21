@@ -1,22 +1,28 @@
 "use client";
-import { apiRequest } from "@/lib/api-client";
+import { MainTab } from "./editor/main-tab";
+import { PlaythroughTab } from "./editor/playthrough-tab";
+import { ReviewTab } from "./editor/review-tab";
+import { MoreTab } from "./editor/more-tab";
+
 import { statusAfterDateEdits } from "@/lib/journal/entry-status";
 import type {
   JournalEntry,
   PerformJournalAction,
 } from "@/lib/journal/journal-types";
-import { parseRelease } from "@/lib/releases";
+
 import { statuses, type Offer } from "@/lib/types";
 import { pagesSchema, releaseSchema } from "@/lib/validation";
-import { formatDate, formatDateTime } from "@/lib/journal/view-config";
-import { Check, ExternalLink, Share2, Trash2 } from "lucide-react";
+import { formatDate } from "@/lib/journal/view-config";
+import { Check, Trash2 } from "lucide-react";
 import { useEffect, useId, useRef, useState } from "react";
 import { EntryActionsMenu } from "./entry-actions-menu";
-import { OfferEditor } from "../offers/offer-editor";
-import { getOwnershipInfo, ownershipOptions } from "./ownership-badge";
-import { PlatformPicker } from "./platform-picker";
-import { ReleaseField } from "./release-field";
+
 import { Modal } from "../ui/dialog";
+import {
+  type PriceHistory,
+  type SharingMember,
+  type ShareGrant,
+} from "@/lib/contracts";
 
 export function EntryEditor({
   entry,
@@ -28,11 +34,15 @@ export function EntryEditor({
   onSave,
   onDelete,
   runAction,
+  actionError,
+  online = true,
 }: {
   entry: JournalEntry;
+  actionError?: string;
+  online?: boolean;
   offers: Offer[];
-  members: any[];
-  grants: any[];
+  members: SharingMember[];
+  grants: ShareGrant[];
   busy: boolean;
   onClose: () => void;
   onSave: (entry: JournalEntry) => Promise<void>;
@@ -42,10 +52,27 @@ export function EntryEditor({
   const [draft, setDraft] = useState({ ...entry });
   const [pageUrl, setPageUrl] = useState("");
   const [recipientId, setRecipientId] = useState("");
-  const [priceHistory, setPriceHistory] = useState<any[] | null>(null);
+  const [priceHistory, setPriceHistory] = useState<PriceHistory | null>(null);
   const [activeTab, setActiveTab] = useState("main");
   const [pageError, setPageError] = useState("");
   const [releaseError, setReleaseError] = useState("");
+  const [confirmDiscard, setConfirmDiscard] = useState(false);
+  const dirty =
+    JSON.stringify(draft) !== JSON.stringify(entry) || !!pageUrl.trim();
+  function requestClose() {
+    if (busy) return;
+    if (dirty) setConfirmDiscard(true);
+    else onClose();
+  }
+  useEffect(() => {
+    if (!dirty) return;
+    const prevent = (event: BeforeUnloadEvent) => {
+      event.preventDefault();
+      event.returnValue = "";
+    };
+    window.addEventListener("beforeunload", prevent);
+    return () => window.removeEventListener("beforeunload", prevent);
+  }, [dirty]);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [deleteError, setDeleteError] = useState("");
   const editorId = useId();
@@ -82,7 +109,7 @@ export function EntryEditor({
     { id: "review", label: "Reseña" },
     { id: "more", label: "Más" },
   ];
-  const updateDraftField = (key: string, value: unknown) =>
+  const updateDraftField = (key: keyof JournalEntry, value: unknown) =>
     setDraft((current) => ({ ...current, [key]: value }));
   const renderField = (
     key: keyof JournalEntry,
@@ -118,6 +145,30 @@ export function EntryEditor({
       />
     </label>
   );
+  if (confirmDiscard)
+    return (
+      <Modal
+        open
+        title="Descartar cambios"
+        onClose={() => setConfirmDiscard(false)}
+      >
+        <div className="modal-body">
+          <p>Tenés cambios sin guardar.</p>
+          <div className="button-row">
+            <button
+              className="secondary"
+              autoFocus
+              onClick={() => setConfirmDiscard(false)}
+            >
+              Seguir editando
+            </button>
+            <button className="danger" onClick={onClose}>
+              Descartar cambios
+            </button>
+          </div>
+        </div>
+      </Modal>
+    );
   if (confirmDelete && entry.id)
     return (
       <Modal
@@ -141,9 +192,15 @@ export function EntryEditor({
               .join(" · ")}
           </p>
           <p className="fine-print">
-            Las demás partidas de este juego se conservan. Esta acción no se
-            puede deshacer desde la app.
+            Las demás partidas de este juego se conservan. Podés restaurarla
+            desde Papelera durante 30 días.
           </p>
+          {dirty && (
+            <p className="error">
+              Los cambios sin guardar de este formulario se descartarán al
+              eliminar la entrada.
+            </p>
+          )}
           {deleteError && (
             <p className="delete-entry-error" role="alert">
               {deleteError}
@@ -175,7 +232,7 @@ export function EntryEditor({
   return (
     <Modal
       open
-      onClose={onClose}
+      onClose={requestClose}
       title={entry.id ? "Tu partida" : "Agregar un juego"}
       onEscapeKeyDown={(event) => {
         const trigger = document.getElementById(editorId + "-options");
@@ -190,7 +247,7 @@ export function EntryEditor({
         entry.id ? (
           <EntryActionsMenu
             triggerId={editorId + "-options"}
-            busy={busy}
+            busy={busy || !online}
             onDeleteRequest={() => {
               setDeleteError("");
               setConfirmDelete(true);
@@ -287,170 +344,23 @@ export function EntryEditor({
           aria-labelledby={editorId + "-tab-main"}
           hidden={activeTab !== "main"}
         >
-          {activeTab === "main" && (
-            <>
-              {renderField("title", "Nombre del juego")}
-              <PlatformPicker
-                label="Plataformas disponibles"
-                value={draft.platforms}
-                onChange={(value) => updateDraftField("platforms", value)}
-                form={formId}
-                multiple
-              />
-              <div className="form-grid">
-                <label>
-                  Estado
-                  <select
-                    form={formId}
-                    aria-label="Estado"
-                    value={draft.status}
-                    onChange={(e) => updateDraftField("status", e.target.value)}
-                  >
-                    {Object.entries(statuses).map(([key, value]) => (
-                      <option key={key} value={key}>
-                        {value}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-                <label>
-                  Acceso al juego
-                  <select
-                    form={formId}
-                    value={getOwnershipInfo(draft.ownership).value}
-                    onChange={(event) =>
-                      updateDraftField("ownership", event.target.value)
-                    }
-                  >
-                    <option value="" disabled>
-                      Sin definir
-                    </option>
-                    {draft.ownership &&
-                      !ownershipOptions.some(
-                        (option) =>
-                          option.value ===
-                          getOwnershipInfo(draft.ownership).value,
-                      ) && (
-                        <option value={draft.ownership}>
-                          {draft.ownership} (actual)
-                        </option>
-                      )}
-                    {ownershipOptions.map((option) => (
-                      <option key={option.value} value={option.value}>
-                        {option.label}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-                {renderField("priority", "Prioridad")}
-                {renderField("estimated", "Horas estimadas")}
-              </div>
-              <section className="editor-section">
-                <h3>
-                  Páginas <span className="muted">· opcional</span>
-                </h3>
-                {offers.map((offer) => (
-                  <OfferEditor
-                    key={offer.id}
-                    offer={offer}
-                    runAction={runAction}
-                    showHistory={async () =>
-                      setPriceHistory(
-                        await apiRequest("/api/offers?id=" + offer.id),
-                      )
-                    }
-                  />
-                ))}
-                {(draft.pages ?? []).length > 0 && (
-                  <ul className="draft-pages" aria-label="Páginas del juego">
-                    {draft.pages?.map((page) => (
-                      <li key={page}>
-                        <a
-                          href={page}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                        >
-                          {page}
-                          <ExternalLink size={13} />
-                        </a>
-                        <button
-                          type="button"
-                          className="icon-button danger"
-                          aria-label={"Quitar página " + page}
-                          disabled={busy}
-                          onClick={() =>
-                            updateDraftField(
-                              "pages",
-                              draft.pages?.filter((value) => value !== page),
-                            )
-                          }
-                        >
-                          <Trash2 size={15} />
-                        </button>
-                      </li>
-                    ))}
-                  </ul>
-                )}
-                <form
-                  className="inline-form"
-                  onSubmit={(event) => {
-                    event.preventDefault();
-                    const pages = pagesSchema.safeParse([
-                      ...(draft.pages ?? []),
-                      pageUrl,
-                    ]);
-                    if (!pages.success) {
-                      setPageError(
-                        pages.error.issues[0]?.message ?? "Revisá el enlace.",
-                      );
-                      return;
-                    }
-                    updateDraftField("pages", pages.data);
-                    setPageUrl("");
-                    setPageError("");
-                  }}
-                >
-                  <input
-                    type="url"
-                    aria-label="Enlace de página"
-                    placeholder="https://…"
-                    value={pageUrl}
-                    onChange={(event) => {
-                      setPageUrl(event.target.value);
-                      setPageError("");
-                    }}
-                    required
-                    disabled={busy}
-                  />
-                  <button className="secondary" disabled={busy}>
-                    Agregar
-                  </button>
-                </form>
-                {pageError && (
-                  <p className="error" role="alert">
-                    {pageError}
-                  </p>
-                )}
-                <p className="fine-print">
-                  Precios: Steam y Nintendo. Otras páginas: referencia.
-                </p>
-                {priceHistory && (
-                  <div className="history">
-                    {priceHistory.length ? (
-                      priceHistory.map((quote) => (
-                        <p key={quote.id}>
-                          {formatDateTime(quote.created_at)} · {quote.currency}{" "}
-                          {quote.price} · {quote.discount}% OFF
-                        </p>
-                      ))
-                    ) : (
-                      <p>Todavía no hay cambios de precio registrados.</p>
-                    )}
-                  </div>
-                )}
-              </section>
-            </>
-          )}
+          <MainTab
+            online={online}
+            draft={draft}
+            updateDraftField={updateDraftField}
+            renderField={renderField}
+            formId={formId}
+            offers={offers}
+            runAction={runAction}
+            priceHistory={priceHistory}
+            setPriceHistory={setPriceHistory}
+            pageUrl={pageUrl}
+            setPageUrl={setPageUrl}
+            pageError={pageError}
+            setPageError={setPageError}
+            busy={busy}
+            activeTab={activeTab}
+          />
         </section>
         <section
           className="editor-panel"
@@ -459,29 +369,13 @@ export function EntryEditor({
           aria-labelledby={editorId + "-tab-playthrough"}
           hidden={activeTab !== "playthrough"}
         >
-          {activeTab === "playthrough" && (
-            <>
-              <div className="form-grid">
-                {renderField("started", "Empecé")}
-                {renderField("finished", "Terminé")}
-              </div>
-              <PlatformPicker
-                label="Consola donde jugué"
-                value={draft.device}
-                onChange={(value) => updateDraftField("device", value)}
-                form={formId}
-              />
-              <label>
-                ¿Por qué? · privado
-                <textarea
-                  form={formId}
-                  rows={3}
-                  value={draft.reason}
-                  onChange={(e) => updateDraftField("reason", e.target.value)}
-                />
-              </label>
-            </>
-          )}
+          <PlaythroughTab
+            draft={draft}
+            updateDraftField={updateDraftField}
+            renderField={renderField}
+            formId={formId}
+            activeTab={activeTab}
+          />
         </section>
         <section
           className="editor-panel"
@@ -490,25 +384,13 @@ export function EntryEditor({
           aria-labelledby={editorId + "-tab-review"}
           hidden={activeTab !== "review"}
         >
-          {activeTab === "review" && (
-            <>
-              <div className="form-grid">
-                {renderField("rating", "Reseña / 100", "number")}
-                {renderField("hours", "Horas jugadas", "number")}
-                {renderField("impression", "Impresiones")}
-                {renderField("focus", "Historia, gameplay o ambos")}
-              </div>
-              <label>
-                Comentarios adicionales · privados
-                <textarea
-                  form={formId}
-                  rows={5}
-                  value={draft.notes}
-                  onChange={(e) => updateDraftField("notes", e.target.value)}
-                />
-              </label>
-            </>
-          )}
+          <ReviewTab
+            draft={draft}
+            updateDraftField={updateDraftField}
+            renderField={renderField}
+            formId={formId}
+            activeTab={activeTab}
+          />
         </section>
         <section
           className="editor-panel"
@@ -517,164 +399,43 @@ export function EntryEditor({
           aria-labelledby={editorId + "-tab-more"}
           hidden={activeTab !== "more"}
         >
-          <ReleaseField
-            record={draft}
-            form={formId}
-            error={releaseError}
-            onChange={(release) => {
-              const parsed = parseRelease(release);
-              setDraft((current) => ({
-                ...current,
-                release,
-                year: parsed.kind === "unknown" ? null : parsed.year,
-              }));
-              setReleaseError("");
-            }}
+          <MoreTab
+            online={online}
+            dirty={dirty}
+            entry={entry}
+            draft={draft}
+            setDraft={setDraft}
+            updateDraftField={updateDraftField}
+            renderField={renderField}
+            formId={formId}
+            runAction={runAction}
+            members={members}
+            grants={grants}
+            recipientId={recipientId}
+            setRecipientId={setRecipientId}
+            busy={busy}
+            onSave={onSave}
+            releaseError={releaseError}
+            setReleaseError={setReleaseError}
+            activeTab={activeTab}
           />
-          {activeTab === "more" && (
-            <>
-              <div className="form-grid">
-                {renderField("period", "Año o período jugado")}
-                {renderField("memorability", "Memorabilidad / 10", "number")}
-                {renderField("replay", "¿Lo rejugarías?")}
-                <label>
-                  Hype
-                  <select
-                    form={formId}
-                    value={draft.hype}
-                    onChange={(event) =>
-                      updateDraftField("hype", event.target.value)
-                    }
-                  >
-                    <option value="" disabled>
-                      Elegí el hype…
-                    </option>
-                    {draft.hype &&
-                      !["Bajo", "Medio", "Dunno", "Alto", "Hyper"].includes(
-                        draft.hype,
-                      ) && (
-                        <option value={draft.hype}>
-                          {draft.hype} (actual)
-                        </option>
-                      )}
-                    {["Bajo", "Medio", "Dunno", "Alto", "Hyper"].map(
-                      (level) => (
-                        <option key={level} value={level}>
-                          {level}
-                        </option>
-                      ),
-                    )}
-                  </select>
-                </label>
-              </div>
-
-              {entry.id && (
-                <>
-                  <section className="editor-section">
-                    <h3>
-                      <Share2 size={16} />
-                      Compartir esta entrada
-                    </h3>
-                    <p className="muted">
-                      Se comparten la partida, las horas, las puntuaciones y las
-                      impresiones. Motivos y comentarios: privados.
-                    </p>
-                    {grants.map((g) => (
-                      <div className="button-row" key={g.id}>
-                        <span>
-                          {members.find((m) => m.id === g.recipient_id)
-                            ?.display_name ?? "Persona invitada"}
-                        </span>
-                        <button
-                          className="text-button"
-                          onClick={() =>
-                            runAction(
-                              () =>
-                                apiRequest("/api/sharing", "DELETE", {
-                                  id: g.id,
-                                }),
-                              "Acceso revocado.",
-                            )
-                          }
-                        >
-                          Revocar acceso
-                        </button>
-                      </div>
-                    ))}
-                    <div className="inline-form">
-                      <select
-                        aria-label="Compartir con"
-                        value={recipientId}
-                        onChange={(e) => setRecipientId(e.target.value)}
-                      >
-                        <option value="">Elegí una persona</option>
-                        {members
-                          .filter(
-                            (m) => !grants.some((g) => g.recipient_id === m.id),
-                          )
-                          .map((m) => (
-                            <option key={m.id} value={m.id}>
-                              {m.display_name}
-                            </option>
-                          ))}
-                      </select>
-                      <button
-                        className="secondary"
-                        disabled={!recipientId}
-                        onClick={() =>
-                          runAction(
-                            () =>
-                              apiRequest("/api/sharing", "POST", {
-                                entry_id: entry.id,
-                                recipient_id: recipientId,
-                              }),
-                            "Entrada compartida.",
-                          )
-                        }
-                      >
-                        Compartir
-                      </button>
-                    </div>
-                  </section>
-                  <div className="editor-extra-actions">
-                    {entry.id && (
-                      <button
-                        type="button"
-                        className="secondary"
-                        onClick={() =>
-                          onSave({
-                            ...draft,
-                            id: undefined,
-                            updated_at: undefined,
-                            sourceKey: "",
-                            status: "playing",
-                            started: new Date().toISOString().slice(0, 10),
-                            finished: "",
-                            period: String(new Date().getFullYear()),
-                            hours: null,
-                            rating: null,
-                            memorability: null,
-                            impression: "",
-                            notes: "",
-                            reason: "",
-                          })
-                        }
-                        disabled={busy}
-                      >
-                        Nueva partida
-                      </button>
-                    )}
-                  </div>
-                </>
-              )}
-            </>
-          )}
         </section>
+        {!online && (
+          <p className="fine-print">
+            Necesitás conexión para guardar. El formulario se conserva mientras
+            siga abierto.
+          </p>
+        )}
+        {actionError && (
+          <p className="error" role="alert">
+            {actionError}
+          </p>
+        )}
         <div className="entry-editor-actions">
           <button
             type="button"
             className="text-button"
-            onClick={onClose}
+            onClick={requestClose}
             disabled={busy}
           >
             Cancelar

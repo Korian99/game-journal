@@ -75,5 +75,16 @@ export function useJournalLocation(initialLocation?: JournalLocation) {
     setDiscount: (discount: DiscountFilter) => update({ discount }),
     setPlatform: (platform: string) => update({ platform }),
     setYear: (year: string) => update({ year }),
+    setCompareYear: (compareYear: string) => update({ compareYear }),
+    setEstimateTarget: (estimateTarget: JournalLocation["estimateTarget"]) =>
+      update({ estimateTarget }),
+    setNotificationOpen: (notificationOpen: boolean) =>
+      update({ notificationOpen }),
+    setNotificationRead: (
+      notificationRead: JournalLocation["notificationRead"],
+    ) => update({ notificationRead }),
+    setNotificationKind: (
+      notificationKind: JournalLocation["notificationKind"],
+    ) => update({ notificationKind }),
   };
 }

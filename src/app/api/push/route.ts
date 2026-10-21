@@ -1,3 +1,4 @@
+import { databaseError } from "@/lib/api-errors";
 import { authorized, apiError } from "@/lib/auth";
 import { bodyJson } from "@/lib/validation";
 import { z } from "zod";
@@ -10,7 +11,7 @@ export async function GET() {
       .select("*")
       .order("created_at", { ascending: false })
       .limit(100);
-    if (error) throw Error(error.message);
+    if (error) databaseError(error);
     return Response.json(data, {
       headers: { "Cache-Control": "private, no-store" },
     });
@@ -35,7 +36,7 @@ export async function POST(request: Request) {
         { owner_id: user.id, endpoint: subscription.endpoint, subscription },
         { onConflict: "endpoint" },
       );
-    if (error) throw Error(error.message);
+    if (error) databaseError(error);
     return Response.json({ ok: true });
   } catch (e) {
     return apiError(e);
@@ -49,7 +50,7 @@ export async function DELETE(request: Request) {
       .from("push_subscriptions")
       .delete()
       .eq("endpoint", endpoint);
-    if (error) throw Error(error.message);
+    if (error) databaseError(error);
     return Response.json({ ok: true });
   } catch (e) {
     return apiError(e);
@@ -64,7 +65,7 @@ export async function PATCH() {
       .update({ read_at: new Date().toISOString() })
       .eq("owner_id", user.id)
       .is("read_at", null);
-    if (error) throw Error(error.message);
+    if (error) databaseError(error);
     return Response.json({ ok: true });
   } catch (e) {
     return apiError(e);

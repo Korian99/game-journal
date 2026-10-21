@@ -1,6 +1,10 @@
 "use client";
 import { useEffect, useState } from "react";
-import { backupWarning, type BackupStatus as Status } from "@/lib/backups";
+import {
+  backupStatusSchema,
+  backupWarning,
+  type BackupStatus as Status,
+} from "@/lib/backups";
 import { formatDateTime } from "@/lib/journal/view-config";
 export function BackupStatus({ details = false }: { details?: boolean }) {
   const [status, setStatus] = useState<Status | null>(null);
@@ -21,7 +25,7 @@ export function BackupStatus({ details = false }: { details?: boolean }) {
           signal: controller.signal,
         });
         if (!response.ok) throw Error("Backup status unavailable");
-        const value = (await response.json()) as Status;
+        const value = backupStatusSchema.parse(await response.json());
         if (
           !value ||
           !("lastSuccess" in value) ||

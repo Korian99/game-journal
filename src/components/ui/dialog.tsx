@@ -8,7 +8,9 @@ export function Modal({
   children,
   headerActions,
   onEscapeKeyDown,
+  variant = "modal",
 }: {
+  variant?: "modal" | "drawer";
   open: boolean;
   onClose: () => void;
   title: string;
@@ -21,7 +23,9 @@ export function Modal({
       <Dialog.Portal>
         <Dialog.Overlay className="modal-overlay" />
         <Dialog.Content
-          className="modal-content"
+          className={
+            "modal-content" + (variant === "drawer" ? " drawer-content" : "")
+          }
           aria-describedby={undefined}
           onEscapeKeyDown={onEscapeKeyDown}
         >

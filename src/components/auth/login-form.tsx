@@ -3,23 +3,28 @@ import { useState } from "react";
 import { resolveJournalReturnPath } from "@/lib/journal/journal-location";
 import { browserClient } from "@/lib/supabase/client";
 export function LoginForm() {
-  const [error, setError] = useState("");
-  const [busy, setBusy] = useState(false);
-  async function submit(e: React.FormEvent<HTMLFormElement>) {
-    e.preventDefault();
+  const [error, setError] = useState(""),
+    [busy, setBusy] = useState(false);
+  async function submit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
     setBusy(true);
     setError("");
-    const form = new FormData(e.currentTarget);
+    const form = new FormData(event.currentTarget);
     try {
       const { error } = await browserClient().auth.signInWithPassword({
         email: String(form.get("email")),
         password: String(form.get("password")),
       });
       if (error) throw error;
-      const target = new URLSearchParams(window.location.search).get("next");
-      window.location.assign(resolveJournalReturnPath(target));
+      window.location.assign(
+        resolveJournalReturnPath(
+          new URLSearchParams(window.location.search).get("next"),
+        ),
+      );
     } catch {
-      setError("No pudimos iniciar sesión. Revisá el correo y la contraseña.");
+      setError(
+        "No pudimos iniciar sesión. Revisá la conexión, el correo y la contraseña.",
+      );
       setBusy(false);
     }
   }

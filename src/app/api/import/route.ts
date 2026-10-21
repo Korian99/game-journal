@@ -1,3 +1,4 @@
+import { databaseError } from "@/lib/api-errors";
 import { authorized, apiError } from "@/lib/auth";
 import { parseWorkbook, makeImportPlan } from "@/lib/domain";
 import { bodyJson } from "@/lib/validation";
@@ -20,7 +21,7 @@ export async function POST(request: Request) {
         batch_id: input.batchId,
         resolutions: input.resolutions,
       });
-      if (error) throw Error(error.message);
+      if (error) databaseError(error);
       return Response.json({ count: data });
     }
     const input = z
@@ -40,18 +41,44 @@ export async function POST(request: Request) {
     });
     if (!response.ok)
       throw Error("Google no permitió leer la planilla. Volvé a conectar.");
-    const workbook = await response.json();
+    const cell = z.object({
+      effectiveValue: z
+        .object({
+          stringValue: z.string().optional(),
+          numberValue: z.number().optional(),
+          boolValue: z.boolean().optional(),
+        })
+        .optional(),
+    });
+    const workbook = z
+      .object({
+        sheets: z.array(
+          z.object({
+            properties: z.object({ title: z.string() }),
+            data: z
+              .array(
+                z.object({
+                  rowData: z
+                    .array(z.object({ values: z.array(cell).optional() }))
+                    .optional(),
+                }),
+              )
+              .optional(),
+          }),
+        ),
+      })
+      .parse(await response.json());
     const tabs = workbook.sheets
-      .filter((s: any) =>
+      .filter((s) =>
         ["Tablas", "2025", "2026", "<2025"].includes(s.properties.title),
       )
-      .map((s: any) => ({
+      .map((s) => ({
         name: s.properties.title,
         values: (s.data?.[0]?.rowData ?? [])
           .slice(0, 5000)
-          .map((r: any) =>
+          .map((r) =>
             (r.values ?? []).map(
-              (c: any) =>
+              (c) =>
                 c.effectiveValue?.stringValue ??
                 c.effectiveValue?.numberValue ??
                 c.effectiveValue?.boolValue ??
@@ -61,8 +88,8 @@ export async function POST(request: Request) {
       }));
     const incoming = parseWorkbook(tabs);
     if (incoming.length > 5000) throw Error("Importación demasiado grande");
-    const { data: existing, error } = await db.rpc("list_records");
-    if (error) throw Error(error.message);
+    const { data: existing, error } = await db.rpc("list_records_with_trash");
+    if (error) databaseError(error);
     const plan = makeImportPlan(incoming, existing ?? []);
     const { data: batch, error: saveError } = await db
       .from("imports")
@@ -74,7 +101,7 @@ export async function POST(request: Request) {
       })
       .select("id")
       .single();
-    if (saveError) throw Error(saveError.message);
+    if (saveError) databaseError(saveError);
     return Response.json({ batchId: batch.id, plan });
   } catch (e) {
     return apiError(e);

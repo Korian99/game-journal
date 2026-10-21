@@ -3,12 +3,15 @@ begin;
 insert into auth.users(id,email) values
  ('77777777-7777-4777-8777-777777777777','store-title-one@example.invalid'),
  ('88888888-8888-4888-8888-888888888888','store-title-two@example.invalid');
+insert into public.members(id,display_name) values ('77777777-7777-4777-8777-777777777777','Store title fixture'),('88888888-8888-4888-8888-888888888888','Other title fixture');
+
 do $fixtures$
 declare gid uuid; nid uuid; other_id uuid; oid uuid; pid uuid;
 begin
  insert into public.games(owner_id,data) values('77777777-7777-4777-8777-777777777777','{"title":"Old manual title","year":2020,"priority":3}') returning id into gid;
  insert into public.games(owner_id,data) values('77777777-7777-4777-8777-777777777777','{"title":"Old Nintendo title"}') returning id into nid;
  insert into public.games(owner_id,data) values('88888888-8888-4888-8888-888888888888','{"title":"Other owner title"}') returning id into other_id;
+ insert into public.playthroughs(owner_id,game_id,data) values ('77777777-7777-4777-8777-777777777777',gid,'{"status":"wishlist"}'),('77777777-7777-4777-8777-777777777777',nid,'{"status":"upcoming"}');
  perform set_config('test.title_game',gid::text,true);
  perform set_config('test.title_nintendo_game',nid::text,true);
  perform set_config('test.title_other_game',other_id::text,true);

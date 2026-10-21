@@ -1,6 +1,7 @@
 import { authorized, apiError } from "@/lib/auth";
 import { parseStoreUrl } from "@/lib/domain";
 import { bodyJson } from "@/lib/validation";
+import { databaseError } from "@/lib/api-errors";
 import { z } from "zod";
 export async function POST(request: Request) {
   try {
@@ -21,7 +22,7 @@ export async function POST(request: Request) {
       })
       .select()
       .single();
-    if (error) throw Error(error.message);
+    if (error) databaseError(error);
     return Response.json(data);
   } catch (e) {
     return apiError(e);
@@ -57,7 +58,7 @@ export async function PATCH(request: Request) {
       })
       .eq("id", id);
 
-    if (error) throw Error(error.message);
+    if (error) databaseError(error);
     return Response.json({ ok: true });
   } catch (e) {
     return apiError(e);
@@ -68,7 +69,7 @@ export async function DELETE(request: Request) {
     const { db } = await authorized();
     const { id } = z.object({ id: z.uuid() }).parse(await bodyJson(request));
     const { error } = await db.from("offers").delete().eq("id", id);
-    if (error) throw Error(error.message);
+    if (error) databaseError(error);
     return Response.json({ ok: true });
   } catch (e) {
     return apiError(e);
@@ -78,13 +79,20 @@ export async function GET(request: Request) {
   try {
     const { db } = await authorized();
     const id = new URL(request.url).searchParams.get("id");
+    if (!id) {
+      const { data, error } = await db.from("offers").select("*");
+      if (error) databaseError(error);
+      return Response.json(data ?? [], {
+        headers: { "Cache-Control": "private, no-store" },
+      });
+    }
     const { data, error } = await db
       .from("price_history")
       .select("*")
       .eq("offer_id", id)
       .order("created_at", { ascending: false })
       .limit(100);
-    if (error) throw Error(error.message);
+    if (error) databaseError(error);
     return Response.json(data);
   } catch (e) {
     return apiError(e);

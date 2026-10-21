@@ -1,3 +1,4 @@
+import { databaseError } from "@/lib/api-errors";
 import { authorized, apiError } from "@/lib/auth";
 import { csvExport, excelExport, type ExportData } from "@/lib/export";
 import { formatDateTime } from "@/lib/journal/view-config";
@@ -9,7 +10,7 @@ async function readAll(
   table: "offers" | "price_history",
   owner: string,
 ) {
-  const rows: Record<string, any>[] = [];
+  const rows: Record<string, unknown>[] = [];
   let after: string | undefined;
   for (;;) {
     let query = db
@@ -20,7 +21,7 @@ async function readAll(
       .limit(500);
     if (after) query = query.gt("id", after);
     const { data, error } = await query;
-    if (error) throw Error(error.message);
+    if (error) databaseError(error);
     if (!data?.length) return rows;
     const next = data[data.length - 1].id;
     if (typeof next !== "string" || (after && next <= after))
@@ -33,7 +34,7 @@ export async function GET(request: Request) {
   try {
     const { db, user } = await authorized();
     const { data: records, error } = await db.rpc("list_records");
-    if (error) throw Error(error.message);
+    if (error) databaseError(error);
     const [offers, priceHistory] = await Promise.all([
       readAll(db, "offers", user.id),
       readAll(db, "price_history", user.id),
