@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { statusSchema } from "./journal/status-schema";
 import { parseRelease } from "./releases";
 export const releaseSchema = z
   .string()
@@ -55,16 +56,7 @@ export const recordSchema = z
       .max(100)
       .nullable()
       .transform((value) => value ?? ""),
-    status: z.enum([
-      "backlog",
-      "playing",
-      "completed",
-      "paused",
-      "abandoned",
-      "remembered",
-      "wishlist",
-      "upcoming",
-    ]),
+    status: statusSchema,
     ownership: z.string().max(100),
     priority: z.preprocess(
       (value) => {

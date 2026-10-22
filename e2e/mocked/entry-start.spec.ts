@@ -89,7 +89,7 @@ async function fixture(
       .click();
   return { saves, lookups };
 }
-for (const tab of ["wishlist"]) {
+for (const tab of ["library", "journal", "wishlist", "upcoming"]) {
   test(
     "manual creation in " +
       tab +
@@ -112,6 +112,12 @@ for (const tab of ["wishlist"]) {
       await page
         .getByLabel("Nombre del juego", { exact: true })
         .fill("Manual game");
+      await expect(
+        page
+          .getByLabel("Estado", { exact: true })
+          .locator("option")
+          .filter({ hasText: /^Pendiente$/ }),
+      ).toHaveCount(0);
       await page.getByLabel("Prioridad", { exact: true }).fill("3");
       await page
         .getByRole("button", { name: "Guardar entrada", exact: true })

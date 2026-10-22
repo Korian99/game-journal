@@ -63,7 +63,6 @@ beforeEach(() => {
       "remembered",
       "wishlist",
       "upcoming",
-      "backlog",
     ] as const
   ).map((status, i) => ({
     ...emptyRecord,
@@ -273,4 +272,12 @@ it("exports readable empty worksheets for an empty collection", async () => {
       .every((s) => s.rowCount === 1),
   ).toBe(true);
   expect(book.getWorksheet("Guía de reseñas")?.rowCount).toBe(12);
+});
+
+it("labels legacy pending entries as wishlist in Excel", async () => {
+  records[0].status = "backlog" as JournalRecord["status"];
+  const { book } = await workbook();
+  expect(cell(book.getWorksheet("Juegos")!, 2, "Estado").value).toBe(
+    "Lista de deseos",
+  );
 });

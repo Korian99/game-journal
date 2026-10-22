@@ -1,5 +1,4 @@
 export type Status =
-  | "backlog"
   | "playing"
   | "completed"
   | "paused"
@@ -63,7 +62,6 @@ export type Price = {
   release?: string;
 };
 export const statuses: Record<Status, string> = {
-  backlog: "Pendiente",
   playing: "Jugando",
   completed: "Terminado",
   paused: "En pausa",
@@ -80,7 +78,7 @@ export const emptyRecord: JournalRecord = {
   period: "",
   started: "",
   finished: "",
-  status: "backlog",
+  status: "wishlist",
   ownership: "No",
   priority: null,
   hype: "",

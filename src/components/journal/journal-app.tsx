@@ -342,14 +342,7 @@ export function JournalApp({
                 onClick={() =>
                   openEntry({
                     ...emptyRecord,
-                    status:
-                      view === "wishlist"
-                        ? "wishlist"
-                        : view === "upcoming"
-                          ? "upcoming"
-                          : view === "journal"
-                            ? "remembered"
-                            : "playing",
+                    status: "wishlist",
                   })
                 }
               >

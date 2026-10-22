@@ -3,6 +3,10 @@ const domain = fs
   .readFileSync("src/lib/domain.ts", "utf8")
   .replace('from "./types"', 'from "./types.ts"');
 const copies = [
+  [
+    "supabase/functions/notification-worker/types.ts",
+    fs.readFileSync("src/lib/types.ts", "utf8"),
+  ],
   ["supabase/functions/price-worker/domain.ts", domain],
   [
     "supabase/functions/price-worker/types.ts",

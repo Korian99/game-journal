@@ -1,5 +1,6 @@
 import { z } from "zod";
-import { emptyRecord, statuses } from "./types";
+import { emptyRecord } from "./types";
+import { statusSchema } from "./journal/status-schema";
 import type { JournalEntry } from "./journal/journal-types";
 const text = z.string(),
   optionalText = text.nullish().transform((value) => value ?? "");
@@ -23,12 +24,7 @@ export const journalEntrySchema = z
     period: text.optional(),
     started: optionalText,
     finished: optionalText,
-    status: z.enum(
-      Object.keys(statuses) as [
-        keyof typeof statuses,
-        ...(keyof typeof statuses)[],
-      ],
-    ),
+    status: statusSchema,
     ownership: text.optional(),
     priority: z.union([z.number(), text, z.null()]).optional(),
     hype: text.optional(),

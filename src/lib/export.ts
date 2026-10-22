@@ -1,6 +1,7 @@
 import ExcelJS from "exceljs";
 import type { ScoringEntry } from "./scoring-guide";
 import { emptyRecord, statuses, type JournalRecord, type Offer } from "./types";
+import { statusSchema } from "./journal/status-schema";
 import { formatDate, formatDateTime } from "./journal/view-config";
 import { releaseLabel } from "./releases";
 
@@ -61,9 +62,10 @@ function gameTable(data: ExportData): Table {
     headers: gameHeaders,
     rows: data.records.map((input) => {
       const r = { ...emptyRecord, ...input };
+      const status = statusSchema.safeParse(r.status);
       return [
         r.title,
-        statuses[r.status] ?? r.status,
+        status.success ? statuses[status.data] : r.status,
         r.period,
         r.platforms,
         r.device,

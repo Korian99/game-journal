@@ -121,3 +121,7 @@ Lista de deseos muestra una única lista: se retiraron las tarjetas repetidas de
 ## Carga desde una página
 
 Al crear un juego se elige una página de Steam/Nintendo o carga manual. entry-start.tsx consulta el endpoint autenticado api/store-preview; lib/offers/store-preview.ts obtiene y normaliza los campos de tienda sin guardar datos. EntryEditor aplica esos campos al borrador compartido antes de confirmar la creación. Ver [store-page-creation.md](store-page-creation.md).
+
+## Estados vigentes
+
+Se retiró Pendiente. Los juegos nuevos y las importaciones sin estado definido usan Lista de deseos. lib/journal/status-schema.ts acepta el valor heredado backlog y lo interpreta como wishlist en lecturas y guardados; las opciones solo muestran los estados vigentes. La exportación Excel/CSV también usa esa etiqueta. No se modifican filas de producción: los valores antiguos se normalizan al guardar, mientras los respaldos completos conservan sus tablas originales.

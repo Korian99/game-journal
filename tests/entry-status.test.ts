@@ -95,7 +95,7 @@ describe("status when saving play dates", () => {
           started: value,
           finished: value,
         }),
-      ).toBe("backlog");
+      ).toBe("wishlist");
     },
   );
 });

@@ -394,7 +394,7 @@ export function parseWorkbook(tabs: WorkbookTab[]): ImportRecord[] {
               ? "remembered"
               : state === "no"
                 ? "abandoned"
-                : "backlog";
+                : "wishlist";
       result.push({
         ...emptyRecord,
         title,
