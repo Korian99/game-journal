@@ -1,4 +1,4 @@
-# Estado local — 21/10/2026
+# Estado de las mejoras — 22/10/2026
 
 Este documento resume el alcance y la verificación de las mejoras. La base, el rediseño de Diario y las correcciones de revisión están guardados en Git. El titular solicitó commit, push y despliegue el 21/10/2026. Consultá Git, Vercel y el historial de migraciones para confirmar el estado actual de publicación.
 
@@ -6,7 +6,7 @@ Implementado: recursos tipados y validados, errores con código/HTTP, recargas i
 
 La edición sin conexión se retiró del alcance por pedido del titular. No quedan una cola local, IndexedDB ni una migración de sincronización.
 
-Las migraciones nuevas deben revisarse y autorizarse antes de ejecutarse en producción. Google Drive requiere configurar un cliente OAuth y autorizar una vez la cuenta desde Configuración. No se activaron servicios pagos ni se escribió en Sheets.
+Las tres migraciones de permisos, Papelera/guardado y copias externas se aplicaron en producción el 22/10/2026 con aprobación explícita. Las funciones nuevas están disponibles; los conteos se mantuvieron en 211 juegos, 212 partidas, 175 páginas y 158 registros de precio. Google Drive requiere configurar un cliente OAuth y autorizar una vez la cuenta desde Configuración. No se activaron servicios pagos ni se escribió en Sheets.
 
 La recuperación automatizada se verifica con datos sintéticos y dos bases PostgreSQL descartables: aplica migraciones, prueba RLS y permisos, verifica el bundle JSON/Excel/manifiesto y restaura con otro propietario. Esto no sustituye una prueba real con Google Drive una vez configurado.
 

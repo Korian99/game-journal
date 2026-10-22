@@ -4,10 +4,12 @@ The reliability foundation, Diario redesign and review fixes are committed. Publ
 
 ## Database rollout
 
+The worker-grants, trash/saving and external-Drive migrations were applied in production on 22/10/2026 after approval. The filenames match Supabase's assigned versions. Game, playthrough, offer and price-history counts were unchanged. Google OAuth and the real external recovery cycle still require setup.
+
 Review both complete migration files in supabase/migrations before requesting approval to execute them:
 
-- 20261021114538_recoverable_playthrough_trash.sql adds deletion metadata, owner-scoped trash functions, sharing revocation, import/worker guards, snapshot format 4 and transactional canonical save responses.
-- 20261021115532_external_drive_backups.sql adds public owner-readable run metadata, private connection/job/OAuth state and Vault-backed credentials. Browser clients cannot read tokens or worker jobs. Every exposed function/table has explicit grants; exposed tables use RLS.
+- 20261022104421_recoverable_playthrough_trash.sql adds deletion metadata, owner-scoped trash functions, sharing revocation, import/worker guards, snapshot format 4 and transactional canonical save responses.
+- 20261022104436_external_drive_backups.sql adds public owner-readable run metadata, private connection/job/OAuth state and Vault-backed credentials. Browser clients cannot read tokens or worker jobs. Every exposed function/table has explicit grants; exposed tables use RLS.
 
 The normal records RPC excludes trash. A delete revokes sharing and moves only that playthrough into trash. Restore never recreates shares. A private Cron job purges entries older than 30 days at 03:05 Argentina, preserving game metadata and store history. Hard deletion is no longer granted directly to browser clients.
 

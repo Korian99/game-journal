@@ -21,10 +21,10 @@ Approved 21/10/2026. Offline creation/editing was removed from this rollout at t
 
 Read the actual SQL before requesting execution approval:
 
-1. 20261021114538_recoverable_playthrough_trash.sql
-2. 20261021115532_external_drive_backups.sql
+1. 20261022104421_recoverable_playthrough_trash.sql
+2. 20261022104436_external_drive_backups.sql
 
-Apply migrations before releasing the corresponding server code. Existing save RPCs and push subscription endpoints remain available for older clients. Review the live migration history before execution; this task did not query or change production.
+Apply migrations before releasing the corresponding server code. Existing save RPCs and push subscription endpoints remain available for older clients. Review the live migration history before execution. The three pending migrations were applied in production on 22/10/2026 after the owner's explicit approval; pre/post counts were unchanged.
 
 See improvements-setup.md for private OAuth setup, Cron configuration and recovery. Full production recovery remains a separate supervised operation.
 

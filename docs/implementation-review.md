@@ -49,3 +49,7 @@ These tests do not demonstrate actual Google service authorization, live backups
 - The owner subsequently requested commit, push and deployment. SQL execution remains subject to the separate approval described above. No spreadsheet edits or paid services are part of this work.
 
 Offline creation/editing was canceled by the owner. It is intentionally excluded: no IndexedDB record cache, persistent drafts, mutation queue, sync endpoint or offline-write migration remains.
+
+## Rollout update — 22/10/2026
+
+The owner approved the three exact migration files and pre/post verification SQL. Production now contains explicit worker grants, recoverable trash/canonical saving and external backup metadata/functions. Counts remained 211 games, 212 playthroughs, 175 offers and 158 price-history rows. All three new endpoint functions were found after rollout. Local filenames were aligned with the versions assigned by Supabase without changing SQL bytes. Google OAuth authorization and a real external backup/restore cycle still need setup; production publishing status must be checked in Vercel.

@@ -4,7 +4,7 @@ Status: prepared locally; not applied to Supabase. Remote SQL awaits owner revie
 
 Supabase's October 30, 2026 change removes automatic API grants for future public tables. Existing tables keep their grants. Explicit permissions are also needed when replaying our migrations on a fresh project.
 
-Migration: ../supabase/migrations/20261020110943_explicit_legacy_worker_grants.sql
+Migration: ../supabase/migrations/20261022104409_explicit_legacy_worker_grants.sql
 Verification: ../tests/explicit-grants.verify.sql
 
 The migration only adds the worker permissions required by current account-admin, price-worker, and notification-worker code. It does not revoke existing access, change data, change RLS, or grant direct access to private backup snapshots. Existing security-definer RPCs continue to perform their privileged writes as their owner, so workers do not need direct INSERT grants on notifications or price_history.
