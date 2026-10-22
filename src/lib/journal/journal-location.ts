@@ -12,11 +12,13 @@ export const journalViews = [
 ] as const;
 export type JournalView = (typeof journalViews)[number];
 export type DiscountFilter = "" | "discounted" | "not-discounted";
+export type ReviewFilter = "" | "with" | "without";
 export type JournalLocation = {
   view: JournalView;
   query: string;
   status: string;
   discount: DiscountFilter;
+  review: ReviewFilter;
   platform: string;
   year: string;
   sort: SortingState;
@@ -50,6 +52,7 @@ const locationKeys = [
   "q",
   "status",
   "discount",
+  "review",
   "platform",
   "year",
   "sort",
@@ -68,6 +71,7 @@ export function defaultJournalLocation(
     query: "",
     status: "",
     discount: "",
+    review: "",
     platform: "",
     year: ["library", "statistics"].includes(view)
       ? present
@@ -128,6 +132,9 @@ export function readJournalLocation(
     (discount === "discounted" || discount === "not-discounted")
   )
     state.discount = discount;
+  const review = params.get("review");
+  if (view === "journal" && (review === "with" || review === "without"))
+    state.review = review;
   if (["library", "journal"].includes(view)) {
     const year = params.get("year");
     if (year === "all") state.year = "";
@@ -185,6 +192,8 @@ export function writeJournalLocation(
       params.set("status", state.status);
     if (state.discount && state.view === "wishlist")
       params.set("discount", state.discount);
+    if (state.review && state.view === "journal")
+      params.set("review", state.review);
     if (state.platform) params.set("platform", state.platform);
     const defaults = defaultJournalLocation(state.view, present);
     if (

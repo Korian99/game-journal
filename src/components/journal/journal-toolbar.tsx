@@ -1,6 +1,9 @@
 "use client";
 
-import type { DiscountFilter } from "@/lib/journal/journal-location";
+import type {
+  DiscountFilter,
+  ReviewFilter,
+} from "@/lib/journal/journal-location";
 import { statuses } from "@/lib/types";
 import { useJournalLocation } from "@/hooks/use-journal-location";
 import { viewStatuses } from "@/lib/journal/view-config";
@@ -24,11 +27,13 @@ export function JournalToolbar({
     query,
     status,
     discount,
+    review,
     platform,
     year: selectedYear,
     setQuery,
     setStatus,
     setDiscount,
+    setReview,
     setPlatform,
     setYear,
   } = location;
@@ -88,6 +93,17 @@ export function JournalToolbar({
               {statuses[key]}
             </option>
           ))}
+        </select>
+      )}
+      {view === "journal" && (
+        <select
+          aria-label="Filtrar reseña"
+          value={review}
+          onChange={(e) => setReview(e.target.value as ReviewFilter)}
+        >
+          <option value="">Reseña: todas</option>
+          <option value="with">Con reseña</option>
+          <option value="without">Sin reseña</option>
         </select>
       )}
       <select

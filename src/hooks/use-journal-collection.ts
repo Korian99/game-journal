@@ -16,7 +16,7 @@ import {
 
 type CollectionOptions = Pick<
   JournalLocation,
-  "view" | "query" | "status" | "discount" | "platform"
+  "view" | "query" | "status" | "discount" | "review" | "platform"
 > & {
   records: JournalEntry[];
   offers: Offer[];
@@ -30,6 +30,7 @@ export function useJournalCollection({
   query,
   status,
   discount,
+  review,
   platform,
   selectedYear,
 }: CollectionOptions) {
@@ -80,6 +81,10 @@ export function useJournalCollection({
         )
         .filter((r) => !status || r.status === status)
         .filter((r) => {
+          if (view !== "journal" || !review) return true;
+          return review === "with" ? r.rating != null : r.rating == null;
+        })
+        .filter((r) => {
           if (view !== "wishlist" || !discount) return true;
           const discounted = hasActiveDiscount(
             offers.filter((offer) => offer.game_id === r.gameId),
@@ -97,7 +102,7 @@ export function useJournalCollection({
               : (r.device + ";" + r.platforms).split(";").map((p) => p.trim())
             ).includes(platform),
         ),
-    [entriesInView, query, status, discount, platform, view, offers],
+    [entriesInView, query, status, discount, review, platform, view, offers],
   );
   const summary = useMemo(
     () => summarizeGames(games, view === "library" ? selectedYear : ""),

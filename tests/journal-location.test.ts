@@ -17,6 +17,7 @@ it("restores a bookmarked tab, year, search, filters, and sort", () => {
     query: "Pokémon",
     status: "completed",
     discount: "",
+    review: "",
     platform: "Nintendo DS",
     sort: [
       { id: "rating", desc: true },
@@ -186,3 +187,47 @@ it("persists statistics and notification drawer controls", () => {
     location.readJournalLocation(location.writeJournalLocation(state), "2026"),
   ).toEqual(state);
 });
+
+it.each(["with", "without"])(
+  "round trips the Diario review filter %s",
+  (review) => {
+    const state = location.readJournalLocation(
+      "?tab=journal&year=all&status=playing&review=" + review,
+      "2026",
+    );
+    expect(state).toHaveProperty("review", review);
+    expect(
+      location.readJournalLocation(
+        location.writeJournalLocation(state, "", "2026"),
+        "2026",
+      ),
+    ).toEqual(state);
+  },
+);
+it("defaults to all reviews and ignores unknown review filters", () => {
+  const state = location.readJournalLocation(
+    "?tab=journal&review=invalid",
+    "2026",
+  );
+  expect(state).toHaveProperty("review", "");
+  expect(
+    new URLSearchParams(
+      location.writeJournalLocation(state, "review=invalid", "2026"),
+    ).has("review"),
+  ).toBe(false);
+});
+it.each(["library", "wishlist", "upcoming", "statistics", "settings"])(
+  "removes the Diario review filter from %s",
+  (view) => {
+    const state = location.readJournalLocation(
+      "?tab=" + view + "&review=with",
+      "2026",
+    );
+    expect(state).toHaveProperty("review", "");
+    expect(
+      new URLSearchParams(
+        location.writeJournalLocation(state, "review=with", "2026"),
+      ).has("review"),
+    ).toBe(false);
+  },
+);

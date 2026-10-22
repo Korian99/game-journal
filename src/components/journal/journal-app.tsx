@@ -79,6 +79,7 @@ export function JournalApp({
     query,
     status,
     discount,
+    review,
     platform,
     year: selectedYear,
     sort,
@@ -198,6 +199,7 @@ export function JournalApp({
     query,
     status,
     discount,
+    review,
     platform,
     selectedYear,
   });
