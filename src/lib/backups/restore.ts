@@ -40,7 +40,7 @@ export function restoreSql(
     "set local standard_conforming_strings=on;",
     "select pg_advisory_xact_lock(hashtextextended('game-journal-restore',0));",
     "do $$ begin",
-    " if exists(select 1 from public.games) or exists(select 1 from public.playthroughs) or exists(select 1 from public.offers) or exists(select 1 from public.imports) or exists(select 1 from public.notifications) then raise exception 'El proyecto de destino no está vacío';end if;",
+    " if exists(select 1 from public.games) or exists(select 1 from public.playthroughs) or exists(select 1 from public.offers) or exists(select 1 from public.imports) or exists(select 1 from public.notifications) or exists(select 1 from public.scoring_guide) then raise exception 'El proyecto de destino no está vacío';end if;",
     " if not exists(select 1 from public.members where id='" +
       targetOwner +
       "'::uuid and active) then raise exception 'Creá primero la cuenta invitada de destino';end if;",
@@ -64,6 +64,7 @@ export function restoreSql(
   insert("offers", offers);
   insert("price_history", owned(snapshot.priceHistory));
   insert("imports", owned(tables.imports));
+  insert("scoring_guide", owned(tables.scoring_guide));
   insert("notifications", notifications);
   if (preferences.length)
     sections.push(
@@ -81,6 +82,7 @@ export function restoreSql(
       offers: offers.length,
       priceHistory: snapshot.priceHistory.length,
       imports: tables.imports.length,
+      scoringGuide: tables.scoring_guide.length,
       notifications: notifications.length,
       sharingDisabled: tables.shared_entries.length,
       targetOwner,

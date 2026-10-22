@@ -153,6 +153,7 @@ it("exports every playthrough and review field in a real Excel workbook", async 
     "Juegos",
     "Páginas",
     "Historial de precios",
+    "Guía de reseñas",
   ]);
   const sheet = book.getWorksheet("Juegos")!;
   expect(sheet.rowCount).toBe(records.length + 1);
@@ -266,5 +267,10 @@ it("exports readable empty worksheets for an empty collection", async () => {
   records = [];
   tables = { offers: [], price_history: [] };
   const { book } = await workbook();
-  expect(book.worksheets.every((s) => s.rowCount === 1)).toBe(true);
+  expect(
+    book.worksheets
+      .filter((s) => s.name !== "Guía de reseñas")
+      .every((s) => s.rowCount === 1),
+  ).toBe(true);
+  expect(book.getWorksheet("Guía de reseñas")?.rowCount).toBe(12);
 });

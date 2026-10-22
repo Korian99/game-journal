@@ -1,4 +1,5 @@
 import JSZip from "jszip";
+import { scoringEntrySchema } from "../scoring-guide";
 import { createHash } from "node:crypto";
 import { z } from "zod";
 import { excelExport, type ExportData } from "../export";
@@ -22,7 +23,7 @@ const playthroughSchema = row.extend({
   deleted_at: text.nullable().default(null),
 });
 export const backupSnapshotSchema = z.strictObject({
-  version: z.union([z.literal(3), z.literal(4)]),
+  version: z.union([z.literal(3), z.literal(4), z.literal(5)]),
   kind: z.literal("game-journal-daily"),
   ownerId: id,
   exportedAt: text,
@@ -38,6 +39,10 @@ export const backupSnapshotSchema = z.strictObject({
     imports: z.array(row),
     shared_entries: z.array(row.extend({ entry_id: id, recipient_id: id })),
     notifications: z.array(row),
+    scoring_guide: z
+      .array(scoringEntrySchema.extend({ owner_id: id }))
+      .max(101)
+      .default([]),
     notification_preferences: z
       .object({ owner_id: id })
       .passthrough()
@@ -65,6 +70,7 @@ export function parseBackupSnapshot(source: string): BackupSnapshot {
     ...snapshot.sourceTables.imports,
     ...snapshot.sourceTables.shared_entries,
     ...snapshot.sourceTables.notifications,
+    ...snapshot.sourceTables.scoring_guide,
     ...snapshot.offers,
     ...snapshot.priceHistory,
   ];
@@ -162,6 +168,7 @@ export async function buildBackupBundle(
     priceHistory: snapshot.priceHistory,
     exportedAt: snapshot.exportedAt,
     trash: snapshot.trash,
+    scoringGuide: snapshot.sourceTables.scoring_guide,
   };
   const zip = await JSZip.loadAsync(await excelExport(data));
   const captured = new Date(snapshot.exportedAt);

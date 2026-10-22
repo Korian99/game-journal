@@ -113,3 +113,7 @@ See improvements-setup.md for exact SQL rollout and real Google authorization/re
 Diario reúne Recuerdo, Jugando, Terminado, No terminado y En pausa. Mantiene el año inicial 2024 y el orden por período; los filtros de estado y reseña y el orden de valoración se guardan en la URL. El filtro de reseña permite todas, con reseña o sin reseña; un cero cuenta como reseña, y la insignia de impresiones no sustituye ese campo. journal-review.tsx reúne reseña, memorabilidad e impresiones, usando reseña o impresiones numéricas × 10 en la insignia. Los campos originales se conservan sin conversión.
 
 Lista de deseos muestra una única lista: se retiraron las tarjetas repetidas de precios que aparecían debajo de la tabla. Se mantienen prioridad, acceso, precios y descuentos en la lista.
+
+## Guía de reseñas
+
+`lib/scoring-guide.ts` define los valores iniciales y la validación compartida. `components/settings/scoring-guide.tsx` permite consultar y editar la guía desde Configuración y la pestaña Reseña del editor. `app/api/scoring` usa autenticación y persistencia por propietario. JSON, Excel y respaldos completos incluyen las personalizaciones. Ver [scoring-guide.md](scoring-guide.md) para el contrato y rollout pendiente.

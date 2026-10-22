@@ -43,6 +43,7 @@ import {
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { saveResponseSchema } from "@/lib/contracts";
+import { ScoringGuide } from "../settings/scoring-guide";
 import { AdminInvite } from "../settings/admin-invite";
 import { DriveBackupPanel } from "../settings/drive-backup-panel";
 import { TrashPanel } from "../settings/trash-panel";
@@ -424,6 +425,9 @@ export function JournalApp({
           )}
           {view === "settings" ? (
             <section className="settings-grid">
+              <article className="panel">
+                <ScoringGuide />
+              </article>
               <TrashPanel
                 onChanged={async () => {
                   setUndoEntry(null);

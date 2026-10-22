@@ -29,6 +29,14 @@ await disposableDatabase(async (sql: (input: string) => string) => {
   const snapshotData: BackupSnapshot = parseBackupSnapshot(
     JSON.stringify(backupFixture()),
   );
+  snapshotData.version = 5;
+  snapshotData.sourceTables.scoring_guide = [
+    {
+      owner_id: backupOwner,
+      score_threshold: 95,
+      meaning: "RECOVERED PERSONAL SCALE",
+    },
+  ];
   const deletedId = "56565656-1111-4111-8111-111111111111",
     deletedAt = "2026-10-21T06:00:00Z";
   snapshotData.trash.push({
@@ -106,6 +114,13 @@ await disposableDatabase(async (sql: (input: string) => string) => {
     "select count(*) from public.playthroughs where deleted_at is not null;",
   );
   if (removed.trim() !== "1") throw Error("Recovery lost trash metadata");
+  const restoredGuide = sql(
+    "select meaning from public.scoring_guide where owner_id='" +
+      targetOwner +
+      "' and score_threshold=95;",
+  );
+  if (restoredGuide.trim() !== "RECOVERED PERSONAL SCALE")
+    throw Error("Recovery lost personal scoring guide");
   const privacy = sql("select count(*) from public.shared_entries;");
   if (privacy.trim() !== "0")
     throw Error("Recovery unexpectedly restored sharing");

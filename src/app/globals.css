@@ -2192,3 +2192,73 @@ tbody tr.wishlist-discounted td:first-child,
   white-space: normal;
   overflow-wrap: anywhere;
 }
+
+/* Personal rating reference: compact scores, readable meanings. */
+.scoring-guide {
+  min-width: 0;
+}
+.scoring-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.scoring-scale {
+  margin: 12px 0;
+}
+.scoring-scale > div {
+  display: grid;
+  grid-template-columns: 68px minmax(0, 1fr);
+  gap: 14px;
+  padding: 13px 0;
+  border-bottom: 1px solid var(--line);
+}
+.scoring-scale dt {
+  font-size: 1.5rem;
+  color: var(--accent);
+  font-variant-numeric: tabular-nums;
+}
+.scoring-scale dt small {
+  display: block;
+  font-size: 0.65rem;
+  color: var(--muted);
+}
+.scoring-scale dd {
+  margin: 0;
+  line-height: 1.55;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+.scoring-edit-row {
+  display: grid;
+  grid-template-columns: 76px minmax(0, 1fr);
+  gap: 12px;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--line);
+}
+.scoring-edit-row label {
+  min-width: 0;
+}
+.scoring-edit-row input,
+.scoring-edit-row textarea {
+  width: 100%;
+  box-sizing: border-box;
+}
+.scoring-edit-row > button {
+  grid-column: 2;
+  justify-self: end;
+}
+.modal-content > .scoring-guide {
+  padding: 0 24px 24px;
+  overflow-y: auto;
+}
+@media (max-width: 600px) {
+  .scoring-scale > div {
+    grid-template-columns: 52px minmax(0, 1fr);
+    gap: 10px;
+  }
+  .modal-content > .scoring-guide {
+    padding: 0 16px 16px;
+  }
+}

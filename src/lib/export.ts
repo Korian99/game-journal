@@ -1,4 +1,5 @@
 import ExcelJS from "exceljs";
+import type { ScoringEntry } from "./scoring-guide";
 import { emptyRecord, statuses, type JournalRecord, type Offer } from "./types";
 import { formatDate, formatDateTime } from "./journal/view-config";
 import { releaseLabel } from "./releases";
@@ -17,6 +18,7 @@ export type ExportData = {
   offers: Offer[];
   priceHistory: ExportHistory[];
   exportedAt: string;
+  scoringGuide?: ScoringEntry[];
   trash?: (ExportRecord & { deleted_at: string })[];
 };
 type Value = string | number | boolean | null;
@@ -285,6 +287,18 @@ export async function excelExport(
     gameTable(data),
     ...trashTable,
     ...pageTables(data),
+    ...(data.scoringGuide
+      ? [
+          {
+            name: "Guía de reseñas",
+            headers: ["Puntaje", "Significado"],
+            rows: data.scoringGuide.map((entry) => [
+              entry.score_threshold,
+              entry.meaning,
+            ]),
+          },
+        ]
+      : []),
   ]) {
     const table = fitExcel(original);
     if (table.rows.length > 1048575 || table.headers.length > 16384)
@@ -296,7 +310,7 @@ export async function excelExport(
     });
     sheet.columns = table.headers.map((header) => ({
       header,
-      width: /Comentarios|Por qué|URL|Páginas/.test(header)
+      width: /Comentarios|Por qué|URL|Páginas|Significado/.test(header)
         ? 60
         : header === "Nombre"
           ? 36

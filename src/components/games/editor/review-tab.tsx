@@ -1,4 +1,5 @@
 "use client";
+import { ScoringGuideButton } from "../../settings/scoring-guide";
 import type { EditorContext } from "./editor-context";
 export function ReviewTab({
   draft,
@@ -14,6 +15,7 @@ export function ReviewTab({
     <>
       {activeTab === "review" && (
         <>
+          <ScoringGuideButton />
           <div className="form-grid">
             {renderField("rating", "Reseña / 100", "number")}
             {renderField("hours", "Horas jugadas", "number")}

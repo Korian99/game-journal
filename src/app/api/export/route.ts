@@ -1,3 +1,4 @@
+import { defaultScoringGuide, scoringGuideSchema } from "@/lib/scoring-guide";
 import { databaseError } from "@/lib/api-errors";
 import { authorized, apiError } from "@/lib/auth";
 import { csvExport, excelExport, type ExportData } from "@/lib/export";
@@ -35,16 +36,26 @@ export async function GET(request: Request) {
     const { db, user } = await authorized();
     const { data: records, error } = await db.rpc("list_records");
     if (error) databaseError(error);
-    const [offers, priceHistory] = await Promise.all([
+    const [offers, priceHistory, scoring] = await Promise.all([
       readAll(db, "offers", user.id),
       readAll(db, "price_history", user.id),
+      db
+        .from("scoring_guide")
+        .select("score_threshold, meaning")
+        .eq("owner_id", user.id)
+        .order("score_threshold", { ascending: false }),
     ]);
+    if (scoring.error) databaseError(scoring.error);
+    const scoringGuide = scoringGuideSchema.parse({
+      entries: scoring.data?.length ? scoring.data : defaultScoringGuide,
+    }).entries;
     const exportedAt = new Date().toISOString();
     const data = {
       records: records ?? [],
       offers,
       priceHistory,
       exportedAt,
+      scoringGuide,
     } as ExportData;
     const format = new URL(request.url).searchParams.get("format");
     const stamp = formatDateTime(exportedAt).replace(
