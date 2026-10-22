@@ -47,7 +47,7 @@ Put a new component in its feature folder, a reusable stateful hook in `src/hook
 - src/lib/api-client.ts: the existing JSON request/response handling, shared by frontend components.
 - src/lib/offers/format-offer-price.ts: the existing currency formatting for store offers.
 - src/lib/journal/journal-types.ts: the entry type, including its game ID, and the shared action callback type.
-- src/lib/journal/entry-status.ts: the rule for changing status when start/finish dates are edited.
+- src/lib/journal/entry-status.ts: date/status rules. Editing a date can change status; transitioning an existing record to playing/completed fills its matching blank date with today's Argentina date.
 - src/lib/validation.ts: runtime validation rules for saved records and page URLs.
 - src/lib/domain.ts: store parsing and spreadsheet import planning.
 
@@ -56,7 +56,7 @@ Put a new component in its feature folder, a reusable stateful hook in `src/hook
 1. EntryEditor keeps changes in its local draft.
 2. Saving validates the release and pages and applies the existing date/status rule.
 3. JournalApp sends the entry to /api/records through apiRequest.
-4. The server checks membership and validates the request before calling the database save function.
+4. The server checks membership, validates the request, compares the saved status, and fills a missing start/finish date for a transition to playing/completed before calling the database save function.
 5. performAction reloads the journal after success. The collection hook recalculates the filtered rows and summary.
 
 The components handle presentation, hooks handle state and effects, and small helpers hold reusable calculations. A custom hook is a React function named useSomething; it lets a component reuse stateful logic without putting it inline in the page.
@@ -82,7 +82,7 @@ JournalApp still composes the page. The additional feature modules keep new beha
 - lib/resource.ts models independent loading, freshness and errors while retaining successful data. useJournalData coalesces Realtime bursts and refreshes only affected resources. A failed notifications request cannot erase the library.
 - lib/api-errors.ts adds stable codes and HTTP status while retaining the existing error text. apiRequest throws ApiRequestError, including structured field errors/details.
 - lib/journal/duplicates.ts compares normalized titles and canonical store identities, including separately stored offers. Warnings require an explicit choice; existing games are never merged automatically.
-- components/games/quick-actions.tsx edits status, priority and access using the same validated save endpoint and server revision as the editor. It does not manufacture start/finish dates.
+- components/games/quick-actions.tsx edits status, priority and access using the same validated save endpoint and server revision as the editor. The shared save endpoint fills a missing start date when status changes to Jugando, or a missing finish date when it changes to Terminado, using Argentina's calendar date. Nonblank dates and unchanged statuses are preserved.
 - lib/journal/statistics.ts calculates Biblioteca year cohorts, unique games, recorded hours, ratings and interpretable estimates. statistics-panel.tsx displays the comparison. Missing/ambiguous values never become zero samples.
 - lib/notifications/history.ts and app/api/notifications provide keyset pagination, exact unread counts and owner-scoped read actions. components/notifications/notification-drawer.tsx is the accessible bell drawer; push subscription behavior remains in api/push.
 
@@ -110,4 +110,6 @@ See improvements-setup.md for exact SQL rollout and real Google authorization/re
 
 ## Diario
 
-Diario reúne Recuerdo, Jugando, Terminado, No terminado y En pausa. Mantiene el año inicial 2024 y el orden por período; el filtro de estado y el orden de valoración se guardan en la URL. journal-review.tsx reúne reseña, memorabilidad e impresiones, usando reseña o impresiones numéricas × 10 en la insignia. Los campos originales se conservan sin conversión.
+Diario reúne Recuerdo, Jugando, Terminado, No terminado y En pausa. Mantiene el año inicial 2024 y el orden por período; los filtros de estado y reseña y el orden de valoración se guardan en la URL. El filtro de reseña permite todas, con reseña o sin reseña; un cero cuenta como reseña, y la insignia de impresiones no sustituye ese campo. journal-review.tsx reúne reseña, memorabilidad e impresiones, usando reseña o impresiones numéricas × 10 en la insignia. Los campos originales se conservan sin conversión.
+
+Lista de deseos muestra una única lista: se retiraron las tarjetas repetidas de precios que aparecían debajo de la tabla. Se mantienen prioridad, acceso, precios y descuentos en la lista.
