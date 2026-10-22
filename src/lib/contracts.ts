@@ -21,8 +21,8 @@ export const journalEntrySchema = z
     platforms: text.optional(),
     device: text.optional(),
     period: text.optional(),
-    started: text.optional(),
-    finished: text.optional(),
+    started: optionalText,
+    finished: optionalText,
     status: z.enum(
       Object.keys(statuses) as [
         keyof typeof statuses,

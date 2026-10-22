@@ -1,6 +1,6 @@
 import { test, expect } from "@playwright/test";
 import { emptyRecord } from "../../src/lib/types";
-test("statistics and quick actions preserve URL controls and do not invent dates", async ({
+test("quick actions adopt canonical server dates and preserve statistics URL controls", async ({
   page,
 }) => {
   let record = {
@@ -21,7 +21,12 @@ test("statistics and quick actions preserve URL controls and do not invent dates
     if (url.pathname === "/api/records") {
       if (route.request().method() === "POST") {
         payload = route.request().postDataJSON();
-        record = { ...record, ...payload, updated_at: "2026-10-21T11:00:00Z" };
+        record = {
+          ...record,
+          ...payload,
+          finished: "2026-10-22",
+          updated_at: "2026-10-22T11:00:00Z",
+        };
         return route.fulfill({
           json: { id: record.id, gameId: record.gameId, record },
         });
@@ -67,6 +72,11 @@ test("statistics and quick actions preserve URL controls and do not invent dates
   await expect.poll(() => payload?.status).toBe("completed");
   expect(payload?.started).toBe("");
   expect(payload?.finished).toBe("");
+  await expect(
+    page
+      .locator("table .library-finish-reason")
+      .getByText("22/10/2026", { exact: true }),
+  ).toBeVisible();
   await page.getByRole("button", { name: "Estadísticas", exact: true }).click();
   await page.getByLabel("Objetivo estimado").selectOption("extras");
   await expect(page).toHaveURL(/estimateTarget=extras/);

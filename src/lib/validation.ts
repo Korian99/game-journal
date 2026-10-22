@@ -45,8 +45,16 @@ export const recordSchema = z
     platforms: z.string().max(2000),
     device: z.string().max(200),
     period: z.string().max(100),
-    started: z.string().max(100),
-    finished: z.string().max(100),
+    started: z
+      .string()
+      .max(100)
+      .nullable()
+      .transform((value) => value ?? ""),
+    finished: z
+      .string()
+      .max(100)
+      .nullable()
+      .transform((value) => value ?? ""),
     status: z.enum([
       "backlog",
       "playing",
