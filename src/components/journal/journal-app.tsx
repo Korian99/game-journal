@@ -5,7 +5,6 @@ import { DuplicateWarning } from "../games/duplicate-warning";
 import { recordSchema } from "@/lib/validation";
 import { recordsResponseSchema } from "@/lib/contracts";
 import { apiRequest } from "@/lib/api-client";
-import { formatOfferPrice } from "@/lib/offers/format-offer-price";
 import { importBatchSchema } from "@/lib/imports/contracts";
 import { pickSpreadsheet } from "@/lib/google";
 import type {
@@ -28,13 +27,11 @@ import {
   useReactTable,
 } from "@tanstack/react-table";
 import {
-  ArrowUpRight,
   ChartNoAxesCombined,
   Bell,
   BookOpen,
   CalendarDays,
   Download,
-  ExternalLink,
   Gamepad2,
   Heart,
   Library,
@@ -675,48 +672,6 @@ export function JournalApp({
                   />
                 )}
               </div>
-              {view === "wishlist" && (
-                <section className="offer-grid">
-                  {games.map((g) => (
-                    <article className="panel" key={g.id}>
-                      <button
-                        className="game-title-button"
-                        onClick={() => openEntry(g)}
-                      >
-                        <h2>{g.title}</h2>
-                        <ArrowUpRight size={17} />
-                      </button>
-                      {offers
-                        .filter((o) => o.game_id === g.gameId)
-                        .map((o) => (
-                          <div className="offer-line" key={o.id}>
-                            <a
-                              href={o.url}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                            >
-                              {o.store === "steam" ? "Steam" : "Nintendo"} ·{" "}
-                              {o.region}
-                              <ExternalLink size={12} />
-                            </a>
-                            <strong>{formatOfferPrice(o)}</strong>
-                            {o.discount > 0 && (
-                              <span className="discount">−{o.discount}%</span>
-                            )}
-                            {o.error && (
-                              <small role="status">
-                                Último precio conservado · falló la consulta
-                              </small>
-                            )}
-                          </div>
-                        ))}
-                      {!offers.some((o) => o.game_id === g.gameId) && (
-                        <p className="muted">Sin precio de tienda.</p>
-                      )}
-                    </article>
-                  ))}
-                </section>
-              )}
             </>
           )}
         </div>
