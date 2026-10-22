@@ -1,4 +1,7 @@
 "use client";
+import { EntryStart } from "./editor/entry-start";
+import { StorePreviewCard } from "./editor/store-preview-card";
+import type { StorePreview } from "@/lib/offers/store-preview-contract";
 import { MainTab } from "./editor/main-tab";
 import { PlaythroughTab } from "./editor/playthrough-tab";
 import { ReviewTab } from "./editor/review-tab";
@@ -50,6 +53,34 @@ export function EntryEditor({
   runAction: PerformJournalAction;
 }) {
   const [draft, setDraft] = useState({ ...entry });
+  const [step, setStep] = useState<"choose" | "page" | "editor">(
+    entry.id || entry.gameId ? "editor" : "choose",
+  );
+  const [storePreview, setStorePreview] = useState<StorePreview | null>(null);
+  function applyStorePreview(preview: StorePreview) {
+    setDraft((current) => {
+      const platforms = [
+        ...new Set(
+          [current.platforms, preview.fields.platforms ?? ""]
+            .flatMap((value) => value.split(/[;,]/))
+            .map((value) => value.trim())
+            .filter(Boolean),
+        ),
+      ].join("; ");
+      return {
+        ...current,
+        ...preview.fields,
+        platforms,
+        pages: [...new Set([...(current.pages ?? []), preview.url])],
+      };
+    });
+    setStorePreview(preview);
+    setPageUrl("");
+    setPageError("");
+    setReleaseError("");
+    setActiveTab("main");
+    setStep("editor");
+  }
   const [pageUrl, setPageUrl] = useState("");
   const [recipientId, setRecipientId] = useState("");
   const [priceHistory, setPriceHistory] = useState<PriceHistory | null>(null);
@@ -229,6 +260,31 @@ export function EntryEditor({
         </div>
       </Modal>
     );
+  if (step !== "editor")
+    return (
+      <Modal
+        open
+        onClose={requestClose}
+        title={
+          step === "choose"
+            ? "¿Cómo querés cargar el juego?"
+            : entry.id
+              ? "Actualizar datos de " + entry.title
+              : "Completar desde una página"
+        }
+      >
+        <EntryStart
+          step={step}
+          editing={!!entry.id}
+          online={online}
+          url={pageUrl}
+          setUrl={setPageUrl}
+          onPage={() => setStep("page")}
+          onManual={() => setStep("editor")}
+          onLoaded={applyStorePreview}
+        />
+      </Modal>
+    );
   return (
     <Modal
       open
@@ -344,6 +400,21 @@ export function EntryEditor({
           aria-labelledby={editorId + "-tab-main"}
           hidden={activeTab !== "main"}
         >
+          {activeTab === "main" && (
+            <button
+              type="button"
+              className="text-button editor-store-lookup"
+              disabled={busy || !online}
+              onClick={() => setStep("page")}
+            >
+              Completar desde una página
+            </button>
+          )}
+          {activeTab === "main" &&
+            storePreview &&
+            draft.pages?.includes(storePreview.url) && (
+              <StorePreviewCard preview={storePreview} />
+            )}
           <MainTab
             online={online}
             draft={draft}

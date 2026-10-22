@@ -1,4 +1,5 @@
 "use client";
+import { statuses } from "@/lib/types";
 import { Modal } from "../ui/dialog";
 import type { JournalEntry } from "@/lib/journal/journal-types";
 export function DuplicateWarning({
@@ -7,48 +8,54 @@ export function DuplicateWarning({
   onClose,
   onOpen,
   onReplay,
-  onSeparate,
+  onConfirm,
+  editing = false,
 }: {
   matches: JournalEntry[];
+  editing?: boolean;
   busy: boolean;
   onClose: () => void;
   onOpen: (record: JournalEntry) => void;
   onReplay: (record: JournalEntry) => void;
-  onSeparate: () => void;
+  onConfirm: () => void;
 }) {
   return (
     <Modal
       open
-      title="¿Ya tenés este juego?"
+      title={editing ? "Coincidencia con otro juego" : "¿Ya tenés este juego?"}
       onClose={() => !busy && onClose()}
     >
       <div className="modal-body">
         <p>
-          Coincide el nombre o una página de tienda. Elegí cómo continuar; no se
-          combinarán entradas automáticamente.
+          {editing
+            ? "El nombre o la página coincide con otra entrada. Guardar actualiza la partida que estabas editando y mantiene ambas entradas."
+            : "Coincide el nombre o una página de tienda. Elegí cómo continuar; no se combinarán entradas automáticamente."}
         </p>
         {matches.map((record) => (
           <article className="duplicate-match" key={record.id}>
             <strong>{record.title}</strong>
             <small>
+              {statuses[record.status]} ·{" "}
               {record.device || record.platforms || "Sin plataforma"}
             </small>
-            <div className="button-row">
-              <button
-                className="secondary"
-                disabled={busy}
-                onClick={() => onOpen(record)}
-              >
-                Descartar borrador y abrir existente
-              </button>
-              <button
-                className="secondary"
-                disabled={busy}
-                onClick={() => onReplay(record)}
-              >
-                Crear otra partida de este juego
-              </button>
-            </div>
+            {!editing && (
+              <div className="button-row">
+                <button
+                  className="secondary"
+                  disabled={busy}
+                  onClick={() => onOpen(record)}
+                >
+                  Descartar borrador y abrir existente
+                </button>
+                <button
+                  className="secondary"
+                  disabled={busy}
+                  onClick={() => onReplay(record)}
+                >
+                  Crear otra partida de este juego
+                </button>
+              </div>
+            )}
           </article>
         ))}
         <div className="button-row">
@@ -58,10 +65,12 @@ export function DuplicateWarning({
             disabled={busy}
             onClick={onClose}
           >
-            Volver al formulario
+            {editing ? "Volver a la edición" : "Volver al formulario"}
           </button>
-          <button className="primary" disabled={busy} onClick={onSeparate}>
-            Guardar como juego separado
+          <button className="primary" disabled={busy} onClick={onConfirm}>
+            {editing
+              ? "Guardar cambios en esta partida"
+              : "Guardar como juego separado"}
           </button>
         </div>
       </div>

@@ -241,6 +241,9 @@ test("a duplicate warning keeps the draft until an explicit choice", async ({
     .getByRole("button", { name: "Agregar juego", exact: true })
     .click();
   await page
+    .getByRole("button", { name: "Completar manualmente", exact: true })
+    .click();
+  await page
     .getByLabel("Nombre del juego", { exact: true })
     .fill("Existing game");
   await page

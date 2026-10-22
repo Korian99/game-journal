@@ -726,6 +726,7 @@ export function JournalApp({
       )}
       {duplicate && (
         <DuplicateWarning
+          editing={!!duplicate.candidate.id}
           matches={duplicate.matches}
           busy={busy}
           onClose={() => setDuplicate(null)}
@@ -744,7 +745,7 @@ export function JournalApp({
               true,
             )
           }
-          onSeparate={() => void saveEntry(duplicate.candidate, true)}
+          onConfirm={() => void saveEntry(duplicate.candidate, true)}
         />
       )}
       {batch && (

@@ -117,3 +117,7 @@ Lista de deseos muestra una única lista: se retiraron las tarjetas repetidas de
 ## Guía de reseñas
 
 `lib/scoring-guide.ts` define los valores iniciales y la validación compartida. `components/settings/scoring-guide.tsx` permite consultar y editar la guía desde Configuración y la pestaña Reseña del editor. `app/api/scoring` usa autenticación y persistencia por propietario. JSON, Excel y respaldos completos incluyen las personalizaciones. Ver [scoring-guide.md](scoring-guide.md) para el contrato y rollout pendiente.
+
+## Carga desde una página
+
+Al crear un juego se elige una página de Steam/Nintendo o carga manual. entry-start.tsx consulta el endpoint autenticado api/store-preview; lib/offers/store-preview.ts obtiene y normaliza los campos de tienda sin guardar datos. EntryEditor aplica esos campos al borrador compartido antes de confirmar la creación. Ver [store-page-creation.md](store-page-creation.md).
