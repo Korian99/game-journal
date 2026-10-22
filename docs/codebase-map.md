@@ -82,7 +82,7 @@ JournalApp still composes the page. The additional feature modules keep new beha
 - lib/resource.ts models independent loading, freshness and errors while retaining successful data. useJournalData coalesces Realtime bursts and refreshes only affected resources. A failed notifications request cannot erase the library.
 - lib/api-errors.ts adds stable codes and HTTP status while retaining the existing error text. apiRequest throws ApiRequestError, including structured field errors/details.
 - lib/journal/duplicates.ts compares normalized titles and canonical store identities, including separately stored offers. Warnings require an explicit choice; existing games are never merged automatically.
-- components/games/quick-actions.tsx edits status, priority and access using the same validated save endpoint and server revision as the editor. The shared save endpoint fills a missing start date when status changes to Jugando, or a missing finish date when it changes to Terminado, using Argentina's calendar date. Nonblank dates and unchanged statuses are preserved.
+- EntryEditor edits status, priority and access through the validated save endpoint and server revision. List quick actions and their trailing column were removed at the owner's request. The shared save endpoint still fills a missing start date on a transition to Jugando, or a missing finish date on a transition to Terminado, using Argentina's calendar date. Nonblank dates and unchanged statuses are preserved.
 - lib/journal/statistics.ts calculates Biblioteca year cohorts, unique games, recorded hours, ratings and interpretable estimates. statistics-panel.tsx displays the comparison. Missing/ambiguous values never become zero samples.
 - lib/notifications/history.ts and app/api/notifications provide keyset pagination, exact unread counts and owner-scoped read actions. components/notifications/notification-drawer.tsx is the accessible bell drawer; push subscription behavior remains in api/push.
 
@@ -96,7 +96,7 @@ lib/backups/ contains snapshot validation, deterministic JSON/Excel bundles, Dri
 
 The protected Next Node worker is invoked by Supabase Cron. It exports a saved internal snapshot rather than re-reading changing live tables. A successful copy requires verified JSON, Excel and manifest files.
 
-Follow a save now: editor/quick action → Zod request validation → membership/duplicate checks → save_record_result → canonical record plus revision in the same transaction → adopt that entry → refresh affected data. A later refresh failure is reported separately from the successful save.
+Follow a save now: editor → Zod request validation → membership/duplicate checks → save_record_result → canonical record plus revision in the same transaction → adopt that entry → refresh affected data. A later refresh failure is reported separately from the successful save.
 
 ## Repeatable verification
 

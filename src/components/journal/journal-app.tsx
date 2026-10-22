@@ -664,8 +664,6 @@ export function JournalApp({
                       offers={offers}
                       releaseNow={releaseNow}
                       onEdit={openEntry}
-                      onQuickSave={(entry) => saveEntry(entry)}
-                      disabled={busy || !online}
                       entryRowClass={entryRowClass}
                     />
                   )}

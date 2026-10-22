@@ -1,7 +1,7 @@
 import { test, expect } from "@playwright/test";
 import { emptyRecord } from "../../src/lib/types";
 
-test("the editor and quick actions show the dates saved by the server", async ({
+test("the editor saves status dates without list quick actions", async ({
   page,
 }) => {
   let record = {
@@ -62,6 +62,10 @@ test("the editor and quick actions show the dates saved by the server", async ({
     });
   });
   await page.goto("./?tab=wishlist");
+  await expect(page.locator(".quick-actions")).toHaveCount(0);
+  await expect(page.locator("table th").filter({ hasText: /^$/ })).toHaveCount(
+    0,
+  );
   await page.locator("table").getByText(record.title, { exact: true }).click();
   await page
     .getByRole("dialog")
@@ -81,14 +85,15 @@ test("the editor and quick actions show the dates saved by the server", async ({
       .locator(".library-playthrough")
       .getByText("22/10/2026", { exact: true }),
   ).toBeVisible();
-  await table.getByLabel("Acciones rápidas de " + record.title).click();
-  await table
-    .locator(".quick-actions")
+  await table.getByText(record.title, { exact: true }).click();
+  await page
+    .getByRole("dialog")
     .getByLabel("Estado", { exact: true })
     .selectOption("completed");
-  await table
-    .getByRole("button", { name: "Guardar cambios", exact: true })
+  await page
+    .getByRole("button", { name: "Guardar entrada", exact: true })
     .click();
+  await expect(page.getByRole("dialog")).toHaveCount(0);
   await expect.poll(() => submissions.length).toBe(2);
   expect(submissions[1].started).toBe("2026-10-22");
   expect(submissions[1].finished).toBe("");
@@ -97,7 +102,9 @@ test("the editor and quick actions show the dates saved by the server", async ({
       .locator(".library-finish-reason")
       .getByText("22/10/2026", { exact: true }),
   ).toBeVisible();
-  await table.getByText(record.title, { exact: true }).click();
+  await page.setViewportSize({ width: 390, height: 844 });
+  await expect(page.locator(".quick-actions")).toHaveCount(0);
+  await page.locator(".mobile-game").filter({ hasText: record.title }).click();
   await page.getByRole("tab", { name: "Partida", exact: true }).click();
   await expect(page.getByLabel("Empecé", { exact: true })).toHaveValue(
     "22/10/2026",

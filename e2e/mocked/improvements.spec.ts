@@ -1,6 +1,6 @@
 import { test, expect } from "@playwright/test";
 import { emptyRecord } from "../../src/lib/types";
-test("quick actions adopt canonical server dates and preserve statistics URL controls", async ({
+test("editor saves adopt canonical dates and preserve statistics URL controls", async ({
   page,
 }) => {
   let record = {
@@ -62,13 +62,16 @@ test("quick actions adopt canonical server dates and preserve statistics URL con
   await page.goto("./?year=2026");
   await page
     .locator("table")
-    .getByLabel("Acciones rápidas de Stats fixture")
+    .getByText("Stats fixture", { exact: true })
     .click();
-  const menu = page.locator("table .quick-actions");
-  await menu.getByLabel("Estado", { exact: true }).selectOption("completed");
-  await menu
-    .getByRole("button", { name: "Guardar cambios", exact: true })
+  await page
+    .getByRole("dialog")
+    .getByLabel("Estado", { exact: true })
+    .selectOption("completed");
+  await page
+    .getByRole("button", { name: "Guardar entrada", exact: true })
     .click();
+  await expect(page.getByRole("dialog")).toHaveCount(0);
   await expect.poll(() => payload?.status).toBe("completed");
   expect(payload?.started).toBe("");
   expect(payload?.finished).toBe("");

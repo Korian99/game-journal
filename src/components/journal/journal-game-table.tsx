@@ -8,7 +8,6 @@ import type { Table } from "@tanstack/react-table";
 import { flexRender } from "@tanstack/react-table";
 import { ArrowUpDown } from "lucide-react";
 import { JournalReview, JournalScoreMark } from "./journal-review";
-import { QuickActions } from "../games/quick-actions";
 import { HypeBadge } from "../games/hype-badge";
 import { journalTextFields, libraryTextFields } from "./journal-columns";
 import {
@@ -26,8 +25,6 @@ export function JournalGameTable({
   offers,
   releaseNow,
   onEdit,
-  onQuickSave,
-  disabled,
   entryRowClass,
 }: {
   table: Table<JournalEntry>;
@@ -35,8 +32,6 @@ export function JournalGameTable({
   offers: Offer[];
   releaseNow: Date;
   onEdit: (entry: JournalEntry) => void;
-  onQuickSave: (entry: JournalEntry) => Promise<boolean>;
-  disabled: boolean;
   entryRowClass: (entry: JournalEntry) => string | undefined;
 }) {
   return (
@@ -134,7 +129,6 @@ export function JournalGameTable({
                 )}
               </span>
             </button>
-            <QuickActions entry={r} disabled={disabled} onSave={onQuickSave} />
           </article>
         ))}
       </div>
@@ -186,15 +180,7 @@ export function JournalGameTable({
               >
                 {r.getVisibleCells().map((c) => (
                   <td key={c.column.id}>
-                    {c.column.id === "actions" ? (
-                      <QuickActions
-                        entry={r.original}
-                        disabled={disabled}
-                        onSave={onQuickSave}
-                      />
-                    ) : (
-                      flexRender(c.column.columnDef.cell, c.getContext())
-                    )}
+                    {flexRender(c.column.columnDef.cell, c.getContext())}
                   </td>
                 ))}
               </tr>

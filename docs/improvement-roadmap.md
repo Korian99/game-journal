@@ -35,3 +35,7 @@ See improvements-setup.md for private OAuth setup, Cron configuration and recove
 ## Review after the Diario corrections
 
 See [implementation-review.md](implementation-review.md) for the requirement matrix, four reproduced and fixed reliability gaps, latest verification, and live setup still pending. The final badge fallback is numeric Impresiones × 10, never Memorabilidad. The foundation and later UI/review changes are committed. Publishing must follow the approved database rollout.
+
+## Later interface change — 22/10/2026
+
+The owner requested removal of the Cambiar list controls. Status, priority and access are edited in the entry form; desktop and mobile lists no longer include quick actions or a trailing actions column. Date/status rules and conflict checks are preserved.

@@ -225,19 +225,14 @@ test("a failed save preserves the shared draft and supports keyboard tab navigat
     });
   });
   await page.goto("./?year=2026");
-  const quick = page.locator("table .quick-actions");
-  await quick.getByLabel("Acciones rápidas de Conflict fixture").click();
-  await quick.getByLabel("Prioridad", { exact: true }).fill("3");
-  await quick
-    .getByRole("button", { name: "Guardar cambios", exact: true })
-    .click();
-  await expect(quick.getByRole("alert")).toContainText("No se guardó");
-  await expect(quick.getByLabel("Prioridad", { exact: true })).toHaveValue("3");
-  await quick.getByLabel("Acciones rápidas de Conflict fixture").click();
   await page
     .locator("table")
     .getByText("Conflict fixture", { exact: true })
     .click();
+  await page
+    .getByRole("dialog")
+    .getByLabel("Prioridad", { exact: true })
+    .fill("3");
   await page.getByRole("tab", { name: "Principal", exact: true }).focus();
   await page.keyboard.press("ArrowRight");
   await expect(
@@ -256,6 +251,11 @@ test("a failed save preserves the shared draft and supports keyboard tab navigat
   await expect(
     page.getByLabel("Comentarios adicionales · privados"),
   ).toHaveValue("Keep this draft");
+  await page.getByRole("tab", { name: "Principal", exact: true }).click();
+  await expect(
+    page.getByRole("dialog").getByLabel("Prioridad", { exact: true }),
+  ).toHaveValue("3");
+  await page.getByRole("tab", { name: "Reseña", exact: true }).click();
   await page.keyboard.press("Escape");
   await expect(
     page.getByRole("heading", { name: "Descartar cambios" }),

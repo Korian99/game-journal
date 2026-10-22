@@ -2035,40 +2035,12 @@ tbody tr.wishlist-discounted td:first-child,
   color: var(--muted);
   margin: 10px 0;
 }
-.quick-actions {
-  font-size: 0.75rem;
-  min-width: 72px;
-}
-.quick-actions > summary {
-  cursor: pointer;
-  color: var(--accent);
-  padding: 8px 2px;
-  white-space: nowrap;
-}
-.quick-actions-fields {
-  display: grid;
-  gap: 10px;
-  min-width: 150px;
-  padding: 12px 0;
-}
-.quick-actions-fields label {
-  display: grid;
-  gap: 4px;
-}
-.quick-actions-fields input,
-.quick-actions-fields select {
-  width: 100%;
-  min-width: 0;
-}
 .mobile-game-wrapper {
   border-bottom: 1px solid var(--line);
 }
 .mobile-game-wrapper > .mobile-game {
   width: 100%;
   border-bottom: 0;
-}
-.mobile-game-wrapper > .quick-actions {
-  padding: 0 16px 12px;
 }
 .duplicate-match {
   border: 1px solid var(--line);
@@ -2105,11 +2077,6 @@ tbody tr.wishlist-discounted td:first-child,
   .stats-details th,
   .stats-details td {
     padding: 10px 4px;
-  }
-  .quick-actions > summary {
-    min-height: 44px;
-    display: flex;
-    align-items: center;
   }
   .drawer-content {
     border-left: 0;
@@ -2168,10 +2135,7 @@ tbody tr.wishlist-discounted td:first-child,
   width: 24%;
 }
 .journal-table th:nth-child(5) {
-  width: 16%;
-}
-.journal-table th:last-child {
-  width: 12%;
+  width: 28%;
 }
 .journal-table .entry-text-cell {
   width: auto;
@@ -2182,13 +2146,6 @@ tbody tr.wishlist-discounted td:first-child,
 }
 .journal-table .game-cell small {
   max-width: none;
-  white-space: normal;
-  overflow-wrap: anywhere;
-}
-.journal-table .quick-actions {
-  min-width: 0;
-}
-.journal-table .quick-actions > summary {
   white-space: normal;
   overflow-wrap: anywhere;
 }
