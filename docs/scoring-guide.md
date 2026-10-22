@@ -19,8 +19,8 @@ JSON y Excel manuales incluyen la guía; CSV conserva su estructura de juegos. E
 
 El respaldo diario pasa a versión 5 e incluye `sourceTables.scoring_guide` en la misma consulta que los demás datos. No cambia horarios, retención ni política de archivos. La copia externa incluye la guía en su JSON y Excel. Recuperar remapea el propietario y rechaza un destino que ya contenga una guía. Los respaldos antiguos de versiones 3/4 siguen siendo compatibles.
 
-## Rollout pendiente
+## Rollout en producción
 
-Revisar y aprobar `supabase/migrations/20261022112634_personal_scoring_guide.sql` antes de ejecutarlo en producción. Coordinar esta migración con la publicación del código: el lector anterior de respaldos no acepta versión 5. No ejecutar solo la migración mientras siga activo el worker anterior. Los endpoints nuevos también requieren la tabla y función nuevas.
+El propietario aprobó la migración y se aplicó en Supabase el 22/10/2026 mediante la API oficial de migraciones, con la versión 20261022140552. El archivo local se alineó con esa versión sin cambiar los bytes SQL.
 
-La implementación no ejecuta SQL en producción, no modifica la planilla y no se publica automáticamente.
+La entrega incluye el lector de respaldos de versión 5 y conserva compatibilidad con versiones 3/4. Publicar este código junto con la migración permite consultar y guardar la guía desde la app. Los conteos de juegos, partidas, ofertas e historial se conservaron durante la aplicación. No se modifica la planilla.
