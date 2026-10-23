@@ -19,6 +19,8 @@ export function MainTab({
   renderField,
   formId,
   offers,
+  targetDrafts,
+  setTargetDraft,
   runAction,
   priceHistory,
   setPriceHistory,
@@ -36,6 +38,8 @@ export function MainTab({
   | "renderField"
   | "formId"
   | "offers"
+  | "targetDrafts"
+  | "setTargetDraft"
   | "runAction"
   | "priceHistory"
   | "setPriceHistory"
@@ -114,6 +118,12 @@ export function MainTab({
                 key={offer.id}
                 disabled={!online || busy}
                 offer={offer}
+                target={
+                  targetDrafts[offer.id] ??
+                  (offer.target_price == null ? "" : String(offer.target_price))
+                }
+                onTargetChange={(value) => setTargetDraft(offer.id, value)}
+                formId={formId}
                 runAction={runAction}
                 showHistory={async () =>
                   setPriceHistory(

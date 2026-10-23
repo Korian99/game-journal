@@ -5,22 +5,24 @@ import type { PerformJournalAction } from "@/lib/journal/journal-types";
 import { type Offer } from "@/lib/types";
 import { formatDateTime } from "@/lib/journal/view-config";
 import { ExternalLink, Trash2 } from "lucide-react";
-import { useState } from "react";
 
 export function OfferEditor({
   offer,
+  target,
+  onTargetChange,
+  formId,
   runAction,
   showHistory,
   disabled = false,
 }: {
   offer: Offer;
+  target: string;
+  onTargetChange: (value: string) => void;
+  formId: string;
   disabled?: boolean;
   runAction: PerformJournalAction;
   showHistory: () => void;
 }) {
-  const [target, setTarget] = useState(
-    offer.target_price == null ? "" : String(offer.target_price),
-  );
   return (
     <fieldset disabled={disabled} className="offer-editor-controls">
       <div className="offer-edit">
@@ -67,16 +69,9 @@ export function OfferEditor({
               min="0"
               step="any"
               value={target}
-              onChange={(e) => setTarget(e.target.value)}
-              onBlur={() =>
-                runAction(() =>
-                  apiRequest("/api/offers", "PATCH", {
-                    id: offer.id,
-                    watched: offer.watched,
-                    target_price: target === "" ? null : Number(target),
-                  }),
-                )
-              }
+              onChange={(e) => onTargetChange(e.target.value)}
+              form={formId}
+              id={offer.id + "-target"}
             />
           </label>
           <button className="text-button" onClick={showHistory}>

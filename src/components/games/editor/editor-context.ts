@@ -1,3 +1,4 @@
+import type { OfferTargetUpdate } from "@/lib/offers/target-draft";
 import type { Dispatch, SetStateAction, ReactNode } from "react";
 import type {
   JournalEntry,
@@ -19,6 +20,8 @@ export type EditorContext = {
   ) => ReactNode;
   formId: string;
   offers: Offer[];
+  targetDrafts: Record<string, string>;
+  setTargetDraft: (id: string, value: string) => void;
   runAction: PerformJournalAction;
   priceHistory: PriceHistory | null;
   setPriceHistory: Dispatch<SetStateAction<PriceHistory | null>>;
@@ -31,7 +34,7 @@ export type EditorContext = {
   recipientId: string;
   setRecipientId: Dispatch<SetStateAction<string>>;
   busy: boolean;
-  onSave: (entry: JournalEntry) => Promise<void>;
+  onSave: (entry: JournalEntry, targets?: OfferTargetUpdate[]) => Promise<void>;
   releaseError: string;
   setReleaseError: Dispatch<SetStateAction<string>>;
   activeTab: string;

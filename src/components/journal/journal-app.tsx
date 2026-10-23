@@ -1,4 +1,5 @@
 "use client";
+import type { OfferTargetUpdate } from "@/lib/offers/target-draft";
 import { ApiRequestError } from "@/lib/api-client";
 import { findDuplicates } from "@/lib/journal/duplicates";
 import { DuplicateWarning } from "../games/duplicate-warning";
@@ -144,10 +145,15 @@ export function JournalApp({
   const [duplicate, setDuplicate] = useState<{
     candidate: JournalEntry;
     matches: JournalEntry[];
+    offerTargets: OfferTargetUpdate[];
   } | null>(null);
   const [savingEntry, setSavingEntry] = useState(false);
   const saveInFlight = useRef(false);
-  async function saveEntry(candidate: JournalEntry, allowDuplicate = false) {
+  async function saveEntry(
+    candidate: JournalEntry,
+    allowDuplicate = false,
+    offerTargets: OfferTargetUpdate[] = [],
+  ) {
     if (saveInFlight.current) return false;
     if (!navigator.onLine) {
       setError("Necesitás conexión para guardar.");
@@ -157,7 +163,7 @@ export function JournalApp({
       ? findDuplicates(candidate, records, offers)
       : [];
     if (matches.length && !allowDuplicate) {
-      setDuplicate({ candidate, matches });
+      setDuplicate({ candidate, matches, offerTargets });
       return false;
     }
     saveInFlight.current = true;
@@ -165,10 +171,13 @@ export function JournalApp({
     try {
       const saved = await performAction(async () => {
         try {
+          const recordData = recordSchema.parse(candidate);
+          for (const target of offerTargets)
+            await apiRequest("/api/offers", "PATCH", target);
           return await apiRequest(
             "/api/records",
             "POST",
-            { ...recordSchema.parse(candidate), allowDuplicate },
+            { ...recordData, allowDuplicate },
             saveResponseSchema,
           );
         } catch (failure) {
@@ -180,7 +189,7 @@ export function JournalApp({
               (failure.details as { matches?: unknown })?.matches,
             );
             if (result.success)
-              setDuplicate({ candidate, matches: result.data });
+              setDuplicate({ candidate, matches: result.data, offerTargets });
           }
           throw failure;
         }
@@ -725,8 +734,8 @@ export function JournalApp({
           busy={busy}
           online={online}
           onClose={() => setEditingEntry(null)}
-          onSave={async (entry) => {
-            await saveEntry(entry);
+          onSave={async (entry, targets) => {
+            await saveEntry(entry, false, targets);
           }}
           onDelete={async () => {
             if (!online) {
@@ -771,9 +780,12 @@ export function JournalApp({
                 updated_at: undefined,
               },
               true,
+              duplicate.offerTargets,
             )
           }
-          onConfirm={() => void saveEntry(duplicate.candidate, true)}
+          onConfirm={() =>
+            void saveEntry(duplicate.candidate, true, duplicate.offerTargets)
+          }
         />
       )}
       {batch && (

@@ -1,4 +1,8 @@
 "use client";
+import {
+  offerTargetChanges,
+  type OfferTargetUpdate,
+} from "@/lib/offers/target-draft";
 import { EntrySaveStatus } from "./entry-save-status";
 import { EntryStart } from "./editor/entry-start";
 import { StorePreviewCard } from "./editor/store-preview-card";
@@ -51,11 +55,35 @@ export function EntryEditor({
   busy: boolean;
   saving?: boolean;
   onClose: () => void;
-  onSave: (entry: JournalEntry) => Promise<void>;
+  onSave: (entry: JournalEntry, targets?: OfferTargetUpdate[]) => Promise<void>;
   onDelete: () => Promise<boolean>;
   runAction: PerformJournalAction;
 }) {
   const [draft, setDraft] = useState({ ...entry });
+  const [targetDrafts, setTargetDrafts] = useState<Record<string, string>>({});
+  const [targetError, setTargetError] = useState("");
+  const targetChanges = offerTargetChanges(offers, targetDrafts);
+  const setTargetDraft = (id: string, value: string) => {
+    setTargetDrafts((current) => ({ ...current, [id]: value }));
+    setTargetError("");
+  };
+  async function saveDraft(candidate: JournalEntry) {
+    if (busy || saving) return;
+    if (targetChanges.invalidOfferId) {
+      setTargetError(
+        "Revisá el Objetivo: usá un precio igual o mayor que cero.",
+      );
+      setActiveTab("main");
+      requestAnimationFrame(() =>
+        document
+          .getElementById(targetChanges.invalidOfferId + "-target")
+          ?.focus(),
+      );
+      return;
+    }
+    setTargetError("");
+    await onSave(candidate, targetChanges.updates);
+  }
   const [step, setStep] = useState<"choose" | "page" | "editor">(
     entry.id || entry.gameId ? "editor" : "choose",
   );
@@ -92,7 +120,10 @@ export function EntryEditor({
   const [releaseError, setReleaseError] = useState("");
   const [confirmDiscard, setConfirmDiscard] = useState(false);
   const dirty =
-    JSON.stringify(draft) !== JSON.stringify(entry) || !!pageUrl.trim();
+    JSON.stringify(draft) !== JSON.stringify(entry) ||
+    !!pageUrl.trim() ||
+    targetChanges.updates.length > 0 ||
+    !!targetChanges.invalidOfferId;
   function requestClose() {
     if (busy || saving) return;
     if (dirty) setConfirmDiscard(true);
@@ -352,7 +383,7 @@ export function EntryEditor({
               return;
             }
             setPageError("");
-            onSave({
+            void saveDraft({
               ...draft,
               pages: pages.data,
               status: statusAfterDateEdits(draft, entry),
@@ -434,6 +465,8 @@ export function EntryEditor({
               renderField={renderField}
               formId={formId}
               offers={offers}
+              targetDrafts={targetDrafts}
+              setTargetDraft={setTargetDraft}
               runAction={runAction}
               priceHistory={priceHistory}
               setPriceHistory={setPriceHistory}
@@ -497,7 +530,7 @@ export function EntryEditor({
               recipientId={recipientId}
               setRecipientId={setRecipientId}
               busy={busy}
-              onSave={onSave}
+              onSave={saveDraft}
               releaseError={releaseError}
               setReleaseError={setReleaseError}
               activeTab={activeTab}
@@ -510,9 +543,9 @@ export function EntryEditor({
             siga abierto.
           </p>
         )}
-        {actionError && (
+        {(targetError || actionError) && (
           <p className="error" role="alert">
-            {actionError}
+            {targetError || actionError}
           </p>
         )}
         <div className="entry-editor-actions">
