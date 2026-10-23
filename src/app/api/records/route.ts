@@ -5,6 +5,7 @@ import { findDuplicates, normalizedTitle } from "@/lib/journal/duplicates";
 import { recordsResponseSchema } from "@/lib/contracts";
 import { databaseError } from "@/lib/api-errors";
 import { parseStoreUrl } from "@/lib/domain";
+import { periodAfterDateEdits } from "@/lib/journal/entry-period";
 import { datesAfterStatusChange } from "@/lib/journal/entry-status";
 export const dynamic = "force-dynamic";
 export async function GET(request?: Request) {
@@ -48,6 +49,7 @@ export async function POST(request: Request) {
     );
     const previous = existingRecords.find((record) => record.id === input.id);
     Object.assign(input, datesAfterStatusChange(input, previous));
+    input.period = periodAfterDateEdits(input, previous);
     const sensitive =
       !input.gameId ||
       (!!previous &&

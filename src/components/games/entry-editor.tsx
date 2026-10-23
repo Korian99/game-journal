@@ -12,6 +12,7 @@ import { PlaythroughTab } from "./editor/playthrough-tab";
 import { ReviewTab } from "./editor/review-tab";
 import { MoreTab } from "./editor/more-tab";
 
+import { periodAfterDateEdits } from "@/lib/journal/entry-period";
 import { statusAfterDateEdits } from "@/lib/journal/entry-status";
 import type {
   JournalEntry,
@@ -175,7 +176,12 @@ export function EntryEditor({
     { id: "more", label: "Más" },
   ];
   const updateDraftField = (key: keyof JournalEntry, value: unknown) =>
-    setDraft((current) => ({ ...current, [key]: value }));
+    setDraft((current) => {
+      const next = { ...current, [key]: value };
+      if (key === "started" || key === "finished")
+        next.period = periodAfterDateEdits(next, current);
+      return next;
+    });
   const renderField = (
     key: keyof JournalEntry,
     label: string,

@@ -132,3 +132,48 @@ it("does not assign today's dates when creating a historical entry", async () =>
     }),
   );
 });
+
+it("derives the period after automatic status dates are filled", async () => {
+  expect((await save({ status: "playing" })).status).toBe(200);
+  expect(rpc).toHaveBeenCalledWith(
+    "save_record_result",
+    expect.objectContaining({
+      input: expect.objectContaining({ started: "2026-10-22", period: "2026" }),
+    }),
+  );
+});
+it("saves cross-year play periods from explicit dates", async () => {
+  expect(
+    (
+      await save({
+        started: "2025-12-31",
+        finished: "01/01/2026",
+        period: "2020",
+      })
+    ).status,
+  ).toBe(200);
+  expect(rpc).toHaveBeenCalledWith(
+    "save_record_result",
+    expect.objectContaining({
+      input: expect.objectContaining({ period: "2025-2026" }),
+    }),
+  );
+});
+it("keeps an approximate period when only editing a review", async () => {
+  existing = [{ ...original, started: "2025-01-01", period: "2024-2025" }];
+  expect(
+    (
+      await save({
+        started: "2025-01-01",
+        period: "2024-2025",
+        notes: "Edited review",
+      })
+    ).status,
+  ).toBe(200);
+  expect(rpc).toHaveBeenCalledWith(
+    "save_record_result",
+    expect.objectContaining({
+      input: expect.objectContaining({ period: "2024-2025" }),
+    }),
+  );
+});
