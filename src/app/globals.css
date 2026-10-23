@@ -1650,7 +1650,7 @@ tbody tr.wishlist-discounted td:first-child,
   margin-bottom: 24px;
 }
 
-/* Compact library: game, playthrough, and review comments share five columns. */
+/* Library details use four columns; comments span the row below. */
 .library-table {
   table-layout: fixed;
 }
@@ -1661,18 +1661,15 @@ tbody tr.wishlist-discounted td:first-child,
   vertical-align: top;
 }
 .library-table th:first-child {
-  width: 22%;
+  width: 26%;
 }
 .library-table th:nth-child(2) {
   width: 180px;
 }
 .library-table th:nth-child(3) {
-  width: 21%;
+  width: 30%;
 }
 .library-table th:nth-child(4) {
-  width: 12%;
-}
-.library-table th:nth-child(5) {
   width: auto;
 }
 .library-table .entry-text-cell {
@@ -2123,19 +2120,16 @@ tbody tr.wishlist-discounted td:first-child,
   gap: 4px;
 }
 .journal-table th:first-child {
-  width: 24%;
+  width: 34%;
 }
 .journal-table th:nth-child(2) {
-  width: 14%;
+  width: 16%;
 }
 .journal-table th:nth-child(3) {
-  width: 10%;
+  width: 12%;
 }
 .journal-table th:nth-child(4) {
-  width: 24%;
-}
-.journal-table th:nth-child(5) {
-  width: 28%;
+  width: 38%;
 }
 .journal-table .entry-text-cell {
   width: auto;
@@ -2296,4 +2290,51 @@ tbody tr.wishlist-discounted td:first-child,
 }
 .store-preview > small {
   font-size: 11px;
+}
+
+/* Keep long comments with their game, using the full available width. */
+.game-comments {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+  width: 100%;
+  text-align: left;
+}
+.game-comments-label {
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 400;
+}
+.game-comments-text {
+  color: var(--text);
+  font-size: 11px;
+  line-height: 1.7;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.library-table .game-data-row.has-comments td,
+.journal-table .game-data-row.has-comments td {
+  padding-bottom: 10px;
+}
+.library-table .game-comments-row td,
+.journal-table .game-comments-row td {
+  padding-top: 0;
+  padding-bottom: 18px;
+  border-top: 0;
+}
+.game-data-row:has(+ .game-comments-row:hover),
+.game-data-row:hover + .game-comments-row {
+  background: var(--raised);
+}
+@media (max-width: 760px) {
+  .mobile-game.mobile-game-played {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    align-items: start;
+  }
+  .mobile-game-played > .game-comments {
+    grid-column: 1 / -1;
+    padding-top: 12px;
+    border-top: 1px solid var(--line);
+  }
 }

@@ -91,7 +91,7 @@ test("Diario combines reviews, includes played states, and persists its status f
   await page.emulateMedia({ reducedMotion: "reduce" });
   await page.goto("./?tab=journal&year=all");
   const table = page.locator("table");
-  await expect(table.locator("tbody>tr")).toHaveCount(5);
+  await expect(table.locator(".game-data-row")).toHaveCount(5);
   await expect(
     page.getByRole("columnheader", { name: "Valoración" }),
   ).toBeVisible();
@@ -103,7 +103,7 @@ test("Diario combines reviews, includes played states, and persists its status f
   ).toHaveCount(0);
   for (const item of variants.slice(0, 5)) {
     const row = table
-      .locator("tbody>tr")
+      .locator(".game-data-row")
       .filter({ has: page.getByText(item.title, { exact: true }) });
     await expect(row.locator(".status")).toHaveText(statuses[item.status]);
   }
@@ -132,7 +132,7 @@ test("Diario combines reviews, includes played states, and persists its status f
     textOnly.getByLabel("Sin valoración", { exact: true }),
   ).toBeVisible();
   await page.getByRole("button", { name: "Valoración", exact: true }).click();
-  await expect(table.locator("tbody>tr").first()).toContainText(
+  await expect(table.locator(".game-data-row").first()).toContainText(
     "Reseña preferida",
   );
   expect(
@@ -145,11 +145,11 @@ test("Diario combines reviews, includes played states, and persists its status f
     fullPage: true,
   });
   await page.getByLabel("Filtrar estado").selectOption("paused");
-  await expect(table.locator("tbody>tr")).toHaveCount(1);
+  await expect(table.locator(".game-data-row")).toHaveCount(1);
   await expect(page).toHaveURL(/status=paused/);
   await page.reload();
   await expect(page.getByLabel("Filtrar estado")).toHaveValue("paused");
-  await expect(table.locator("tbody>tr")).toHaveCount(1);
+  await expect(table.locator(".game-data-row")).toHaveCount(1);
   await page.getByLabel("Filtrar estado").selectOption("");
   await page.setViewportSize({ width: 390, height: 844 });
   const mobile = page.locator(".mobile-games");

@@ -231,8 +231,16 @@ export function JournalApp({
       sorting: sort,
       columnVisibility:
         view === "library"
-          ? { status: false, finished: false, hours: false, rating: false }
-          : {},
+          ? {
+              status: false,
+              finished: false,
+              hours: false,
+              rating: false,
+              notes: false,
+            }
+          : view === "journal"
+            ? { notes: false }
+            : {},
     },
     onSortingChange: setSort,
     getCoreRowModel: getCoreRowModel(),

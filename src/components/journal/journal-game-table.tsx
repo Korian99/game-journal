@@ -1,4 +1,6 @@
 "use client";
+import { Fragment } from "react";
+import { GameComments } from "./game-comments";
 import type { JournalView } from "@/lib/journal/journal-location";
 import type { JournalEntry } from "@/lib/journal/journal-types";
 import { releaseHasArrived, releaseLabel } from "@/lib/releases";
@@ -34,13 +36,18 @@ export function JournalGameTable({
   onEdit: (entry: JournalEntry) => void;
   entryRowClass: (entry: JournalEntry) => string | undefined;
 }) {
+  const commentsBelow = view === "library" || view === "journal";
   return (
     <>
       <div className="mobile-games">
         {table.getRowModel().rows.map(({ original: r }) => (
           <article className="mobile-game-wrapper" key={r.id}>
             <button
-              className={["mobile-game", entryRowClass(r)]
+              className={[
+                "mobile-game",
+                commentsBelow ? "mobile-game-played" : "",
+                entryRowClass(r),
+              ]
                 .filter(Boolean)
                 .join(" ")}
               key={r.id}
@@ -108,18 +115,20 @@ export function JournalGameTable({
                       (view === "library"
                         ? libraryTextFields
                         : journalTextFields
-                      ).map(({ key, label }) =>
-                        view === "library" && key === "reason" ? (
-                          <small className="mobile-entry-detail" key={key}>
-                            <LibraryFinishReason record={r} showLabel />
-                          </small>
-                        ) : r[key] ? (
-                          <small className="mobile-entry-detail" key={key}>
-                            <b>{label}</b>
-                            <span>{r[key]}</span>
-                          </small>
-                        ) : null,
-                      )}
+                      )
+                        .filter(({ key }) => key !== "notes")
+                        .map(({ key, label }) =>
+                          view === "library" && key === "reason" ? (
+                            <small className="mobile-entry-detail" key={key}>
+                              <LibraryFinishReason record={r} showLabel />
+                            </small>
+                          ) : r[key] ? (
+                            <small className="mobile-entry-detail" key={key}>
+                              <b>{label}</b>
+                              <span>{r[key]}</span>
+                            </small>
+                          ) : null,
+                        )}
                   </>
                 )}
                 {view !== "library" && (
@@ -128,6 +137,7 @@ export function JournalGameTable({
                   </small>
                 )}
               </span>
+              {commentsBelow && r.notes.trim() && <GameComments entry={r} />}
             </button>
           </article>
         ))}
@@ -173,18 +183,35 @@ export function JournalGameTable({
             ))}
           </thead>
           <tbody>
-            {table.getRowModel().rows.map((r) => (
-              <tr
-                key={r.original.id ?? r.id}
-                className={entryRowClass(r.original)}
-              >
-                {r.getVisibleCells().map((c) => (
-                  <td key={c.column.id}>
-                    {flexRender(c.column.columnDef.cell, c.getContext())}
-                  </td>
-                ))}
-              </tr>
-            ))}
+            {table.getRowModel().rows.map((r) => {
+              const hasComments = commentsBelow && !!r.original.notes.trim();
+              return (
+                <Fragment key={r.original.id ?? r.id}>
+                  <tr
+                    className={[
+                      "game-data-row",
+                      hasComments ? "has-comments" : "",
+                      entryRowClass(r.original),
+                    ]
+                      .filter(Boolean)
+                      .join(" ")}
+                  >
+                    {r.getVisibleCells().map((c) => (
+                      <td key={c.column.id}>
+                        {flexRender(c.column.columnDef.cell, c.getContext())}
+                      </td>
+                    ))}
+                  </tr>
+                  {hasComments && (
+                    <tr className="game-comments-row">
+                      <td colSpan={r.getVisibleCells().length}>
+                        <GameComments entry={r.original} />
+                      </td>
+                    </tr>
+                  )}
+                </Fragment>
+              );
+            })}
           </tbody>
         </table>
       </div>

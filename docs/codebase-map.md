@@ -125,3 +125,7 @@ Al crear un juego se elige una página de Steam/Nintendo o carga manual. entry-s
 ## Estados vigentes
 
 Se retiró Pendiente. Los juegos nuevos y las importaciones sin estado definido usan Lista de deseos. lib/journal/status-schema.ts acepta el valor heredado backlog y lo interpreta como wishlist en lecturas y guardados; las opciones solo muestran los estados vigentes. La exportación Excel/CSV también usa esa etiqueta. No se modifican filas de producción: los valores antiguos se normalizan al guardar, mientras los respaldos completos conservan sus tablas originales.
+
+## Comentarios debajo de cada juego
+
+Biblioteca y Diario mantienen los datos principales en una fila y muestran Comentarios adicionales en otra fila que abarca todas las columnas visibles. Solo se crea esa fila si hay texto; se conservan los párrafos, la agrupación al ordenar y los bordes entre juegos. En móvil, game-comments.tsx ocupa todo el ancho de la tarjeta. El campo notes sigue definido como columna oculta para conservar los ordenamientos existentes.
