@@ -41,7 +41,7 @@ import {
   Settings,
   Users,
 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { saveResponseSchema } from "@/lib/contracts";
 import { ScoringGuide } from "../settings/scoring-guide";
 import { AdminInvite } from "../settings/admin-invite";
@@ -145,7 +145,10 @@ export function JournalApp({
     candidate: JournalEntry;
     matches: JournalEntry[];
   } | null>(null);
+  const [savingEntry, setSavingEntry] = useState(false);
+  const saveInFlight = useRef(false);
   async function saveEntry(candidate: JournalEntry, allowDuplicate = false) {
+    if (saveInFlight.current) return false;
     if (!navigator.onLine) {
       setError("Necesitás conexión para guardar.");
       return false;
@@ -157,32 +160,40 @@ export function JournalApp({
       setDuplicate({ candidate, matches });
       return false;
     }
-    const saved = await performAction(async () => {
-      try {
-        return await apiRequest(
-          "/api/records",
-          "POST",
-          { ...recordSchema.parse(candidate), allowDuplicate },
-          saveResponseSchema,
-        );
-      } catch (failure) {
-        if (
-          failure instanceof ApiRequestError &&
-          failure.code === "DUPLICATE"
-        ) {
-          const result = recordsResponseSchema.shape.records.safeParse(
-            (failure.details as { matches?: unknown })?.matches,
+    saveInFlight.current = true;
+    setSavingEntry(true);
+    try {
+      const saved = await performAction(async () => {
+        try {
+          return await apiRequest(
+            "/api/records",
+            "POST",
+            { ...recordSchema.parse(candidate), allowDuplicate },
+            saveResponseSchema,
           );
-          if (result.success) setDuplicate({ candidate, matches: result.data });
+        } catch (failure) {
+          if (
+            failure instanceof ApiRequestError &&
+            failure.code === "DUPLICATE"
+          ) {
+            const result = recordsResponseSchema.shape.records.safeParse(
+              (failure.details as { matches?: unknown })?.matches,
+            );
+            if (result.success)
+              setDuplicate({ candidate, matches: result.data });
+          }
+          throw failure;
         }
-        throw failure;
+      }, "Entrada guardada.");
+      if (saved) {
+        setEditingEntry(null);
+        setDuplicate(null);
       }
-    }, "Entrada guardada.");
-    if (saved) {
-      setEditingEntry(null);
-      setDuplicate(null);
+      return saved;
+    } finally {
+      saveInFlight.current = false;
+      setSavingEntry(false);
     }
-    return saved;
   }
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [batch, setBatch] = useState<ImportBatch | null>(null);
@@ -706,6 +717,7 @@ export function JournalApp({
         <EntryEditor
           key={editingEntry.id ?? "new"}
           entry={editingEntry}
+          saving={savingEntry}
           actionError={error}
           offers={offers.filter((o) => o.game_id === editingEntry.gameId)}
           members={sharing.members}

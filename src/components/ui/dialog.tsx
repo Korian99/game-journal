@@ -7,6 +7,7 @@ export function Modal({
   title,
   children,
   headerActions,
+  headerStatus,
   onEscapeKeyDown,
   variant = "modal",
 }: {
@@ -16,6 +17,7 @@ export function Modal({
   title: string;
   children: React.ReactNode;
   headerActions?: React.ReactNode;
+  headerStatus?: React.ReactNode;
   onEscapeKeyDown?: (event: KeyboardEvent) => void;
 }) {
   return (
@@ -30,7 +32,10 @@ export function Modal({
           onEscapeKeyDown={onEscapeKeyDown}
         >
           <div className="modal-header">
-            <Dialog.Title>{title}</Dialog.Title>
+            <div className="modal-heading">
+              <Dialog.Title>{title}</Dialog.Title>
+              {headerStatus}
+            </div>
 
             <div className="modal-header-controls">
               {headerActions}

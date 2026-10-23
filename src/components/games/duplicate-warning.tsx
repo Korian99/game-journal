@@ -1,4 +1,5 @@
 "use client";
+import { EntrySaveStatus } from "./entry-save-status";
 import { statuses } from "@/lib/types";
 import { Modal } from "../ui/dialog";
 import type { JournalEntry } from "@/lib/journal/journal-types";
@@ -24,6 +25,7 @@ export function DuplicateWarning({
       open
       title={editing ? "Coincidencia con otro juego" : "¿Ya tenés este juego?"}
       onClose={() => !busy && onClose()}
+      headerStatus={busy ? <EntrySaveStatus /> : undefined}
     >
       <div className="modal-body">
         <p>
@@ -68,9 +70,11 @@ export function DuplicateWarning({
             {editing ? "Volver a la edición" : "Volver al formulario"}
           </button>
           <button className="primary" disabled={busy} onClick={onConfirm}>
-            {editing
-              ? "Guardar cambios en esta partida"
-              : "Guardar como juego separado"}
+            {busy
+              ? "Guardando…"
+              : editing
+                ? "Guardar cambios en esta partida"
+                : "Guardar como juego separado"}
           </button>
         </div>
       </div>
