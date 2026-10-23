@@ -3,6 +3,11 @@ import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
 import { Modal } from "../ui/dialog";
 import { createResource } from "@/lib/resource";
 import { apiRequest } from "@/lib/api-client";
+import {
+  optimisticNotificationRead,
+  type NotificationReadInput,
+  type ObserveNotificationReads,
+} from "@/lib/notifications/read-state";
 import { notificationPageSchema } from "@/lib/notifications/history";
 import type { useJournalLocation } from "@/hooks/use-journal-location";
 import type { JournalNotification } from "@/lib/contracts";
@@ -17,12 +22,21 @@ export function NotificationDrawer({
   location,
   online,
   version,
-  onChanged,
+  readNotifications,
+  waitForNotificationReads,
+  observeNotificationReads,
+  readsPending,
 }: {
   location: ReturnType<typeof useJournalLocation>;
   online: boolean;
   version: number | null;
-  onChanged: () => Promise<void>;
+  readNotifications: (
+    input: NotificationReadInput,
+    unreadDelta: number,
+  ) => Promise<void>;
+  waitForNotificationReads: () => Promise<void>;
+  observeNotificationReads: ObserveNotificationReads;
+  readsPending: boolean;
 }) {
   const {
     notificationOpen: open,
@@ -36,15 +50,17 @@ export function NotificationDrawer({
     () =>
       createResource<ReturnType<typeof notificationPageSchema.parse> | null>(
         null,
-        () =>
-          apiRequest(
+        async () => {
+          await waitForNotificationReads();
+          return apiRequest(
             "/api/notifications?" + new URLSearchParams({ read, kind }),
             "GET",
             undefined,
             notificationPageSchema,
-          ),
+          );
+        },
       ),
-    [read, kind],
+    [read, kind, waitForNotificationReads],
   );
   const state = useSyncExternalStore(
     resource.subscribe,
@@ -62,10 +78,7 @@ export function NotificationDrawer({
   const [busy, setBusy] = useState(false),
     [error, setError] = useState("");
   useEffect(() => {
-    if (open) {
-      setError("");
-      void resource.load();
-    }
+    if (open) void resource.load();
   }, [open, resource, version]);
   async function next() {
     const nextCursor = cursor;
@@ -95,16 +108,82 @@ export function NotificationDrawer({
       setBusy(false);
     }
   }
-  async function mark(body: { ids: string[] } | { allBefore: string }) {
-    setBusy(true);
+  useEffect(
+    () =>
+      observeNotificationReads((body, unreadDelta) => {
+        const head = resource.getSnapshot().data;
+        if (!head) return null;
+        setError("");
+        const loaded = [...head.items, ...(currentPages?.items ?? [])];
+        const update = optimisticNotificationRead(
+          { ...head, items: loaded },
+          body,
+          unreadDelta,
+        );
+        const marked = new Map(
+          update.data.items.map((item) => [item.id, item]),
+        );
+        const nextHead = {
+          ...update.data,
+          items: head.items.map((item) => marked.get(item.id) ?? item),
+        };
+        resource.setData(nextHead);
+        setPages((previous) =>
+          previous?.head === head
+            ? {
+                ...previous,
+                head: nextHead,
+                items: previous.items.map(
+                  (item) => marked.get(item.id) ?? item,
+                ),
+              }
+            : previous,
+        );
+        return {
+          rollback() {
+            const current = resource.getSnapshot().data;
+            if (!current) return;
+            const restored = update.rollback(current);
+            resource.setData(restored);
+            setPages((previous) =>
+              previous?.head === current
+                ? {
+                    ...previous,
+                    head: restored,
+                    items: update.rollback({
+                      ...current,
+                      items: previous.items,
+                    }).items,
+                  }
+                : previous,
+            );
+          },
+          refresh: resource.invalidate,
+        };
+      }),
+    [observeNotificationReads, resource, currentPages],
+  );
+  async function mark(body: NotificationReadInput) {
+    const head = resource.getSnapshot().data;
+    if (!head) return;
     setError("");
+    const loaded = [...head.items, ...(currentPages?.items ?? [])];
+    const unreadDelta =
+      "allBefore" in body
+        ? head.unreadCount
+        : new Set(
+            body.ids.filter((id) =>
+              loaded.some((item) => item.id === id && !item.read_at),
+            ),
+          ).size;
     try {
-      await apiRequest("/api/notifications", "PATCH", body);
-      await Promise.all([resource.load(), onChanged()]);
+      await readNotifications(body, unreadDelta);
     } catch (failure) {
-      setError((failure as Error).message);
-    } finally {
-      setBusy(false);
+      setError(
+        failure instanceof Error
+          ? failure.message
+          : "No se pudo marcar la notificación como leída.",
+      );
     }
   }
   const items = [
@@ -113,7 +192,7 @@ export function NotificationDrawer({
         (item) => [item.id, item],
       ),
     ).values(),
-  ];
+  ].filter((item) => read === "all" || !item.read_at);
   const safeLink = (url: string) => {
     try {
       const value = new URL(url, window.location.origin);
@@ -128,7 +207,7 @@ export function NotificationDrawer({
     <Modal
       open={open}
       title="Notificaciones"
-      onClose={() => !busy && setNotificationOpen(false)}
+      onClose={() => setNotificationOpen(false)}
       variant="drawer"
     >
       <div className="modal-body notification-drawer">
@@ -185,13 +264,14 @@ export function NotificationDrawer({
             <span>{state.data.unreadCount} sin leer en total</span>
             <button
               className="text-button"
-              disabled={busy || !online || !state.data.unreadCount}
+              disabled={readsPending || !online || !state.data.unreadCount}
               onClick={() => void mark({ allBefore: state.data!.checkedAt })}
             >
               Marcar todas como leídas
             </button>
           </div>
         )}
+        {readsPending && <small role="status">Guardando lecturas…</small>}
         {state.status === "loading" && !state.data ? (
           <p role="status">Cargando…</p>
         ) : state.data && !items.length ? (
@@ -213,7 +293,7 @@ export function NotificationDrawer({
               {!item.read_at && (
                 <button
                   className="text-button"
-                  disabled={busy || !online}
+                  disabled={!online}
                   onClick={() => void mark({ ids: [item.id] })}
                 >
                   Marcar como leída
@@ -225,7 +305,7 @@ export function NotificationDrawer({
         {!!cursor && (
           <button
             className="secondary"
-            disabled={busy || !online}
+            disabled={busy || readsPending || !online}
             onClick={() => void next()}
           >
             {busy ? "Cargando…" : "Cargar más"}

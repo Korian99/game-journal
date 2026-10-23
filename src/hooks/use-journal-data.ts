@@ -1,4 +1,9 @@
 "use client";
+import {
+  createNotificationReadGate,
+  optimisticNotificationRead,
+  type NotificationReadInput,
+} from "@/lib/notifications/read-state";
 import { notificationPageSchema } from "@/lib/notifications/history";
 import { browserClient } from "@/lib/supabase/client";
 import {
@@ -20,6 +25,8 @@ import type { JournalEntry } from "@/lib/journal/journal-types";
 import type { Offer } from "@/lib/types";
 
 export function useJournalData() {
+  const notificationReadGate = useMemo(() => createNotificationReadGate(), []);
+  const [notificationReadsPending, setNotificationReadsPending] = useState(0);
   const resources = useMemo(
     () => ({
       records: createResource<ReturnType<typeof recordsResponseSchema.parse>>(
@@ -42,16 +49,20 @@ export function useJournalData() {
       ),
       notifications: createResource<
         ReturnType<typeof notificationPageSchema.parse>
-      >({ items: [], unreadCount: 0, nextCursor: null, checkedAt: "" }, () =>
-        apiRequest(
-          "/api/notifications",
-          "GET",
-          undefined,
-          notificationPageSchema,
-        ),
+      >(
+        { items: [], unreadCount: 0, nextCursor: null, checkedAt: "" },
+        async () => {
+          await notificationReadGate.wait();
+          return apiRequest(
+            "/api/notifications",
+            "GET",
+            undefined,
+            notificationPageSchema,
+          );
+        },
       ),
     }),
-    [],
+    [notificationReadGate],
   );
   const recordsState = useSyncExternalStore(
     resources.records.subscribe,
@@ -77,6 +88,43 @@ export function useJournalData() {
     [notice, setNotice] = useState(""),
     [busy, setBusy] = useState(false),
     [online, setOnline] = useState(true);
+  const readNotifications = useCallback(
+    async (input: NotificationReadInput, unreadDelta: number) => {
+      if ("allBefore" in input && notificationReadGate.pending())
+        throw Error("Esperá a que se guarden las lecturas pendientes.");
+      const finish = notificationReadGate.begin();
+      setNotificationReadsPending(notificationReadGate.pending());
+      setError("");
+      const update = optimisticNotificationRead(
+        resources.notifications.getSnapshot().data,
+        input,
+        unreadDelta,
+      );
+      resources.notifications.setData(update.data);
+      const historyUpdates = notificationReadGate.preview(input, unreadDelta);
+      try {
+        await apiRequest("/api/notifications", "PATCH", input);
+      } catch (failure) {
+        resources.notifications.setData(
+          update.rollback(resources.notifications.getSnapshot().data),
+        );
+        historyUpdates.forEach((update) => update.rollback());
+        setError(
+          failure instanceof Error
+            ? failure.message
+            : "No se pudo marcar la notificación como leída.",
+        );
+        throw failure;
+      } finally {
+        finish();
+        setNotificationReadsPending(notificationReadGate.pending());
+        if (!notificationReadGate.pending())
+          resources.notifications.invalidate();
+        historyUpdates.forEach((update) => update.refresh());
+      }
+    },
+    [notificationReadGate, resources],
+  );
   const reloadJournal = useCallback(async () => {
     await Promise.all(
       Object.values(resources).map((resource) => resource.load()),
@@ -203,6 +251,11 @@ export function useJournalData() {
       ? notificationsState.data.unreadCount
       : null,
     notificationsCheckedAt: notificationsState.checkedAt,
+    notificationPageCheckedAt: notificationsState.data.checkedAt,
+    notificationReadsPending: notificationReadsPending > 0,
+    waitForNotificationReads: notificationReadGate.wait,
+    observeNotificationReads: notificationReadGate.observe,
+    readNotifications,
     loading:
       !recordsState.data.records.length &&
       (recordsState.status === "idle" || recordsState.status === "loading"),

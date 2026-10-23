@@ -102,6 +102,11 @@ export function JournalApp({
     notifications,
     unreadCount,
     notificationsCheckedAt,
+    notificationPageCheckedAt,
+    notificationReadsPending,
+    waitForNotificationReads,
+    observeNotificationReads,
+    readNotifications,
     setBusy,
     setError,
     setNotice,
@@ -494,9 +499,16 @@ export function JournalApp({
                   {notifications.some((n) => !n.read_at) && (
                     <button
                       className="text-button"
-                      disabled={busy}
+                      disabled={
+                        notificationReadsPending ||
+                        !online ||
+                        !notificationPageCheckedAt
+                      }
                       onClick={() =>
-                        performAction(() => apiRequest("/api/push", "PATCH"))
+                        void readNotifications(
+                          { allBefore: notificationPageCheckedAt },
+                          unreadCount ?? 0,
+                        ).catch(() => undefined)
                       }
                     >
                       Marcar como leídas
@@ -685,7 +697,10 @@ export function JournalApp({
         location={journalLocation}
         online={online}
         version={notificationsCheckedAt}
-        onChanged={reloadJournal}
+        readNotifications={readNotifications}
+        waitForNotificationReads={waitForNotificationReads}
+        observeNotificationReads={observeNotificationReads}
+        readsPending={notificationReadsPending}
       />
       {editingEntry && (
         <EntryEditor
