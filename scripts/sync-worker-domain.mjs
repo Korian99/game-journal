@@ -1,8 +1,13 @@
 import fs from "node:fs";
 const domain = fs
   .readFileSync("src/lib/domain.ts", "utf8")
-  .replace('from "./types"', 'from "./types.ts"');
+  .replace('from "./types"', 'from "./types.ts"')
+  .replace('from "./journal/console-labels"', 'from "./console-labels.ts"');
 const copies = [
+  [
+    "supabase/functions/price-worker/console-labels.ts",
+    fs.readFileSync("src/lib/journal/console-labels.ts", "utf8"),
+  ],
   [
     "supabase/functions/notification-worker/types.ts",
     fs.readFileSync("src/lib/types.ts", "utf8"),

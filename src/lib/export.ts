@@ -1,4 +1,5 @@
 import ExcelJS from "exceljs";
+import { normalizeConsoleLabels } from "./journal/console-labels";
 import type { ScoringEntry } from "./scoring-guide";
 import { emptyRecord, statuses, type JournalRecord, type Offer } from "./types";
 import { statusSchema } from "./journal/status-schema";
@@ -61,7 +62,12 @@ function gameTable(data: ExportData): Table {
     name: "Juegos",
     headers: gameHeaders,
     rows: data.records.map((input) => {
-      const r = { ...emptyRecord, ...input };
+      const r = {
+        ...emptyRecord,
+        ...input,
+        device: normalizeConsoleLabels(input.device ?? ""),
+        platforms: normalizeConsoleLabels(input.platforms ?? ""),
+      };
       const status = statusSchema.safeParse(r.status);
       return [
         r.title,

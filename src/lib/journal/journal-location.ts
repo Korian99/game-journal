@@ -1,3 +1,4 @@
+import { normalizeConsoleLabels } from "./console-labels";
 import type { SortingState } from "@tanstack/react-table";
 import { currentYear, defaultViewSort, viewStatuses } from "./view-config";
 
@@ -115,11 +116,13 @@ export function readJournalLocation(
       state.compareYear = compare;
     if (target === "story" || target === "extras" || target === "completionist")
       state.estimateTarget = target;
-    state.platform = bounded(params.get("platform"), 200);
+    state.platform = normalizeConsoleLabels(
+      bounded(params.get("platform"), 200),
+    );
   }
   if (!columns[view].length) return state;
   state.query = bounded(params.get("q"), 500);
-  state.platform = bounded(params.get("platform"), 200);
+  state.platform = normalizeConsoleLabels(bounded(params.get("platform"), 200));
   const status = params.get("status");
   if (
     ["library", "journal"].includes(view) &&

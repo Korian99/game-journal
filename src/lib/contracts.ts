@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { normalizeConsoleLabels } from "./journal/console-labels";
 import { emptyRecord } from "./types";
 import { statusSchema } from "./journal/status-schema";
 import type { JournalEntry } from "./journal/journal-types";
@@ -19,8 +20,12 @@ export const journalEntrySchema = z
     title: text,
     year: nullableNumber.optional(),
     release: text.optional(),
-    platforms: text.optional(),
-    device: text.optional(),
+    platforms: text
+      .optional()
+      .transform((value) => normalizeConsoleLabels(value ?? "")),
+    device: text
+      .optional()
+      .transform((value) => normalizeConsoleLabels(value ?? "")),
     period: text.optional(),
     started: optionalText,
     finished: optionalText,
@@ -82,7 +87,7 @@ export const sharedEntrySchema = z.object({
   owner: text,
   title: text,
   period: optionalText,
-  device: optionalText,
+  device: optionalText.transform(normalizeConsoleLabels),
   status: optionalText,
   hours: nullableNumber,
   rating: nullableNumber,

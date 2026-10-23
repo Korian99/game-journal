@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { normalizeConsoleLabels } from "./journal/console-labels";
 import { statusSchema } from "./journal/status-schema";
 import { parseRelease } from "./releases";
 export const releaseSchema = z
@@ -43,8 +44,8 @@ export const recordSchema = z
     title: z.string().trim().min(1).max(300),
     year: numberOrNull(1950, 2200),
     release: releaseSchema.optional(),
-    platforms: z.string().max(2000),
-    device: z.string().max(200),
+    platforms: z.string().max(2000).transform(normalizeConsoleLabels),
+    device: z.string().max(200).transform(normalizeConsoleLabels),
     period: z.string().max(100),
     started: z
       .string()

@@ -1,5 +1,6 @@
 import type { JournalRecord } from "../types";
 import { dateOrder } from "./view-config";
+import { normalizeConsoleLabels } from "./console-labels";
 
 export function summarizeGames(records: JournalRecord[], year = "") {
   const dateMatches = (value: string) => {
@@ -21,7 +22,7 @@ export function summarizeGames(records: JournalRecord[], year = "") {
   );
   const consoles = new Map<string, { name: string; count: number }>();
   for (const record of records) {
-    const devices = record.device
+    const devices = normalizeConsoleLabels(record.device)
       .split(";")
       .map((name) => name.trim())
       .filter(Boolean);

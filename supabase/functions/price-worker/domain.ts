@@ -1,4 +1,5 @@
 import { load } from "cheerio";
+import { normalizeConsoleLabels } from "./console-labels.ts";
 import { emptyRecord, type JournalRecord, type Price } from "./types.ts";
 export function parseStoreUrl(raw: string) {
   const u = new URL(raw);
@@ -399,8 +400,8 @@ export function parseWorkbook(tabs: WorkbookTab[]): ImportRecord[] {
         ...emptyRecord,
         title,
         year: num(get("Salio en")),
-        platforms: String(get("Consolas donde salio")),
-        device: String(get("Consola")),
+        platforms: normalizeConsoleLabels(String(get("Consolas donde salio"))),
+        device: normalizeConsoleLabels(String(get("Consola"))),
         period: tab.name === "<2025" ? String(get("Jugue en")) : tab.name,
         started: date(get("Empece")),
         finished:
@@ -493,7 +494,16 @@ export function makeImportPlan(
     );
     if (newLinks.length) changes.links = newLinks;
     for (const field of fields) {
-      const merged = mergeField(baseline[field], old[field], row[field]);
+      const normalize = (value: unknown) =>
+        (field === "device" || field === "platforms") &&
+        typeof value === "string"
+          ? normalizeConsoleLabels(value)
+          : value;
+      const merged = mergeField(
+        normalize(baseline[field]),
+        normalize(old[field]),
+        normalize(row[field]),
+      );
       if (merged.conflict) conflicts.push(field);
       if (
         JSON.stringify(merged.value ?? null) !==

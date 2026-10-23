@@ -129,3 +129,7 @@ Se retiró Pendiente. Los juegos nuevos y las importaciones sin estado definido 
 ## Comentarios debajo de cada juego
 
 Biblioteca y Diario mantienen los datos principales en una fila y muestran Comentarios adicionales en otra fila que abarca todas las columnas visibles. Solo se crea esa fila si hay texto; se conservan los párrafos, la agrupación al ordenar y los bordes entre juegos. En móvil, game-comments.tsx ocupa todo el ancho de la tarjeta. El campo notes sigue definido como columna oculta para conservar los ordenamientos existentes.
+
+## Etiquetas de emulación
+
+lib/journal/console-labels.ts normaliza las variantes de emulación a Emulador en lecturas, guardados, importaciones, exportaciones tabulares y filtros guardados en URL. La comparación de importaciones normaliza también la base para evitar conflictos causados solo por etiquetas antiguas. Las reseñas y snapshots originales de importación se conservan. La limpieza aprobada del 23/10/2026 unificó seis etiquetas guardadas; otras tres ya eran Emulador.

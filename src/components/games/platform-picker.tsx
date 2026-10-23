@@ -61,7 +61,7 @@ export function PlatformPicker({
             (part) => part.toLowerCase() === platform.toLowerCase(),
           ),
       )
-    : [...new Set([...commonPlatforms, ...(value ? [value] : [])])];
+    : [...new Set([...commonPlatforms, "Emulador", ...(value ? [value] : [])])];
   const inputLabel = multiple
     ? "Editar plataformas"
     : "Editar consola o emulador";
