@@ -12,6 +12,7 @@ import {
   dateOrder,
   formatDate,
   periodOrder,
+  compareJournalPeriods,
   reviewOrder,
   journalReviewOrder,
 } from "@/lib/journal/view-config";
@@ -100,8 +101,13 @@ export function useJournalColumns({
         id: "period",
         accessorFn: (record) => periodOrder(record.period),
         header: "Período",
-        sortUndefined: "last",
-        sortingFn: "basic",
+        sortUndefined: false,
+        sortingFn: (a, b) =>
+          compareJournalPeriods(
+            a.original,
+            b.original,
+            sort.find((item) => item.id === "period")?.desc,
+          ),
         cell: ({ row }) => row.original.period || "—",
       },
       hours: {

@@ -79,6 +79,33 @@ export function periodOrder(value: string): number | undefined {
   return year ? Number(year[1]) : undefined;
 }
 
+/** TanStack comparator: dates follow the period direction; missing values stay last and names stay A–Z. */
+export function compareJournalPeriods(
+  a: Pick<JournalRecord, "period" | "started" | "finished" | "title">,
+  b: Pick<JournalRecord, "period" | "started" | "finished" | "title">,
+  descending = false,
+): number {
+  const fixedDirection = descending ? -1 : 1;
+  const fields = [
+    [periodOrder(a.period), periodOrder(b.period)],
+    [dateOrder(a.started), dateOrder(b.started)],
+    [dateOrder(a.finished), dateOrder(b.finished)],
+  ];
+  for (const [first, second] of fields) {
+    if (first === undefined && second === undefined) continue;
+    // Compensate for TanStack's descending inversion to keep missing values last.
+    if (first === undefined) return fixedDirection;
+    if (second === undefined) return -fixedDirection;
+    if (first !== second) return first - second;
+  }
+  return (
+    a.title.localeCompare(b.title, "es", {
+      sensitivity: "base",
+      numeric: true,
+    }) * fixedDirection
+  );
+}
+
 type DatedRecord = Pick<JournalRecord, "started" | "finished" | "period">;
 
 export function currentYear(now = new Date()): string {
