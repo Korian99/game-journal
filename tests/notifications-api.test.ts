@@ -93,3 +93,21 @@ it("marks only requested IDs or records before the selected cutoff", async () =>
   );
   expect(next).toContainEqual(["lte", "created_at", cutoff]);
 });
+
+it("looks up a notification ID while retaining owner scoping", async () => {
+  const calls = setup(),
+    id = "10000000-0000-4000-8000-000000000001";
+  expect(
+    (await GET(new Request("http://fixture/api/notifications?id=" + id)))
+      .status,
+  ).toBe(200);
+  expect(calls).toContainEqual(["eq", "id", id]);
+  expect(calls).toContainEqual(["eq", "owner_id", "fixture-owner"]);
+});
+it("rejects an invalid notification lookup ID", async () => {
+  setup();
+  expect(
+    (await GET(new Request("http://fixture/api/notifications?id=invalid")))
+      .status,
+  ).toBe(400);
+});

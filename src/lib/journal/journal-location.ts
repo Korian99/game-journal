@@ -25,6 +25,8 @@ export type JournalLocation = {
   sort: SortingState;
   compareYear: string;
   estimateTarget: "story" | "extras" | "completionist";
+  focusedEntry: string;
+  notificationId: string;
   notificationOpen: boolean;
   notificationRead: "all" | "unread";
   notificationKind: "" | "discount" | "target" | "release" | "test";
@@ -62,6 +64,8 @@ const locationKeys = [
   "notifications",
   "notificationRead",
   "notificationType",
+  "entry",
+  "notification",
 ];
 export function defaultJournalLocation(
   view: JournalView = "library",
@@ -82,6 +86,8 @@ export function defaultJournalLocation(
     sort: columns[view].length ? defaultViewSort(view) : [],
     compareYear: view === "statistics" ? String(Number(present) - 1) : "",
     estimateTarget: "story",
+    focusedEntry: "",
+    notificationId: "",
     notificationOpen: false,
     notificationRead: "unread",
     notificationKind: "",
@@ -100,6 +106,16 @@ export function readJournalLocation(
     ? (tab as JournalView)
     : "library";
   const state = defaultJournalLocation(view, present);
+  const targetId = (key: string) => {
+    const value = params.get(key) ?? "";
+    return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
+      value,
+    )
+      ? value
+      : "";
+  };
+  state.focusedEntry = targetId("entry");
+  state.notificationId = targetId("notification");
   state.notificationOpen = params.get("notifications") === "open";
   state.notificationRead =
     params.get("notificationRead") === "all" ? "all" : "unread";
@@ -179,6 +195,8 @@ export function writeJournalLocation(
   const params = new URLSearchParams(search);
   for (const key of locationKeys) params.delete(key);
   params.set("tab", state.view);
+  if (state.focusedEntry) params.set("entry", state.focusedEntry);
+  if (state.notificationId) params.set("notification", state.notificationId);
   if (state.notificationOpen) params.set("notifications", "open");
   if (state.notificationRead === "all") params.set("notificationRead", "all");
   if (state.notificationKind)

@@ -9,6 +9,7 @@ export function Modal({
   headerActions,
   headerStatus,
   onEscapeKeyDown,
+  onCloseAutoFocus,
   variant = "modal",
 }: {
   variant?: "modal" | "drawer";
@@ -19,6 +20,7 @@ export function Modal({
   headerActions?: React.ReactNode;
   headerStatus?: React.ReactNode;
   onEscapeKeyDown?: (event: KeyboardEvent) => void;
+  onCloseAutoFocus?: (event: Event) => void;
 }) {
   return (
     <Dialog.Root open={open} onOpenChange={(v) => !v && onClose()}>
@@ -30,6 +32,7 @@ export function Modal({
           }
           aria-describedby={undefined}
           onEscapeKeyDown={onEscapeKeyDown}
+          onCloseAutoFocus={onCloseAutoFocus}
         >
           <div className="modal-header">
             <div className="modal-heading">

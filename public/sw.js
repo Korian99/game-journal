@@ -11,6 +11,19 @@ function appPath(value) {
     return "/";
   }
 }
+function notificationPath(value, eventId) {
+  const path = appPath(value);
+  if (
+    typeof eventId !== "string" ||
+    !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
+      eventId,
+    )
+  )
+    return path;
+  const target = new URL(path, self.location.origin);
+  target.searchParams.set("notification", eventId);
+  return target.pathname + target.search + target.hash;
+}
 self.addEventListener("install", () => self.skipWaiting());
 self.addEventListener("activate", (event) =>
   event.waitUntil(self.clients.claim()),
@@ -30,14 +43,14 @@ self.addEventListener("push", (event) => {
       icon: "/icon-192.png",
       badge: "/icon-192.png",
       tag: data.tag || "game-journal",
-      data: { url: appPath(data.url) },
+      data: { url: notificationPath(data.url, data.tag) },
     }),
   );
 });
 self.addEventListener("notificationclick", (event) => {
   event.notification.close();
   const url = new URL(
-    appPath(event.notification.data?.url),
+    notificationPath(event.notification.data?.url, event.notification.tag),
     self.location.origin,
   ).href;
   event.waitUntil(

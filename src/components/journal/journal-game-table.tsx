@@ -1,5 +1,5 @@
 "use client";
-import { Fragment } from "react";
+import { Fragment, useEffect } from "react";
 import { GameComments } from "./game-comments";
 import type { JournalView } from "@/lib/journal/journal-location";
 import type { JournalEntry } from "@/lib/journal/journal-types";
@@ -28,6 +28,7 @@ export function JournalGameTable({
   releaseNow,
   onEdit,
   entryRowClass,
+  focusedEntry = "",
 }: {
   table: Table<JournalEntry>;
   view: JournalView;
@@ -35,7 +36,35 @@ export function JournalGameTable({
   releaseNow: Date;
   onEdit: (entry: JournalEntry) => void;
   entryRowClass: (entry: JournalEntry) => string | undefined;
+  focusedEntry?: string;
 }) {
+  const hasTarget = table
+    .getRowModel()
+    .rows.some((row) => row.original.id === focusedEntry);
+  useEffect(() => {
+    if (!focusedEntry || !hasTarget) return;
+    const timer = window.setTimeout(() => {
+      const target = Array.from(
+        document.querySelectorAll<HTMLElement>("[data-entry-id]"),
+      ).find(
+        (node) =>
+          node.dataset.entryId === focusedEntry &&
+          node.getClientRects().length > 0,
+      );
+      if (!target) return;
+      const button = target.matches("button")
+        ? target
+        : target.querySelector<HTMLButtonElement>(".game-cell");
+      button?.focus({ preventScroll: true });
+      target.scrollIntoView({
+        block: "center",
+        behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches
+          ? "instant"
+          : "smooth",
+      });
+    }, 0);
+    return () => window.clearTimeout(timer);
+  }, [focusedEntry, hasTarget, view]);
   const commentsBelow = view === "library" || view === "journal";
   return (
     <>
@@ -47,10 +76,12 @@ export function JournalGameTable({
                 "mobile-game",
                 commentsBelow ? "mobile-game-played" : "",
                 entryRowClass(r),
+                r.id === focusedEntry ? "notification-highlight" : "",
               ]
                 .filter(Boolean)
                 .join(" ")}
               key={r.id}
+              data-entry-id={r.id}
               onClick={() => onEdit(r)}
             >
               {view === "library" ? (
@@ -188,10 +219,14 @@ export function JournalGameTable({
               return (
                 <Fragment key={r.original.id ?? r.id}>
                   <tr
+                    data-entry-id={r.original.id}
                     className={[
                       "game-data-row",
                       hasComments ? "has-comments" : "",
                       entryRowClass(r.original),
+                      r.original.id === focusedEntry
+                        ? "notification-highlight"
+                        : "",
                     ]
                       .filter(Boolean)
                       .join(" ")}

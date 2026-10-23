@@ -16,6 +16,7 @@ export function notificationQuery(params: URLSearchParams) {
   return {
     read,
     kind,
+    id: params.has("id") ? z.uuid().parse(params.get("id")) : null,
     cursor: raw ? cursorSchema.parse(JSON.parse(raw)) : null,
   };
 }

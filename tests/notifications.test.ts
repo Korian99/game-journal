@@ -180,12 +180,10 @@ it("keeps the Edge release parser identical to the app parser", () => {
 import ts from "typescript";
 it("worker rejects unauthenticated and inactive callers before accessing the queue", async () => {
   let handler: (r: Request) => Promise<Response> = async () => new Response();
-  const rpc = vi
-    .fn()
-    .mockResolvedValue({
-      data: { game_journal_cron: "fixture-secret" },
-      error: null,
-    });
+  const rpc = vi.fn().mockResolvedValue({
+    data: { game_journal_cron: "fixture-secret" },
+    error: null,
+  });
   const memberQuery: any = {
     select: () => memberQuery,
     eq: () => memberQuery,
@@ -232,4 +230,49 @@ it("worker rejects unauthenticated and inactive callers before accessing the que
     ).status,
   ).toBe(403);
   expect(rpc.mock.calls.every(([name]) => name === "worker_config")).toBe(true);
+});
+
+it("phone alert clicks include the event identity for game navigation, including older delivered alerts", async () => {
+  const id = "10000000-0000-4000-8000-000000000001";
+  const events: Record<string, (event: unknown) => void> = {};
+  const show = vi.fn().mockResolvedValue(undefined),
+    navigate = vi.fn().mockResolvedValue(undefined),
+    focus = vi.fn().mockResolvedValue(undefined);
+  vm.runInNewContext(fs.readFileSync("public/sw.js", "utf8"), {
+    URL,
+    self: {
+      location: { origin: "https://journal.example" },
+      registration: { showNotification: show },
+      addEventListener: (name: string, fn: (event: unknown) => void) => {
+        events[name] = fn;
+      },
+      clients: {
+        matchAll: async () => [
+          { url: "https://journal.example/", navigate, focus },
+        ],
+      },
+    },
+  });
+  let task: Promise<unknown> = Promise.resolve();
+  events.push({
+    data: { json: () => ({ title: "Offer", url: "/?tab=wishlist", tag: id }) },
+    waitUntil: (p: Promise<unknown>) => {
+      task = p;
+    },
+  });
+  await task;
+  expect(show.mock.calls[0][1].data.url).toBe(
+    "/?tab=wishlist&notification=" + id,
+  );
+  events.notificationclick({
+    notification: { close: () => {}, tag: id, data: { url: "/?tab=wishlist" } },
+    waitUntil: (p: Promise<unknown>) => {
+      task = p;
+    },
+  });
+  await task;
+  expect(navigate).toHaveBeenCalledWith(
+    "https://journal.example/?tab=wishlist&notification=" + id,
+  );
+  expect(focus).toHaveBeenCalled();
 });

@@ -17,6 +17,7 @@ export async function GET(request: Request) {
       .order("created_at", { ascending: false })
       .order("id", { ascending: false })
       .limit(26);
+    if (query.id) list = list.eq("id", query.id);
     if (query.read === "unread") list = list.is("read_at", null);
     if (query.kind) list = list.eq("kind", query.kind);
     if (query.cursor)

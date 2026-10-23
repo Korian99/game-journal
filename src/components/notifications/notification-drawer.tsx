@@ -1,5 +1,12 @@
 "use client";
-import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
+import {
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  useSyncExternalStore,
+} from "react";
+import { notificationHref } from "@/lib/notifications/navigation";
 import { Modal } from "../ui/dialog";
 import { createResource } from "@/lib/resource";
 import { apiRequest } from "@/lib/api-client";
@@ -26,6 +33,7 @@ export function NotificationDrawer({
   waitForNotificationReads,
   observeNotificationReads,
   readsPending,
+  onOpenNotification,
 }: {
   location: ReturnType<typeof useJournalLocation>;
   online: boolean;
@@ -37,7 +45,9 @@ export function NotificationDrawer({
   waitForNotificationReads: () => Promise<void>;
   observeNotificationReads: ObserveNotificationReads;
   readsPending: boolean;
+  onOpenNotification: (notification: JournalNotification) => void;
 }) {
+  const navigating = useRef(false);
   const {
     notificationOpen: open,
     notificationRead: read,
@@ -78,7 +88,10 @@ export function NotificationDrawer({
   const [busy, setBusy] = useState(false),
     [error, setError] = useState("");
   useEffect(() => {
-    if (open) void resource.load();
+    if (open) {
+      navigating.current = false;
+      void resource.load();
+    }
   }, [open, resource, version]);
   async function next() {
     const nextCursor = cursor;
@@ -193,22 +206,15 @@ export function NotificationDrawer({
       ),
     ).values(),
   ].filter((item) => read === "all" || !item.read_at);
-  const safeLink = (url: string) => {
-    try {
-      const value = new URL(url, window.location.origin);
-      return value.origin === window.location.origin
-        ? value.pathname + value.search + value.hash
-        : "/";
-    } catch {
-      return "/";
-    }
-  };
   return (
     <Modal
       open={open}
       title="Notificaciones"
       onClose={() => setNotificationOpen(false)}
       variant="drawer"
+      onCloseAutoFocus={(event) => {
+        if (navigating.current) event.preventDefault();
+      }}
     >
       <div className="modal-body notification-drawer">
         <div className="notification-controls">
@@ -283,13 +289,28 @@ export function NotificationDrawer({
               className={"notification " + (!item.read_at ? "unread" : "")}
               key={item.id}
             >
-              <a href={safeLink(item.url)}>
+              <a
+                className="notification-link"
+                href={notificationHref(item)}
+                onClick={(event) => {
+                  if (
+                    event.metaKey ||
+                    event.ctrlKey ||
+                    event.shiftKey ||
+                    event.altKey
+                  )
+                    return;
+                  event.preventDefault();
+                  navigating.current = true;
+                  onOpenNotification(item);
+                }}
+              >
                 <strong>{item.title}</strong>
+                <p>{item.body}</p>
+                <small>
+                  {labels[item.kind]} · {formatDateTime(item.created_at)}
+                </small>
               </a>
-              <p>{item.body}</p>
-              <small>
-                {labels[item.kind]} · {formatDateTime(item.created_at)}
-              </small>
               {!item.read_at && (
                 <button
                   className="text-button"

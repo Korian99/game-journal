@@ -1,5 +1,7 @@
 "use client";
 import type { OfferTargetUpdate } from "@/lib/offers/target-draft";
+import { useNotificationNavigation } from "@/hooks/use-notification-navigation";
+import { notificationHref } from "@/lib/notifications/navigation";
 import { ApiRequestError } from "@/lib/api-client";
 import { findDuplicates } from "@/lib/journal/duplicates";
 import { DuplicateWarning } from "../games/duplicate-warning";
@@ -42,7 +44,7 @@ import {
   Settings,
   Users,
 } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { saveResponseSchema } from "@/lib/contracts";
 import { ScoringGuide } from "../settings/scoring-guide";
 import { AdminInvite } from "../settings/admin-invite";
@@ -115,6 +117,16 @@ export function JournalApp({
     performAction,
     removeRecord,
   } = useJournalData();
+  const openNotification = useNotificationNavigation({
+    location: journalLocation,
+    records,
+    offers,
+    recordsReady: resourceStates.records.checkedAt !== null,
+    online,
+    readNotifications,
+    setNotice,
+    setError,
+  });
   const [releaseNow, setReleaseNow] = useState(() => new Date());
   const [editingEntry, setEditingEntry] = useState<JournalEntry | null>(null);
   const [undoEntry, setUndoEntry] = useState<{
@@ -129,9 +141,9 @@ export function JournalApp({
     );
     return () => clearTimeout(timeout);
   }, [undoEntry]);
-  function openEntry(entry: JournalEntry) {
+  const openEntry = useCallback((entry: JournalEntry) => {
     setEditingEntry(entry);
-  }
+  }, []);
   async function signOut() {
     try {
       await disablePush().catch(() => {});
@@ -538,11 +550,25 @@ export function JournalApp({
                 {notifications.length ? (
                   notifications.slice(0, 10).map((n) => (
                     <div className="notification" key={n.id}>
-                      <a href={n.url ?? "/?tab=wishlist"}>
+                      <a
+                        className="notification-link"
+                        href={notificationHref(n)}
+                        onClick={(event) => {
+                          if (
+                            event.metaKey ||
+                            event.ctrlKey ||
+                            event.shiftKey ||
+                            event.altKey
+                          )
+                            return;
+                          event.preventDefault();
+                          openNotification(n);
+                        }}
+                      >
                         <strong>{n.title}</strong>
+                        <p>{n.body}</p>
+                        <small>{formatDateTime(n.created_at)}</small>
                       </a>
-                      <p>{n.body}</p>
-                      <small>{formatDateTime(n.created_at)}</small>
                     </div>
                   ))
                 ) : (
@@ -698,6 +724,7 @@ export function JournalApp({
                       releaseNow={releaseNow}
                       onEdit={openEntry}
                       entryRowClass={entryRowClass}
+                      focusedEntry={journalLocation.focusedEntry}
                     />
                   )}
                 </section>
@@ -721,6 +748,7 @@ export function JournalApp({
         waitForNotificationReads={waitForNotificationReads}
         observeNotificationReads={observeNotificationReads}
         readsPending={notificationReadsPending}
+        onOpenNotification={openNotification}
       />
       {editingEntry && (
         <EntryEditor

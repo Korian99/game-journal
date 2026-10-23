@@ -63,12 +63,47 @@ export function useJournalLocation(initialLocation?: JournalLocation) {
   );
   const setView = useCallback(
     (view: JournalView) => {
-      commit(remembered.current.get(view) ?? defaultJournalLocation(view));
+      commit({
+        ...(remembered.current.get(view) ?? defaultJournalLocation(view)),
+        focusedEntry: "",
+        notificationId: "",
+      });
     },
     [commit],
   );
+  const revealEntry = useCallback(
+    (view: JournalView, entryId: string) => {
+      const destination =
+        remembered.current.get(view) ?? defaultJournalLocation(view);
+      commit({
+        ...destination,
+        query: "",
+        status: "",
+        discount: "",
+        review: "",
+        platform: "",
+        year: "",
+        focusedEntry: entryId,
+        notificationId: "",
+        notificationOpen: false,
+      });
+    },
+    [commit],
+  );
+  const deferNotification = useCallback(
+    (notificationId: string) =>
+      update({ notificationId, notificationOpen: false, focusedEntry: "" }),
+    [update],
+  );
+  const clearNotificationTarget = useCallback(
+    () => update({ notificationId: "" }, "replace"),
+    [update],
+  );
   return {
     ...state,
+    revealEntry,
+    deferNotification,
+    clearNotificationTarget,
     setView,
     setSort,
     setQuery: (query: string) => update({ query }, "replace"),

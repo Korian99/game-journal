@@ -9,6 +9,8 @@ it("restores a bookmarked tab, year, search, filters, and sort", () => {
   expect(state).toEqual({
     compareYear: "",
     estimateTarget: "story",
+    focusedEntry: "",
+    notificationId: "",
     notificationOpen: false,
     notificationRead: "unread",
     notificationKind: "",
@@ -231,3 +233,25 @@ it.each(["library", "wishlist", "upcoming", "statistics", "settings"])(
     ).toBe(false);
   },
 );
+
+it("preserves notification and entry targets through sign-in and URLs", () => {
+  const id = "10000000-0000-4000-8000-000000000001";
+  for (const key of ["notification", "entry"]) {
+    const query = "tab=wishlist&" + key + "=" + id;
+    const state = location.readJournalLocation(query, "2026");
+    expect(location.writeJournalLocation(state, "", "2026")).toBe(query);
+    expect(location.resolveJournalReturnPath("/?" + query, "2026")).toBe(
+      "/?" + query,
+    );
+    expect(
+      location.writeJournalLocation(
+        location.readJournalLocation(
+          "?tab=wishlist&" + key + "=invalid",
+          "2026",
+        ),
+        "",
+        "2026",
+      ),
+    ).toBe("tab=wishlist");
+  }
+});
