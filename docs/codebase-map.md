@@ -130,6 +130,10 @@ Se retiró Pendiente. Los juegos nuevos y las importaciones sin estado definido 
 
 Biblioteca y Diario mantienen los datos principales en una fila y muestran Comentarios adicionales en otra fila que abarca todas las columnas visibles. Solo se crea esa fila si hay texto; se conservan los párrafos, la agrupación al ordenar y los bordes entre juegos. En móvil, game-comments.tsx ocupa todo el ancho de la tarjeta. El campo notes sigue definido como columna oculta para conservar los ordenamientos existentes.
 
+## Mejor consola en Diario
+
+La sexta tarjeta de Diario muestra la consola con mayor valoración media dentro de los filtros actuales, siempre que tenga al menos cinco partidas con una única consola registrada y una valoración válida. La cantidad mínima incluye partidas sin puntaje; el promedio usa solo reseñas o, si faltan, impresiones numéricas × 10. Los ceros cuentan. Los empates se resuelven por cantidad de valoraciones y luego por nombre. Sin candidatos aparece “Sin datos suficientes”. Biblioteca conserva Reseña media.
+
 ## Etiquetas de emulación
 
 lib/journal/console-labels.ts normaliza las variantes de emulación a Emulador en lecturas, guardados, importaciones, exportaciones tabulares y filtros guardados en URL. La comparación de importaciones normaliza también la base para evitar conflictos causados solo por etiquetas antiguas. Las reseñas y snapshots originales de importación se conservan. La limpieza aprobada del 23/10/2026 unificó seis etiquetas guardadas; otras tres ya eran Emulador.

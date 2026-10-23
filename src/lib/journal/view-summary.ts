@@ -1,6 +1,8 @@
 import type { JournalRecord } from "../types";
-import { dateOrder } from "./view-config";
+import { dateOrder, journalReviewOrder } from "./view-config";
 import { normalizeConsoleLabels } from "./console-labels";
+
+export const minimumConsoleGames = 5;
 
 export function summarizeGames(records: JournalRecord[], year = "") {
   const dateMatches = (value: string) => {
@@ -21,6 +23,10 @@ export function summarizeGames(records: JournalRecord[], year = "") {
       : [],
   );
   const consoles = new Map<string, { name: string; count: number }>();
+  const consoleRatings = new Map<
+    string,
+    { name: string; total: number; count: number; playedCount: number }
+  >();
   for (const record of records) {
     const devices = normalizeConsoleLabels(record.device)
       .split(";")
@@ -35,8 +41,49 @@ export function summarizeGames(records: JournalRecord[], year = "") {
       if (current) current.count++;
       else consoles.set(key, { name, count: 1 });
     }
+    // A score cannot be attributed to one console when several devices are listed.
+    if (devices.length === 0 || seen.size !== 1) continue;
+    const name = devices[0],
+      key = name.toLocaleLowerCase("es-AR");
+    const current = consoleRatings.get(key) ?? {
+      name: consoles.get(key)?.name ?? name,
+      total: 0,
+      count: 0,
+      playedCount: 0,
+    };
+    current.playedCount++;
+    const score = journalReviewOrder(record);
+    if (
+      typeof score === "number" &&
+      Number.isFinite(score) &&
+      score >= 0 &&
+      score <= 100
+    ) {
+      current.total += score;
+      current.count++;
+    }
+    consoleRatings.set(key, current);
   }
+  const bestRatedConsole =
+    [...consoleRatings.values()]
+      .filter(
+        (console) =>
+          console.playedCount >= minimumConsoleGames && console.count > 0,
+      )
+      .map(({ name, total, count, playedCount }) => ({
+        name,
+        averageScore: total / count,
+        ratingCount: count,
+        playedCount,
+      }))
+      .sort(
+        (a, b) =>
+          b.averageScore - a.averageScore ||
+          b.ratingCount - a.ratingCount ||
+          a.name.localeCompare(b.name, "es"),
+      )[0] ?? null;
   return {
+    bestRatedConsole,
     total: records.length,
     started: records.filter((record) => dateMatches(record.started)).length,
     finished: records.filter((record) => dateMatches(record.finished)).length,

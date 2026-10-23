@@ -1,7 +1,10 @@
 "use client";
 
 import type { JournalView } from "@/lib/journal/journal-location";
-import { summarizeGames } from "@/lib/journal/view-summary";
+import {
+  summarizeGames,
+  minimumConsoleGames,
+} from "@/lib/journal/view-summary";
 
 export function JournalSummary({
   summary,
@@ -12,6 +15,7 @@ export function JournalSummary({
   view: JournalView;
   selectedYear: string;
 }) {
+  const bestConsole = summary.bestRatedConsole;
   return (
     <section className="collection-summary" aria-label="Resumen filtrado">
       <div className="stats filtered-stats">
@@ -67,6 +71,41 @@ export function JournalSummary({
                   })}
               {summary.averageRating !== null && <small>/100</small>}
             </strong>
+          </div>
+        )}
+        {view === "journal" && (
+          <div
+            data-stat="best-console"
+            title={
+              "Consolas con al menos " +
+              minimumConsoleGames +
+              " juegos dentro de los filtros actuales. Promedio de reseña o, si falta, impresiones numéricas × 10. Solo partidas con una única consola registrada."
+            }
+          >
+            <span>MEJOR CONSOLA</span>
+            <strong className="best-console-value">
+              {bestConsole?.name ?? "—"}
+            </strong>
+            <p className="best-console-meta">
+              {bestConsole ? (
+                <>
+                  <b>
+                    {bestConsole.averageScore.toLocaleString("es-AR", {
+                      maximumFractionDigits: 1,
+                    })}
+                    /100
+                  </b>
+                  <small>
+                    {bestConsole.playedCount} juegos · {bestConsole.ratingCount}{" "}
+                    {bestConsole.ratingCount === 1
+                      ? "valoración"
+                      : "valoraciones"}
+                  </small>
+                </>
+              ) : (
+                "Sin datos suficientes"
+              )}
+            </p>
           </div>
         )}
       </div>

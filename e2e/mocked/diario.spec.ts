@@ -48,7 +48,7 @@ test("Diario combines reviews, includes played states, and persists its status f
     id: "20000000-0000-4000-8000-" + String(100000000000 + index),
     gameId: "30000000-0000-4000-8000-" + String(100000000000 + index),
     period: "2024",
-    device: "PC",
+    device: index === 0 ? "Nintendo Switch 2" : "PC",
     hours: 12,
     notes: "Comentarios privados " + index,
   }));
@@ -91,6 +91,14 @@ test("Diario combines reviews, includes played states, and persists its status f
   await page.emulateMedia({ reducedMotion: "reduce" });
   await page.goto("./?tab=journal&year=all");
   const table = page.locator("table");
+  const bestConsole = page.locator('[data-stat="best-console"]');
+  await expect(page.locator(".filtered-stats > div")).toHaveCount(6);
+  await expect(bestConsole.locator("strong")).toHaveText("—");
+  await expect(bestConsole).toContainText("MEJOR CONSOLA");
+  await expect(bestConsole).toContainText("Sin datos suficientes");
+  expect(
+    await bestConsole.evaluate((node) => node.scrollWidth <= node.clientWidth),
+  ).toBe(true);
   await expect(table.locator(".game-data-row")).toHaveCount(5);
   await expect(
     page.getByRole("columnheader", { name: "Valoración" }),
@@ -140,11 +148,16 @@ test("Diario combines reviews, includes played states, and persists its status f
       .locator(".table-scroll")
       .evaluate((node) => node.scrollWidth <= node.clientWidth),
   ).toBe(true);
+  await page
+    .locator(".collection-summary")
+    .screenshot({ path: "test-results/diario-summary.png" });
   await page.screenshot({
     path: "test-results/diario-desktop.png",
     fullPage: true,
   });
   await page.getByLabel("Filtrar estado").selectOption("paused");
+  await expect(bestConsole.locator("strong")).toHaveText("—");
+  await expect(bestConsole).toContainText("Sin datos suficientes");
   await expect(table.locator(".game-data-row")).toHaveCount(1);
   await expect(page).toHaveURL(/status=paused/);
   await page.reload();
