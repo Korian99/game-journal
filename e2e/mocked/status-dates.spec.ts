@@ -66,7 +66,12 @@ test("the editor saves status dates without list quick actions", async ({
   await expect(page.locator("table th").filter({ hasText: /^$/ })).toHaveCount(
     0,
   );
-  await page.locator("table").getByText(record.title, { exact: true }).click();
+  await page
+    .getByRole("button", {
+      name: "Ver detalles de " + record.title,
+      exact: true,
+    })
+    .click();
   await page
     .getByRole("dialog")
     .getByLabel("Estado", { exact: true })
@@ -85,7 +90,12 @@ test("the editor saves status dates without list quick actions", async ({
       .locator(".library-playthrough")
       .getByText("22/10/2026", { exact: true }),
   ).toBeVisible();
-  await table.getByText(record.title, { exact: true }).click();
+  await table
+    .getByRole("button", {
+      name: "Ver detalles de " + record.title,
+      exact: true,
+    })
+    .click();
   await page
     .getByRole("dialog")
     .getByLabel("Estado", { exact: true })

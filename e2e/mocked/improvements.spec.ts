@@ -61,8 +61,10 @@ test("editor saves adopt canonical dates and preserve statistics URL controls", 
   await page.emulateMedia({ reducedMotion: "reduce" });
   await page.goto("./?year=2026");
   await page
-    .locator("table")
-    .getByText("Stats fixture", { exact: true })
+    .getByRole("button", {
+      name: "Ver detalles de " + "Stats fixture",
+      exact: true,
+    })
     .click();
   await page
     .getByRole("dialog")

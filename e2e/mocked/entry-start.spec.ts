@@ -80,8 +80,10 @@ async function fixture(
   await page.goto("./?tab=" + tab);
   if (existing)
     await page
-      .locator("table")
-      .getByText(existing.title, { exact: true })
+      .getByRole("button", {
+        name: "Ver detalles de " + existing.title,
+        exact: true,
+      })
       .click();
   else
     await page

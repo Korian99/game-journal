@@ -1,4 +1,7 @@
 "use client";
+import { useInlineEditing } from "@/hooks/use-inline-editing";
+import { InlineEditContext } from "./inline/inline-context";
+import { InlineEditBar } from "./inline/inline-edit-bar";
 import type { OfferTargetUpdate } from "@/lib/offers/target-draft";
 import { useNotificationNavigation } from "@/hooks/use-notification-navigation";
 import { notificationHref } from "@/lib/notifications/navigation";
@@ -116,7 +119,14 @@ export function JournalApp({
     reloadJournal,
     performAction,
     removeRecord,
+    acceptRecord,
   } = useJournalData();
+  const inlineEditing = useInlineEditing({
+    records,
+    online,
+    blocked: busy,
+    acceptRecord,
+  });
   const openNotification = useNotificationNavigation({
     location: journalLocation,
     records,
@@ -145,6 +155,10 @@ export function JournalApp({
     setEditingEntry(entry);
   }, []);
   async function signOut() {
+    if (inlineEditing.dirty || inlineEditing.saving) {
+      setNotice("Guardá o cancelá la edición antes de cerrar sesión.");
+      return;
+    }
     try {
       await disablePush().catch(() => {});
       const result = await browserClient().auth.signOut({ scope: "local" });
@@ -444,7 +458,9 @@ export function JournalApp({
                   if (
                     await performAction(
                       () =>
-                        apiRequest("/api/trash", "PATCH", { id: undoEntry.id }),
+                        apiRequest("/api/trash", "PATCH", {
+                          id: undoEntry.id,
+                        }),
                       "Entrada restaurada.",
                     )
                   )
@@ -717,15 +733,17 @@ export function JournalApp({
                       }
                     />
                   ) : (
-                    <JournalGameTable
-                      table={table}
-                      view={view}
-                      offers={offers}
-                      releaseNow={releaseNow}
-                      onEdit={openEntry}
-                      entryRowClass={entryRowClass}
-                      focusedEntry={journalLocation.focusedEntry}
-                    />
+                    <InlineEditContext.Provider value={inlineEditing}>
+                      <JournalGameTable
+                        table={table}
+                        view={view}
+                        offers={offers}
+                        releaseNow={releaseNow}
+                        onEdit={openEntry}
+                        entryRowClass={entryRowClass}
+                        focusedEntry={journalLocation.focusedEntry}
+                      />
+                    </InlineEditContext.Provider>
                   )}
                 </section>
                 {["library", "journal"].includes(view) && (
@@ -740,6 +758,16 @@ export function JournalApp({
           )}
         </div>
       </main>
+      <InlineEditBar
+        edit={inlineEditing}
+        onReturn={() => {
+          if (inlineEditing.active)
+            journalLocation.revealEntry(
+              inlineEditing.active.view,
+              inlineEditing.active.entry.id ?? "",
+            );
+        }}
+      />
       <NotificationDrawer
         location={journalLocation}
         online={online}

@@ -40,7 +40,10 @@ export async function POST(request: Request) {
     const body: unknown = await bodyJson(request);
     const input = recordSchema.parse(body);
     const decision = z
-      .object({ allowDuplicate: z.boolean().optional() })
+      .object({
+        allowDuplicate: z.boolean().optional(),
+        intent: z.enum(["edit", "undo"]).optional(),
+      })
       .parse(body);
     const existing = await db.rpc("list_records");
     if (existing.error) databaseError(existing.error);
@@ -48,8 +51,10 @@ export async function POST(request: Request) {
       existing.data ?? [],
     );
     const previous = existingRecords.find((record) => record.id === input.id);
-    Object.assign(input, datesAfterStatusChange(input, previous));
-    input.period = periodAfterDateEdits(input, previous);
+    if (decision.intent !== "undo") {
+      Object.assign(input, datesAfterStatusChange(input, previous));
+      input.period = periodAfterDateEdits(input, previous);
+    }
     const sensitive =
       !input.gameId ||
       (!!previous &&

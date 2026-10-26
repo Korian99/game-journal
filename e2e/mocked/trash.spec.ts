@@ -83,8 +83,10 @@ for (const failRefresh of [false, true]) {
       await page.goto("./?year=2026");
       async function remove() {
         await page
-          .locator("table")
-          .getByText(entry.title, { exact: true })
+          .getByRole("button", {
+            name: "Ver detalles de " + entry.title,
+            exact: true,
+          })
           .click();
         await page.getByRole("button", { name: "Opciones del juego" }).click();
         await page
@@ -117,8 +119,10 @@ for (const failRefresh of [false, true]) {
         .getByRole("button", { name: "Biblioteca", exact: true })
         .click();
       await page
-        .locator("table")
-        .getByText(entry.title, { exact: true })
+        .getByRole("button", {
+          name: "Ver detalles de " + entry.title,
+          exact: true,
+        })
         .click();
       await page.getByRole("tab", { name: "Reseña", exact: true }).click();
       await expect(

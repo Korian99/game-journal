@@ -59,8 +59,10 @@ for (const editing of [true, false]) {
       await page.goto("./?tab=wishlist");
       if (editing)
         await page
-          .locator("table")
-          .getByText("Existing game", { exact: true })
+          .getByRole("button", {
+            name: "Ver detalles de " + "Existing game",
+            exact: true,
+          })
           .click();
       else {
         await page

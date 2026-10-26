@@ -60,8 +60,10 @@ test("the library survives notification failure and protects unsaved edits", asy
     page.getByRole("alert").filter({ hasText: "Notificaciones" }),
   ).toBeVisible();
   await page
-    .locator("table")
-    .getByText("Library fixture", { exact: true })
+    .getByRole("button", {
+      name: "Ver detalles de " + "Library fixture",
+      exact: true,
+    })
     .click();
   await page
     .getByLabel("Nombre del juego", { exact: true })
@@ -144,8 +146,10 @@ test("a successful save stays successful when the following refresh fails", asyn
   });
   await page.goto("./?year=2026");
   await page
-    .locator("table")
-    .getByText("Save fixture", { exact: true })
+    .getByRole("button", {
+      name: "Ver detalles de " + "Save fixture",
+      exact: true,
+    })
     .click();
   await page
     .getByLabel("Nombre del juego", { exact: true })
@@ -226,8 +230,10 @@ test("a failed save preserves the shared draft and supports keyboard tab navigat
   });
   await page.goto("./?year=2026");
   await page
-    .locator("table")
-    .getByText("Conflict fixture", { exact: true })
+    .getByRole("button", {
+      name: "Ver detalles de " + "Conflict fixture",
+      exact: true,
+    })
     .click();
   await page
     .getByRole("dialog")

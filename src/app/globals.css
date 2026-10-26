@@ -1652,7 +1652,7 @@ tbody tr.wishlist-discounted td:first-child,
 
 /* Library details use four columns; comments span the row below. */
 .library-table {
-  table-layout: fixed;
+  table-layout: auto;
 }
 .library-table th,
 .library-table td {
@@ -1661,16 +1661,22 @@ tbody tr.wishlist-discounted td:first-child,
   vertical-align: top;
 }
 .library-table th:first-child {
-  width: 26%;
+  width: 34%;
 }
 .library-table th:nth-child(2) {
-  width: 180px;
+  width: 1%;
+}
+.library-table td:nth-child(2) {
+  min-width: 150px;
 }
 .library-table th:nth-child(3) {
-  width: 30%;
+  width: auto;
 }
 .library-table th:nth-child(4) {
-  width: auto;
+  width: 1%;
+}
+.library-table td:nth-child(4) {
+  min-width: 100px;
 }
 .library-table .entry-text-cell {
   width: auto;
@@ -1734,16 +1740,6 @@ tbody tr.wishlist-discounted td:first-child,
 .library-playthrough > span > span:last-child {
   font-variant-numeric: tabular-nums;
   overflow-wrap: anywhere;
-}
-@media (min-width: 1600px) {
-  .library-table th:first-child {
-    width: 260px;
-  }
-}
-@media (max-width: 1399px) {
-  .library-table th:nth-child(2) {
-    width: 160px;
-  }
 }
 @media (max-width: 980px) {
   .library-table td:nth-child(2),
@@ -2107,7 +2103,7 @@ tbody tr.wishlist-discounted td:first-child,
   margin-top: 8px;
 }
 .journal-table {
-  table-layout: fixed;
+  table-layout: auto;
 }
 .journal-table th,
 .journal-table td {
@@ -2123,13 +2119,19 @@ tbody tr.wishlist-discounted td:first-child,
   width: 34%;
 }
 .journal-table th:nth-child(2) {
-  width: 16%;
+  width: 1%;
+}
+.journal-table td:nth-child(2) {
+  min-width: 90px;
 }
 .journal-table th:nth-child(3) {
-  width: 12%;
+  width: 1%;
+}
+.journal-table td:nth-child(3) {
+  min-width: 80px;
 }
 .journal-table th:nth-child(4) {
-  width: 38%;
+  width: auto;
 }
 .journal-table .entry-text-cell {
   width: auto;
@@ -2413,4 +2415,227 @@ tbody tr.wishlist-discounted td:first-child,
 .mobile-game.notification-highlight {
   box-shadow: inset 3px 0 var(--accent);
   scroll-margin-block: 100px;
+}
+
+/* Desktop inline editing replaces only the active value. */
+.inline-value {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 5px;
+  padding: 2px 3px;
+  margin: -2px -3px;
+  max-width: 100%;
+  min-height: 20px;
+  background: transparent;
+  color: inherit;
+  text-align: left;
+  font: inherit;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  cursor: text;
+}
+.inline-value:hover,
+.inline-value:focus-visible {
+  background: var(--raised);
+  border-color: var(--line);
+  outline: none;
+}
+.inline-value:focus-visible {
+  border-color: var(--accent);
+}
+.inline-pencil {
+  flex-shrink: 0;
+  color: var(--accent);
+  opacity: 0;
+}
+.inline-value:hover .inline-pencil,
+.inline-value:focus-visible .inline-pencil {
+  opacity: 1;
+}
+.inline-title {
+  width: fit-content;
+}
+.inline-title strong {
+  color: var(--text);
+}
+.inline-device,
+.inline-status,
+.inline-ownership,
+.inline-hype {
+  cursor: pointer;
+}
+.inline-game-cell {
+  align-items: flex-start;
+  width: 100%;
+  cursor: default;
+}
+.inline-game-cell .inline-details {
+  margin-left: auto;
+  flex-shrink: 0;
+  color: var(--accent);
+  background: var(--raised);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  width: 28px;
+  height: 28px;
+}
+.inline-game-cell .inline-details:hover,
+.inline-game-cell .inline-details:focus-visible {
+  border-color: var(--accent);
+  color: var(--text);
+}
+.inline-game-cell .inline-details:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+.inline-editor {
+  display: inline-flex;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: 4px;
+  max-width: 100%;
+  min-width: min(140px, 100%);
+}
+.inline-editor input,
+.inline-editor textarea,
+.inline-editor select {
+  min-width: 0;
+  width: 100%;
+  border: 1px solid var(--accent);
+  border-radius: 4px;
+  padding: 5px 7px;
+  font: inherit;
+  color: var(--text);
+  background: var(--bg);
+  margin: 0;
+}
+.inline-editor input:focus,
+.inline-editor textarea:focus,
+.inline-editor select:focus {
+  outline: 2px solid color-mix(in srgb, var(--accent) 25%, transparent);
+  outline-offset: 1px;
+}
+.inline-editor textarea {
+  min-width: 0;
+  resize: vertical;
+}
+.inline-editor-long {
+  width: 100%;
+}
+.inline-cell-actions {
+  display: inline-flex;
+  gap: 3px;
+}
+.inline-cell-actions button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 25px;
+  height: 24px;
+  padding: 0;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  background: var(--raised);
+  color: var(--muted);
+}
+.inline-cell-actions .inline-confirm {
+  color: var(--accent);
+  border-color: color-mix(in srgb, var(--accent) 45%, var(--line));
+}
+.inline-release-input {
+  display: grid;
+  gap: 4px;
+  width: 100%;
+}
+.inline-edit-bar {
+  position: fixed;
+  right: 24px;
+  bottom: 20px;
+  z-index: 35;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  max-width: min(620px, calc(100vw - 40px));
+  padding: 12px 16px;
+  border: 1px solid var(--line);
+  border-left: 3px solid var(--accent);
+  border-radius: 9px;
+  box-shadow: 0 8px 30px #0005;
+  background: var(--surface);
+  font-size: 12px;
+}
+.inline-edit-bar > .error {
+  width: 100%;
+  margin: 0;
+}
+.inline-edit-bar [role="status"],
+.inline-save-status,
+.inline-bar-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.inline-edit-bar .secondary {
+  min-height: 30px;
+  padding: 5px 9px;
+  font-size: 11px;
+}
+.game-comments .inline-notes {
+  width: 100%;
+  align-items: flex-start;
+}
+.game-comments .inline-editor {
+  width: 100%;
+}
+
+.inline-game-cell > .library-game-identity {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+.inline-game-cell > .inline-value[data-inline-slot="badge"] {
+  flex: 0 0 42px;
+  width: 42px;
+  padding: 0;
+  margin: 0;
+  position: relative;
+}
+.inline-game-cell > .inline-value[data-inline-slot="badge"] .inline-pencil {
+  position: absolute;
+  right: 1px;
+  bottom: 1px;
+}
+.inline-game-cell .inline-title {
+  width: 100%;
+}
+.inline-game-cell .inline-title strong {
+  flex: 1;
+  min-width: 0;
+}
+
+/* Let console labels use the identity width instead of their min-content width. */
+.inline-game-cell > .library-game-identity > small {
+  align-self: stretch;
+  width: 100%;
+  overflow: visible;
+  overflow-wrap: normal;
+}
+.inline-game-cell .inline-device {
+  display: inline-block;
+  position: relative;
+  padding-right: 18px;
+  overflow-wrap: normal;
+  word-break: normal;
+}
+.inline-game-cell .inline-device .inline-pencil {
+  position: absolute;
+  right: 2px;
+  top: 4px;
+}
+.library-table .game-data-row > td:first-child,
+.journal-table .game-data-row > td:first-child {
+  min-width: 220px;
 }

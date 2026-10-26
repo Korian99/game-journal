@@ -240,7 +240,7 @@ export function JournalGameTable({
                   {hasComments && (
                     <tr className="game-comments-row">
                       <td colSpan={r.getVisibleCells().length}>
-                        <GameComments entry={r.original} />
+                        <GameComments entry={r.original} inlineView={view} />
                       </td>
                     </tr>
                   )}

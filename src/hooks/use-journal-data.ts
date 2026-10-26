@@ -4,6 +4,7 @@ import {
   optimisticNotificationRead,
   type NotificationReadInput,
 } from "@/lib/notifications/read-state";
+import { mergeSavedEntry } from "@/lib/journal/inline-editing";
 import { notificationPageSchema } from "@/lib/notifications/history";
 import { browserClient } from "@/lib/supabase/client";
 import {
@@ -228,6 +229,17 @@ export function useJournalData() {
       setBusy(false);
     }
   }
+  const acceptRecord = useCallback(
+    (entry: JournalEntry) => {
+      const current = resources.records.getSnapshot().data;
+      resources.records.setData({
+        ...current,
+        records: mergeSavedEntry(current.records, entry),
+      });
+      resources.records.invalidate();
+    },
+    [resources],
+  );
   const resourceStates = {
     records: recordsState,
     offers: offersState,
@@ -282,6 +294,7 @@ export function useJournalData() {
         grants: sharing.grants.filter((grant) => grant.entry_id !== id),
       });
     },
+    acceptRecord,
     replaceRecords: (records: JournalEntry[]) =>
       resources.records.setData({
         ...resources.records.getSnapshot().data,

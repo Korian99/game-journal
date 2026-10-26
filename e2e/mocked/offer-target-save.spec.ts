@@ -74,10 +74,18 @@ for (const mobile of [false, true]) {
       });
       await page.goto("./?tab=wishlist");
       const open = async () => {
-        await page
-          .locator(mobile ? ".mobile-games" : "table")
-          .getByText(record.title, { exact: true })
-          .click();
+        if (mobile)
+          await page
+            .locator(".mobile-games")
+            .getByText(record.title, { exact: true })
+            .click();
+        else
+          await page
+            .getByRole("button", {
+              name: "Ver detalles de " + record.title,
+              exact: true,
+            })
+            .click();
       };
       await open();
       const dialog = page.getByRole("dialog", { name: "Tu partida" });

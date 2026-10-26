@@ -51,10 +51,18 @@ for (const mobile of [false, true])
         });
       });
       await page.goto("./?tab=wishlist");
-      await page
-        .locator(mobile ? ".mobile-games" : "table")
-        .getByText(record.title, { exact: true })
-        .click();
+      if (mobile)
+        await page
+          .locator(".mobile-games")
+          .getByText(record.title, { exact: true })
+          .click();
+      else
+        await page
+          .getByRole("button", {
+            name: "Ver detalles de " + record.title,
+            exact: true,
+          })
+          .click();
       const dialog = page.getByRole("dialog", { name: "Tu partida" });
       await dialog.getByRole("tab", { name: "Partida", exact: true }).click();
       await dialog.getByLabel("Empecé", { exact: true }).fill("31/12/2025");

@@ -1,4 +1,6 @@
 "use client";
+import { InlineIdentity } from "./inline/inline-identity";
+import { InlineField } from "./inline/inline-field";
 import type { JournalView } from "@/lib/journal/journal-location";
 import type { JournalEntry } from "@/lib/journal/journal-types";
 import {
@@ -16,16 +18,14 @@ import {
   reviewOrder,
   journalReviewOrder,
 } from "@/lib/journal/view-config";
-import { wishlistPlatforms } from "@/lib/offers/wishlist-display";
 import type { SortingState } from "@tanstack/react-table";
 import { type ColumnDef } from "@tanstack/react-table";
 import { useMemo } from "react";
-import { JournalReview, JournalScoreMark } from "./journal-review";
+import { JournalReview } from "./journal-review";
 import { HypeBadge } from "../games/hype-badge";
 import {
   LibraryFinishReason,
   LibraryPlaythrough,
-  ReviewMark,
 } from "./library-game-details";
 import { OwnershipBadge, getOwnershipInfo } from "../games/ownership-badge";
 import { PriorityMark } from "../games/priority-mark";
@@ -86,7 +86,11 @@ export function useJournalColumns({
           ),
         sortUndefined: false,
         sortDescFirst: false,
-        cell: ({ row }) => releaseLabel(row.original),
+        cell: ({ row }) => (
+          <InlineField entry={row.original} view={view} field="release">
+            {releaseLabel(row.original)}
+          </InlineField>
+        ),
       },
       status: {
         accessorKey: "status",
@@ -108,7 +112,11 @@ export function useJournalColumns({
             b.original,
             sort.find((item) => item.id === "period")?.desc,
           ),
-        cell: ({ row }) => row.original.period || "—",
+        cell: ({ row }) => (
+          <InlineField entry={row.original} view={view} field="period">
+            {row.original.period || "—"}
+          </InlineField>
+        ),
       },
       hours: {
         accessorKey: "hours",
@@ -138,23 +146,12 @@ export function useJournalColumns({
         {
           ...commonColumns.title,
           cell: ({ row }) => (
-            <button
-              className="game-cell library-game-cell"
-              onClick={() => onEdit(row.original)}
-            >
-              <ReviewMark rating={row.original.rating} />
-              <span className="library-game-identity">
-                <strong>{row.original.title}</strong>
-                <small>
-                  {row.original.device ||
-                    row.original.platforms ||
-                    "Plataforma sin definir"}
-                </small>
-                <span className={"status " + row.original.status}>
-                  {statuses[row.original.status]}
-                </span>
-              </span>
-            </button>
+            <InlineIdentity
+              entry={row.original}
+              view={view}
+              offers={offers}
+              onEdit={onEdit}
+            />
           ),
         },
         {
@@ -171,7 +168,9 @@ export function useJournalColumns({
           header: "Partida",
           sortingFn: "basic",
           sortUndefined: "last",
-          cell: ({ row }) => <LibraryPlaythrough record={row.original} />,
+          cell: ({ row }) => (
+            <LibraryPlaythrough record={row.original} inline />
+          ),
         },
         {
           id: "finished",
@@ -197,11 +196,13 @@ export function useJournalColumns({
           header: label,
           cell: ({ getValue, row }) =>
             key === "reason" ? (
-              <LibraryFinishReason record={row.original} />
+              <LibraryFinishReason record={row.original} inline />
             ) : (
-              <span className="entry-text-cell">
-                {getValue<string>() || "—"}
-              </span>
+              <InlineField entry={row.original} view={view} field={key}>
+                <span className="entry-text-cell">
+                  {getValue<string>() || "—"}
+                </span>
+              </InlineField>
             ),
         })),
       ];
@@ -210,23 +211,12 @@ export function useJournalColumns({
         {
           ...commonColumns.title,
           cell: ({ row }) => (
-            <button
-              className="game-cell journal-game-cell"
-              onClick={() => onEdit(row.original)}
-            >
-              <JournalScoreMark record={row.original} />
-              <span className="library-game-identity">
-                <strong>{row.original.title}</strong>
-                <small>
-                  {row.original.device ||
-                    row.original.platforms ||
-                    "Plataforma sin definir"}
-                </small>
-                <span className={"status " + row.original.status}>
-                  {statuses[row.original.status]}
-                </span>
-              </span>
-            </button>
+            <InlineIdentity
+              entry={row.original}
+              view={view}
+              offers={offers}
+              onEdit={onEdit}
+            />
           ),
         },
         commonColumns.release,
@@ -238,7 +228,7 @@ export function useJournalColumns({
           sortingFn: "basic",
           sortUndefined: "last",
           sortDescFirst: true,
-          cell: ({ row }) => <JournalReview record={row.original} />,
+          cell: ({ row }) => <JournalReview record={row.original} inline />,
         },
         ...journalTextFields.map(({ key, label }): ColumnDef<JournalEntry> => ({
           accessorKey: key,
@@ -252,23 +242,12 @@ export function useJournalColumns({
       ...commonColumns.title,
       header: "Nombre",
       cell: ({ row }) => (
-        <button
-          className={
-            "game-cell " +
-            (view === "upcoming" ? "upcoming-name" : "wishlist-name")
-          }
-          onClick={() => onEdit(row.original)}
-        >
-          <span>
-            <strong>{row.original.title}</strong>
-            <small>
-              {wishlistPlatforms(
-                row.original,
-                offers.filter((o) => o.game_id === row.original.gameId),
-              ).join(" · ") || "Plataforma sin confirmar"}
-            </small>
-          </span>
-        </button>
+        <InlineIdentity
+          entry={row.original}
+          view={view}
+          offers={offers}
+          onEdit={onEdit}
+        />
       ),
     };
     if (view === "upcoming")
@@ -278,7 +257,9 @@ export function useJournalColumns({
           header: "Fecha de salida",
           cell: ({ row }) => (
             <span className="upcoming-release-date">
-              <span>{releaseLabel(row.original)}</span>
+              <InlineField entry={row.original} view={view} field="release">
+                {releaseLabel(row.original)}
+              </InlineField>
               {releaseHasArrived(row.original, releaseNow) && (
                 <span className="released-badge">Ya salió</span>
               )}
@@ -298,7 +279,11 @@ export function useJournalColumns({
           sortingFn: "basic",
           sortUndefined: "last",
           sortDescFirst: true,
-          cell: ({ row }) => <HypeBadge value={row.original.hype} />,
+          cell: ({ row }) => (
+            <InlineField entry={row.original} view={view} field="hype">
+              <HypeBadge value={row.original.hype} />
+            </InlineField>
+          ),
         },
       ];
     if (view !== "wishlist") return Object.values(commonColumns);
@@ -315,7 +300,11 @@ export function useJournalColumns({
             "es",
             { numeric: true, sensitivity: "base" },
           ),
-        cell: ({ row }) => <PriorityMark value={row.original.priority} />,
+        cell: ({ row }) => (
+          <InlineField entry={row.original} view={view} field="priority">
+            <PriorityMark value={row.original.priority} />
+          </InlineField>
+        ),
       },
       storeName,
       {
@@ -336,14 +325,20 @@ export function useJournalColumns({
             getOwnershipInfo(b.original.ownership).label,
             "es",
           ),
-        cell: ({ getValue }) => (
-          <OwnershipBadge value={getValue<string>() || ""} />
+        cell: ({ getValue, row }) => (
+          <InlineField entry={row.original} view={view} field="ownership">
+            <OwnershipBadge value={getValue<string>() || ""} />
+          </InlineField>
         ),
       },
       {
         accessorKey: "estimated",
         header: "Hs. Estimadas",
-        cell: ({ getValue }) => getValue() || "—",
+        cell: ({ getValue, row }) => (
+          <InlineField entry={row.original} view={view} field="estimated">
+            {getValue<string>() || "—"}
+          </InlineField>
+        ),
       },
     ];
   }, [view, offers, sort, releaseNow, onEdit]);

@@ -177,3 +177,41 @@ it("keeps an approximate period when only editing a review", async () => {
     }),
   );
 });
+
+it("undo restores exact historical date, status, and period values while retaining revision checking", async () => {
+  existing = [
+    {
+      ...original,
+      status: "completed",
+      started: "2025-01-01",
+      finished: "2026-01-01",
+      period: "2025-2026",
+    },
+  ];
+  const response = await POST(
+    new Request("http://fixture/api/records", {
+      method: "POST",
+      body: JSON.stringify({
+        ...original,
+        status: "playing",
+        started: "",
+        finished: "",
+        period: "2014-2018",
+        intent: "undo",
+      }),
+    }),
+  );
+  expect(response.status).toBe(200);
+  expect(rpc).toHaveBeenCalledWith(
+    "save_record_result",
+    expect.objectContaining({
+      input: expect.objectContaining({
+        status: "playing",
+        started: "",
+        finished: "",
+        period: "2014-2018",
+      }),
+      expected: original.updated_at,
+    }),
+  );
+});

@@ -102,6 +102,11 @@ for (const view of ["library", "journal"]) {
           .locator(".table-scroll")
           .evaluate((node) => node.scrollWidth <= node.clientWidth),
       ).toBe(true);
+      const consoleLabel = main.locator(".inline-device");
+      await expect(consoleLabel).toHaveText("PC");
+      expect((await consoleLabel.boundingBox())!.height).toBeLessThanOrEqual(
+        22,
+      );
       await page.locator(".table-scroll").screenshot({
         path: "test-results/" + view + "-comments-narrow.png",
       });
