@@ -533,3 +533,34 @@ test("Enter on Cancel discards the draft while Enter on Save saves once", async 
   ).toBeVisible();
   expect(f.pending).toHaveLength(1);
 });
+
+test("inline short years normalize on blur and save with the full year", async ({
+  page,
+}) => {
+  const f = await setup(page);
+  await page.goto("./?tab=library&year=all");
+  await page
+    .getByRole("button", {
+      name: "Editar Empecé de Inline fixture",
+      exact: true,
+    })
+    .click();
+  const input = page.getByRole("textbox", { name: "Empecé", exact: true });
+  await input.fill("02/01/26");
+  await input.blur();
+  await expect(input).toHaveValue("02/01/2026");
+  await input.focus();
+  await input.press("Enter");
+  await expect.poll(() => f.pending.length).toBe(1);
+  expect(f.pending[0].request().postDataJSON()).toMatchObject({
+    started: "02/01/2026",
+    period: "2026",
+  });
+  await f.succeed(0);
+  await expect(
+    page.getByRole("button", {
+      name: "Editar Empecé de Inline fixture",
+      exact: true,
+    }),
+  ).toHaveText("02/01/2026");
+});

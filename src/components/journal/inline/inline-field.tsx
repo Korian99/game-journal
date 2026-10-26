@@ -10,6 +10,7 @@ import type { JournalEntry } from "@/lib/journal/journal-types";
 import type { JournalView } from "@/lib/journal/journal-location";
 import { commonPlatforms } from "../../games/platform-picker";
 import { InlineEditContext } from "./inline-context";
+import { PlayDateInput } from "../../games/play-date-input";
 import { InlineReleaseInput } from "./inline-release-input";
 export function InlineField({
   entry,
@@ -130,6 +131,15 @@ export function InlineField({
           onChange={edit.setValue}
           disabled={edit.saving}
         />
+      ) : spec.type === "date" ? (
+        <PlayDateInput
+          data-inline-input
+          aria-label={spec.label}
+          value={value}
+          disabled={edit.saving}
+          placeholder="dd/mm/aa o dd/mm/aaaa"
+          onChange={edit.setValue}
+        />
       ) : spec.type === "textarea" ? (
         <textarea {...props} rows={4} />
       ) : spec.type === "device" && !customDevice ? (
@@ -172,7 +182,6 @@ export function InlineField({
           {...props}
           type={spec.type === "number" ? "number" : "text"}
           step={spec.type === "number" ? "any" : undefined}
-          placeholder={spec.type === "date" ? "dd/mm/aaaa" : undefined}
         />
       )}
       <span className="inline-cell-actions">

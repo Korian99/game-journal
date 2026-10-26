@@ -65,13 +65,19 @@ for (const mobile of [false, true])
           .click();
       const dialog = page.getByRole("dialog", { name: "Tu partida" });
       await dialog.getByRole("tab", { name: "Partida", exact: true }).click();
-      await dialog.getByLabel("Empecé", { exact: true }).fill("31/12/2025");
+      const started = dialog.getByLabel("Empecé", { exact: true });
+      await started.fill("31/12/25");
+      await started.blur();
+      await expect(started).toHaveValue("31/12/2025");
       await dialog.getByRole("tab", { name: "Más", exact: true }).click();
       await expect(
         dialog.getByLabel("Año o período jugado", { exact: true }),
       ).toHaveValue("2025");
       await dialog.getByRole("tab", { name: "Partida", exact: true }).click();
-      await dialog.getByLabel("Terminé", { exact: true }).fill("01/01/2026");
+      const finished = dialog.getByLabel("Terminé", { exact: true });
+      await finished.fill("");
+      await finished.pressSequentially("01/01/2026");
+      await expect(finished).toHaveValue("01/01/2026");
       await dialog.getByRole("tab", { name: "Más", exact: true }).click();
       await expect(
         dialog.getByLabel("Año o período jugado", { exact: true }),

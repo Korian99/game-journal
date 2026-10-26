@@ -62,7 +62,7 @@ it.each(["", null, "   "])(
   async (started) => {
     const response = await save({ status: "playing", started });
     expect(response.status).toBe(200);
-    expectSaved({ started: "2026-10-22", finished: "" });
+    expectSaved({ started: "22/10/2026", finished: "" });
   },
 );
 it.each(["", null, "   "])(
@@ -75,14 +75,14 @@ it.each(["", null, "   "])(
       finished,
     });
     expect(response.status).toBe(200);
-    expectSaved({ started: "2026-10-01", finished: "2026-10-22" });
-    expect((await response.json()).record.finished).toBe("2026-10-22");
+    expectSaved({ started: "01/10/2026", finished: "22/10/2026" });
+    expect((await response.json()).record.finished).toBe("22/10/2026");
   },
 );
 it("does not invent a start date when only completing a game", async () => {
   const response = await save({ status: "completed" });
   expect(response.status).toBe(200);
-  expectSaved({ started: "", finished: "2026-10-22" });
+  expectSaved({ started: "", finished: "22/10/2026" });
 });
 it("preserves existing dates when resuming", async () => {
   existing = [{ ...original, status: "paused", started: "01/10/2026" }];
@@ -114,7 +114,7 @@ it("accepts existing null dates without breaking the transition", async () => {
   expect(
     (await save({ status: "playing", started: null, finished: null })).status,
   ).toBe(200);
-  expectSaved({ started: "2026-10-22", finished: "" });
+  expectSaved({ started: "22/10/2026", finished: "" });
 });
 it("does not assign today's dates when creating a historical entry", async () => {
   existing = [];
@@ -138,7 +138,7 @@ it("derives the period after automatic status dates are filled", async () => {
   expect(rpc).toHaveBeenCalledWith(
     "save_record_result",
     expect.objectContaining({
-      input: expect.objectContaining({ started: "2026-10-22", period: "2026" }),
+      input: expect.objectContaining({ started: "22/10/2026", period: "2026" }),
     }),
   );
 });

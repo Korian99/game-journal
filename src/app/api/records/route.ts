@@ -95,7 +95,7 @@ export async function POST(request: Request) {
       ];
     }
     const { data, error } = await db.rpc("save_record_result", {
-      input,
+      input: recordSchema.parse(input),
       record_id: input.id ?? null,
       expected: input.updated_at ?? null,
     });

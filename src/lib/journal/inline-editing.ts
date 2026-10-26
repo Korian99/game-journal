@@ -95,7 +95,7 @@ export function inlineCandidate(
     raw.trim() &&
     dateOrder(raw) === undefined
   )
-    throw Error("Usá una fecha válida en formato dd/mm/aaaa.");
+    throw Error("Usá una fecha válida: dd/mm/aa o dd/mm/aaaa.");
   const candidate = { ...entry, [field]: value };
   if (field === "started" || field === "finished") {
     candidate.status = statusAfterDateEdits(candidate, entry);

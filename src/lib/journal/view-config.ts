@@ -24,9 +24,15 @@ export function defaultViewSort(view: string) {
 export function dateOrder(value: string): number | undefined {
   const text = value.trim();
   const iso = /^(\d{4})-(\d{1,2})-(\d{1,2})(?:T.*)?$/.exec(text);
-  const local = /^(\d{1,2})[/-](\d{1,2})[/-](\d{4})$/.exec(text);
+  const local = /^(\d{1,2})[/-](\d{1,2})[/-](\d{2}|\d{4})$/.exec(text);
   if (!iso && !local) return undefined;
-  const year = Number(iso ? iso[1] : local![3]);
+  const rawYear = iso ? iso[1] : local![3];
+  const shortYear = Number(rawYear);
+  // A fixed century window keeps historical dates stable across calendar years.
+  const year =
+    !iso && rawYear.length === 2
+      ? (shortYear < 50 ? 2000 : 1900) + shortYear
+      : shortYear;
   const month = Number(iso ? iso[2] : local![2]);
   const day = Number(iso ? iso[3] : local![1]);
   const stamp = Date.UTC(year, month - 1, day);

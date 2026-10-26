@@ -1,4 +1,5 @@
 "use client";
+import { PlayDateInput } from "./play-date-input";
 import {
   offerTargetChanges,
   type OfferTargetUpdate,
@@ -189,31 +190,34 @@ export function EntryEditor({
   ) => (
     <label key={key}>
       {label}
-      <input
-        id={editorId + "-" + key}
-        form={formId}
-        type={type}
-        required={key === "title"}
-        value={
-          key === "started" || key === "finished"
-            ? formatDate(String(draft[key] ?? ""))
-            : String(draft[key] ?? "")
-        }
-        placeholder={
-          key === "started" || key === "finished" ? "dd/mm/aaaa" : undefined
-        }
-        onChange={(e) =>
-          updateDraftField(
-            key,
-            type === "number"
-              ? e.target.value === ""
-                ? null
-                : Number(e.target.value)
-              : e.target.value,
-          )
-        }
-        step={type === "number" ? "any" : undefined}
-      />
+      {key === "started" || key === "finished" ? (
+        <PlayDateInput
+          id={editorId + "-" + key}
+          form={formId}
+          value={String(draft[key] ?? "")}
+          placeholder="dd/mm/aa o dd/mm/aaaa"
+          onChange={(value) => updateDraftField(key, value)}
+        />
+      ) : (
+        <input
+          id={editorId + "-" + key}
+          form={formId}
+          type={type}
+          required={key === "title"}
+          value={String(draft[key] ?? "")}
+          onChange={(event) =>
+            updateDraftField(
+              key,
+              type === "number"
+                ? event.target.value === ""
+                  ? null
+                  : Number(event.target.value)
+                : event.target.value,
+            )
+          }
+          step={type === "number" ? "any" : undefined}
+        />
+      )}
     </label>
   );
   if (confirmDiscard)

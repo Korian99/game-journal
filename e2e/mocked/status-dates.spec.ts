@@ -105,7 +105,7 @@ test("the editor saves status dates without list quick actions", async ({
     .click();
   await expect(page.getByRole("dialog")).toHaveCount(0);
   await expect.poll(() => submissions.length).toBe(2);
-  expect(submissions[1].started).toBe("2026-10-22");
+  expect(submissions[1].started).toBe("22/10/2026");
   expect(submissions[1].finished).toBe("");
   await expect(
     table

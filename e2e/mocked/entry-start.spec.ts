@@ -497,7 +497,7 @@ test("a conflicting page on a playing entry offers updating that entry instead o
       id: playing.id,
       gameId: playing.gameId,
       status: "playing",
-      started: "2026-10-01",
+      started: "01/10/2026",
       hours: 12,
       notes: playing.notes,
       updated_at: playing.updated_at,

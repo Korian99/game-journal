@@ -1,3 +1,4 @@
+import { formatDate } from "./journal/view-config";
 import { z } from "zod";
 import { normalizeConsoleLabels } from "./journal/console-labels";
 import { statusSchema } from "./journal/status-schema";
@@ -51,12 +52,12 @@ export const recordSchema = z
       .string()
       .max(100)
       .nullable()
-      .transform((value) => value ?? ""),
+      .transform((value) => formatDate(value ?? "")),
     finished: z
       .string()
       .max(100)
       .nullable()
-      .transform((value) => value ?? ""),
+      .transform((value) => formatDate(value ?? "")),
     status: statusSchema,
     ownership: z.string().max(100),
     priority: z.preprocess(
