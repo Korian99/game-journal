@@ -1,3 +1,4 @@
+import { entryDestination } from "../journal/entry-destination";
 import type { JournalNotification } from "../contracts";
 import type { JournalEntry } from "../journal/journal-types";
 import type { JournalView } from "../journal/journal-location";
@@ -46,11 +47,5 @@ export function notificationDestination(
         (a.id ?? "").localeCompare(b.id ?? ""),
     )[0];
   if (!entry) return { view: preferred, entryId: "" };
-  const view =
-    entry.status === "wishlist" || entry.status === "upcoming"
-      ? entry.status
-      : entry.status === "remembered"
-        ? "journal"
-        : "library";
-  return { view, entryId: entry.id ?? "" };
+  return entryDestination(entry);
 }

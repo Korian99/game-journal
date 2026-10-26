@@ -83,11 +83,11 @@ export function useInlineEditing({
     return response.record;
   }
   async function save() {
-    if (!active || inFlight.current || !online || blocked) return;
+    if (!active || inFlight.current || !online || blocked) return false;
     setError("");
     if (!dirty) {
       cancel();
-      return;
+      return true;
     }
     try {
       const current = records.find((record) => record.id === active.entry.id);
@@ -113,7 +113,7 @@ export function useInlineEditing({
         JSON.stringify(recordSchema.parse(active.entry))
       ) {
         cancel();
-        return;
+        return true;
       }
       inFlight.current = true;
       setSaving(true);
@@ -126,10 +126,12 @@ export function useInlineEditing({
       );
       setMessage(inlineFields[active.field].label + " guardado");
       setActive(null);
+      return true;
     } catch (failure) {
       setError(
         failure instanceof Error ? failure.message : "No se pudo guardar.",
       );
+      return false;
     } finally {
       inFlight.current = false;
       setSaving(false);

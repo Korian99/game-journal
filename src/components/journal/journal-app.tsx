@@ -1,4 +1,6 @@
 "use client";
+import { GlobalSearch } from "./search/global-search";
+import { entryDestination } from "@/lib/journal/entry-destination";
 import { useInlineEditing } from "@/hooks/use-inline-editing";
 import { InlineEditContext } from "./inline/inline-context";
 import { InlineEditBar } from "./inline/inline-edit-bar";
@@ -120,6 +122,8 @@ export function JournalApp({
     performAction,
     removeRecord,
     acceptRecord,
+    reloadRecords,
+    getRecord,
   } = useJournalData();
   const inlineEditing = useInlineEditing({
     records,
@@ -368,6 +372,48 @@ export function JournalApp({
           >
             <Menu size={21} />
           </button>
+          <GlobalSearch
+            records={records}
+            offers={offers}
+            state={resourceStates.records}
+            online={online}
+            blocked={
+              busy ||
+              savingEntry ||
+              inlineEditing.saving ||
+              !!editingEntry ||
+              !!batch ||
+              !!duplicate ||
+              journalLocation.notificationOpen
+            }
+            dirty={inlineEditing.dirty}
+            saveError={inlineEditing.error}
+            onRetry={() => void reloadRecords()}
+            onChoose={async (entry, decision) => {
+              if (!entry.id || !getRecord(entry.id)) {
+                setNotice("La partida ya no está disponible.");
+                return false;
+              }
+              if (inlineEditing.dirty) {
+                if (decision === "save") {
+                  if (!(await inlineEditing.save())) return false;
+                } else if (decision === "discard") inlineEditing.cancel();
+                else return false;
+              } else inlineEditing.cancel();
+              const current = getRecord(entry.id);
+              if (!current) {
+                setNotice("La partida ya no está disponible.");
+                return false;
+              }
+              const destination = entryDestination(current);
+              journalLocation.revealEntry(
+                destination.view,
+                destination.entryId,
+              );
+              setSidebarOpen(false);
+              return true;
+            }}
+          />
           <span className="topbar-right">
             <button
               className="notification-count"

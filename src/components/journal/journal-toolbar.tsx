@@ -43,10 +43,10 @@ export function JournalToolbar({
         <Search size={17} />
         <input
           maxLength={500}
-          aria-label="Buscar juegos"
+          aria-label="Buscar juegos en esta lista"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          placeholder="Buscar…"
+          placeholder="Buscar en esta lista…"
         />
       </div>
       {["library", "journal"].includes(view) && (

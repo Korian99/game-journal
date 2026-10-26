@@ -295,6 +295,11 @@ export function useJournalData() {
       });
     },
     acceptRecord,
+    reloadRecords: resources.records.load,
+    getRecord: (id: string) =>
+      resources.records
+        .getSnapshot()
+        .data.records.find((entry) => entry.id === id),
     replaceRecords: (records: JournalEntry[]) =>
       resources.records.setData({
         ...resources.records.getSnapshot().data,
