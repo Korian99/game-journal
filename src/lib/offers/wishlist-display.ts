@@ -17,8 +17,8 @@ function pagePlatform(raw: string): string | undefined {
     if (/\/games\/nintendo-3ds-games\//.test(path)) return "Nintendo 3DS";
     const product = /\/store\/products\/([^/]+)\/?$/.exec(path)?.[1];
     if (!product) return;
-    if (/-switch-2(?:-edition)?$/.test(product)) return "Nintendo Switch 2";
-    if (/-switch$/.test(product)) return "Nintendo Switch";
+    if (/-switch-2(?:-edition)?$/.test(product)) return "Switch 2";
+    if (/-switch$/.test(product)) return "Switch";
   } catch {
     /* An unrecognized reference page does not establish a platform. */
   }
@@ -32,13 +32,9 @@ export function wishlistPlatforms(
       .map(pagePlatform)
       .filter(Boolean),
   );
-  return [
-    "PC",
-    "Nintendo Switch",
-    "Nintendo Switch 2",
-    "Nintendo DS",
-    "Nintendo 3DS",
-  ].filter((platform) => platforms.has(platform));
+  return ["PC", "Switch", "Switch 2", "Nintendo DS", "Nintendo 3DS"].filter(
+    (platform) => platforms.has(platform),
+  );
 }
 export function hasActiveDiscount(
   offers: Pick<Offer, "price" | "discount" | "status" | "error">[],

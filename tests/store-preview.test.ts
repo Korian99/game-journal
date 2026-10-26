@@ -102,7 +102,7 @@ it("loads only the selected Nintendo product, including release, system and quot
   expect(await (await preview(nintendo)).json()).toMatchObject({
     fields: {
       title: "Selected game",
-      platforms: "Nintendo Switch",
+      platforms: "Switch",
       release: "2018-06-12",
       year: 2018,
     },
@@ -126,7 +126,7 @@ it("allows Nintendo metadata when the price is not available", async () => {
   expect(await (await preview(nintendo)).json()).toMatchObject({
     fields: {
       title: "Future Nintendo",
-      platforms: "Nintendo Switch 2",
+      platforms: "Switch 2",
       release: "2027-03-05",
     },
     quote: { price: null },

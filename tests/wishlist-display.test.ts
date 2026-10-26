@@ -17,7 +17,7 @@ it("shows the platforms from added store pages and deduplicates regional offers"
         { url: "https://www.nintendo.com/us/store/products/game-switch-2/" },
       ],
     ),
-  ).toEqual(["PC", "Nintendo Switch", "Nintendo Switch 2"]);
+  ).toEqual(["PC", "Switch", "Switch 2"]);
 });
 it("identifies Nintendo archive consoles without guessing from arbitrary reference pages", () => {
   expect(

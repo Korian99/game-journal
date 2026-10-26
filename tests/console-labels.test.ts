@@ -55,7 +55,7 @@ it("keeps genuine console names and deduplicates emulation labels", () => {
       platforms: "PC; PlayStation 5",
     }),
   ).toMatchObject({
-    device: "Nintendo Switch 2",
+    device: "Switch 2",
     platforms: "PC; PlayStation 5",
   });
 });
@@ -100,4 +100,32 @@ it("normalizes console names in bookmarked filters", async () => {
   expect(
     readJournalLocation("tab=journal&platform=GBA%20Emulator").platform,
   ).toBe("Emulador");
+});
+
+it("canonicalizes Switch aliases across saved, loaded and imported console fields", () => {
+  const input = {
+    ...emptyRecord,
+    title: "Switch fixture",
+    device: "Nintendo Switch 2",
+    platforms: "PC; Nintendo Switch; Switch; Nintendo Switch 2; Switch 2",
+    notes: "Nintendo Switch review",
+  };
+  for (const schema of [recordSchema, journalEntrySchema]) {
+    expect(schema.parse(input)).toMatchObject({
+      device: "Switch 2",
+      platforms: "PC; Switch; Switch 2",
+      notes: input.notes,
+    });
+  }
+  const imported = parseWorkbook([
+    {
+      name: "2025",
+      values: [
+        ["Juego", "Consola"],
+        ["Switch fixture", "Nintendo Switch"],
+      ],
+    },
+  ])[0];
+  expect(imported.device).toBe("Switch");
+  expect(imported.raw?.consola).toBe("Nintendo Switch");
 });

@@ -2,10 +2,10 @@
 import { useId } from "react";
 import { X } from "lucide-react";
 
-const commonPlatforms = [
+export const commonPlatforms = [
   "PC",
-  "Nintendo Switch",
-  "Nintendo Switch 2",
+  "Switch",
+  "Switch 2",
   "Nintendo DS",
   "Nintendo 3DS",
   "Game Boy",

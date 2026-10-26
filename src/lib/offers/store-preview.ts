@@ -165,9 +165,9 @@ function nintendoMetadata(html: string, url: string) {
     .map((value) => text(value))
     .map((value) =>
       /^(?:Nintendo )?Switch 2$/i.test(value)
-        ? "Nintendo Switch 2"
+        ? "Switch 2"
         : /^(?:Nintendo )?Switch$/i.test(value)
-          ? "Nintendo Switch"
+          ? "Switch"
           : "",
     )
     .filter(Boolean);

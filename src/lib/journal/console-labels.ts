@@ -11,10 +11,20 @@ export function normalizeConsoleLabels(value: string): string {
     .split(";")
     .map((name) => name.trim())
     .filter(Boolean);
-  if (!labels.some(isEmulation)) return value;
+  const isSwitch = (name: string) =>
+    /^(?:Nintendo\s+)?Switch(?:\s+2)?$/i.test(name);
+  if (!labels.some((name) => isEmulation(name) || isSwitch(name))) return value;
   const seen = new Set<string>();
   return labels
-    .map((name) => (isEmulation(name) ? "Emulador" : name))
+    .map((name) =>
+      isEmulation(name)
+        ? "Emulador"
+        : isSwitch(name)
+          ? /2$/.test(name)
+            ? "Switch 2"
+            : "Switch"
+          : name,
+    )
     .filter((name) => {
       const key = name.toLocaleLowerCase("es");
       if (seen.has(key)) return false;
