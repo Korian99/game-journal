@@ -256,6 +256,8 @@ export function JournalApp({
     selectedYear,
   });
   function entryRowClass(record: JournalEntry): string | undefined {
+    if (view === "library" && record.status === "playing")
+      return "library-playing";
     if (view === "upcoming" && releaseHasArrived(record, releaseNow))
       return "upcoming-released";
     if (
