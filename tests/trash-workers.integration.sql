@@ -13,7 +13,7 @@ begin
  if private.enqueue_release('99999999-9999-4999-8999-999999999992') is not null then raise exception 'Enqueued trashed release';end if;
  run:=private.capture_daily_backup('99999999-9999-4999-8999-999999999991');
  select s.payload into payload from private.backup_snapshots s where s.run_id=run;
- if (payload->>'version')::int<>5 or jsonb_array_length(payload->'records')<>0 or jsonb_array_length(payload->'trash')<>1
+ if (payload->>'version')::int<>6 or jsonb_array_length(payload->'records')<>0 or jsonb_array_length(payload->'trash')<>1
   or payload->'sourceTables'->'playthroughs'->0->>'deleted_at' is null then raise exception 'Backup did not preserve trash separately';end if;
 end $$;
 select public.restore_record('99999999-9999-4999-8999-999999999993',null);

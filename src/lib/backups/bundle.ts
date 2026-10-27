@@ -1,3 +1,7 @@
+import {
+  dataCheckPreferencesSchema,
+  dismissalSchema,
+} from "../journal/data-checks";
 import JSZip from "jszip";
 import { scoringEntrySchema } from "../scoring-guide";
 import { createHash } from "node:crypto";
@@ -22,41 +26,76 @@ const playthroughSchema = row.extend({
   updated_at: text,
   deleted_at: text.nullable().default(null),
 });
-export const backupSnapshotSchema = z.strictObject({
-  version: z.union([z.literal(3), z.literal(4), z.literal(5)]),
-  kind: z.literal("game-journal-daily"),
-  ownerId: id,
-  exportedAt: text,
-  records: z.array(journalEntrySchema),
-  trash: z
-    .array(journalEntrySchema.and(z.object({ deleted_at: text })))
-    .default([]),
-  offers: z.array(offerSchema.and(row)),
-  priceHistory: z.array(historySchema),
-  sourceTables: z.strictObject({
-    games: z.array(row.extend({ data: z.record(text, z.unknown()) })),
-    playthroughs: z.array(playthroughSchema),
-    imports: z.array(row),
-    shared_entries: z.array(row.extend({ entry_id: id, recipient_id: id })),
-    notifications: z.array(row),
-    scoring_guide: z
-      .array(scoringEntrySchema.extend({ owner_id: id }))
-      .max(101)
+export const backupSnapshotSchema = z
+  .strictObject({
+    version: z.union([z.literal(3), z.literal(4), z.literal(5), z.literal(6)]),
+    kind: z.literal("game-journal-daily"),
+    ownerId: id,
+    exportedAt: text,
+    records: z.array(journalEntrySchema),
+    trash: z
+      .array(journalEntrySchema.and(z.object({ deleted_at: text })))
       .default([]),
-    notification_preferences: z
-      .object({ owner_id: id })
-      .passthrough()
-      .nullable(),
-    member: z
-      .object({
-        id,
-        display_name: text,
-        role: z.enum(["admin", "member"]),
-        active: z.boolean(),
-      })
-      .passthrough(),
-  }),
-});
+    offers: z.array(offerSchema.and(row)),
+    priceHistory: z.array(historySchema),
+    sourceTables: z.strictObject({
+      games: z.array(row.extend({ data: z.record(text, z.unknown()) })),
+      playthroughs: z.array(playthroughSchema),
+      imports: z.array(row),
+      shared_entries: z.array(row.extend({ entry_id: id, recipient_id: id })),
+      notifications: z.array(row),
+      scoring_guide: z
+        .array(scoringEntrySchema.extend({ owner_id: id }))
+        .max(101)
+        .default([]),
+      data_check_preferences: z
+        .array(dataCheckPreferencesSchema.extend({ owner_id: id }))
+        .max(1)
+        .optional(),
+      data_check_dismissals: z
+        .array(
+          z.strictObject({
+            owner_id: id,
+            entry_id: id,
+            kind: dismissalSchema.shape.kind,
+            field_values: dismissalSchema.shape.values,
+          }),
+        )
+        .optional(),
+      notification_preferences: z
+        .object({ owner_id: id })
+        .passthrough()
+        .nullable(),
+      member: z
+        .object({
+          id,
+          display_name: text,
+          role: z.enum(["admin", "member"]),
+          active: z.boolean(),
+        })
+        .passthrough(),
+    }),
+  })
+  .superRefine((snapshot, ctx) => {
+    if (
+      snapshot.version === 6 &&
+      (!snapshot.sourceTables.data_check_preferences ||
+        !snapshot.sourceTables.data_check_dismissals)
+    )
+      ctx.addIssue({
+        code: "custom",
+        message: "Missing version 6 data-check state",
+      });
+  })
+  .transform((snapshot) => ({
+    ...snapshot,
+    sourceTables: {
+      ...snapshot.sourceTables,
+      data_check_preferences:
+        snapshot.sourceTables.data_check_preferences ?? [],
+      data_check_dismissals: snapshot.sourceTables.data_check_dismissals ?? [],
+    },
+  }));
 export type BackupSnapshot = z.infer<typeof backupSnapshotSchema>;
 export function sha256(bytes: Uint8Array | string) {
   return createHash("sha256").update(bytes).digest("hex");
@@ -71,6 +110,8 @@ export function parseBackupSnapshot(source: string): BackupSnapshot {
     ...snapshot.sourceTables.shared_entries,
     ...snapshot.sourceTables.notifications,
     ...snapshot.sourceTables.scoring_guide,
+    ...snapshot.sourceTables.data_check_preferences,
+    ...snapshot.sourceTables.data_check_dismissals,
     ...snapshot.offers,
     ...snapshot.priceHistory,
   ];
@@ -88,7 +129,12 @@ export function parseBackupSnapshot(source: string): BackupSnapshot {
     snapshot.sourceTables.playthroughs.some((row) => !games.has(row.game_id)) ||
     snapshot.offers.some((row) => !games.has(row.game_id)) ||
     snapshot.priceHistory.some((row) => !offers.has(row.offer_id)) ||
-    snapshot.sourceTables.shared_entries.some((row) => !plays.has(row.entry_id))
+    snapshot.sourceTables.shared_entries.some(
+      (row) => !plays.has(row.entry_id),
+    ) ||
+    snapshot.sourceTables.data_check_dismissals.some(
+      (row) => !plays.has(row.entry_id),
+    )
   )
     throw Error("El respaldo contiene relaciones incompletas.");
   if (
@@ -101,6 +147,11 @@ export function parseBackupSnapshot(source: string): BackupSnapshot {
     )
   )
     throw Error("El respaldo contiene entradas sin sus filas originales.");
+  const dismissalKeys = snapshot.sourceTables.data_check_dismissals.map(
+    (row) => row.entry_id + ":" + row.kind,
+  );
+  if (new Set(dismissalKeys).size !== dismissalKeys.length)
+    throw Error("El respaldo contiene avisos ocultos duplicados.");
   return snapshot;
 }
 const artifactSchema = z.object({

@@ -1,4 +1,5 @@
 "use client";
+import { DataCheckPanel } from "../settings/data-check-panel";
 import { SuggestionsPanel } from "./suggestions/suggestions-panel";
 import { QuickEditor } from "./mobile/quick-editor";
 import { GlobalSearch } from "./search/global-search";
@@ -550,6 +551,57 @@ export function JournalApp({
           )}
           {view === "settings" ? (
             <section className="settings-grid">
+              <DataCheckPanel
+                records={records}
+                recordsReady={resourceStates.records.checkedAt !== null}
+                recordsError={!!resourceStates.records.error}
+                online={online}
+                blocked={
+                  busy ||
+                  savingEntry ||
+                  inlineEditing.saving ||
+                  inlineEditing.dirty
+                }
+                dirty={inlineEditing.dirty}
+                location={journalLocation}
+                onReload={() => void reloadRecords()}
+                onView={(entry) => {
+                  if (
+                    inlineEditing.dirty ||
+                    inlineEditing.saving ||
+                    busy ||
+                    savingEntry
+                  )
+                    return;
+                  const current = getRecord(entry.id ?? "");
+                  if (!current) {
+                    setNotice("La partida ya no está disponible.");
+                    return;
+                  }
+                  inlineEditing.cancel();
+                  const destination = entryDestination(current);
+                  journalLocation.revealEntry(
+                    destination.view,
+                    destination.entryId,
+                  );
+                }}
+                onEdit={(entry) => {
+                  if (
+                    inlineEditing.dirty ||
+                    inlineEditing.saving ||
+                    busy ||
+                    savingEntry
+                  )
+                    return;
+                  const current = getRecord(entry.id ?? "");
+                  if (!current) {
+                    setNotice("La partida ya no está disponible.");
+                    return;
+                  }
+                  inlineEditing.cancel();
+                  openEntry({ ...current });
+                }}
+              />
               <article className="panel">
                 <ScoringGuide />
               </article>

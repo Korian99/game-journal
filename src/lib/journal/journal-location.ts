@@ -1,3 +1,8 @@
+import {
+  findingKinds,
+  type FindingKind,
+  type FindingCategory,
+} from "./data-checks";
 import { normalizeConsoleLabels } from "./console-labels";
 import type { SortingState } from "@tanstack/react-table";
 import { currentYear, defaultViewSort, viewStatuses } from "./view-config";
@@ -26,6 +31,9 @@ export type JournalLocation = {
   sort: SortingState;
   suggestionHours: string;
   suggestionUnknownEstimates: boolean;
+  checkCategory: FindingCategory | "";
+  checkKind: FindingKind | "";
+  checkHidden: boolean;
   compareYear: string;
   estimateTarget: "story" | "extras" | "completionist";
   focusedEntry: string;
@@ -67,6 +75,9 @@ const locationKeys = [
   "estimateTarget",
   "maxHours",
   "unknownEstimates",
+  "checkCategory",
+  "checkKind",
+  "checkHidden",
   "notifications",
   "notificationRead",
   "notificationType",
@@ -92,6 +103,9 @@ export function defaultJournalLocation(
     sort: columns[view].length ? defaultViewSort(view) : [],
     compareYear: view === "statistics" ? String(Number(present) - 1) : "",
     estimateTarget: "story",
+    checkCategory: "",
+    checkKind: "",
+    checkHidden: false,
     suggestionHours: "",
     suggestionUnknownEstimates: false,
     focusedEntry: "",
@@ -156,6 +170,19 @@ export function readJournalLocation(
       state.estimateTarget = target;
     state.suggestionUnknownEstimates =
       params.get("unknownEstimates") === "include";
+  }
+  if (view === "settings") {
+    const category = params.get("checkCategory"),
+      kind = params.get("checkKind");
+    if (
+      category === "inconsistency" ||
+      category === "suggestion" ||
+      category === "reminder"
+    )
+      state.checkCategory = category;
+    if (findingKinds.includes(kind as FindingKind))
+      state.checkKind = kind as FindingKind;
+    state.checkHidden = params.get("checkHidden") === "show";
   }
   if (!columns[view].length) return state;
   state.query = bounded(params.get("q"), 500);
@@ -235,6 +262,11 @@ export function writeJournalLocation(
     params.set("estimateTarget", state.estimateTarget);
     if (state.suggestionUnknownEstimates)
       params.set("unknownEstimates", "include");
+  }
+  if (state.view === "settings") {
+    if (state.checkCategory) params.set("checkCategory", state.checkCategory);
+    if (state.checkKind) params.set("checkKind", state.checkKind);
+    if (state.checkHidden) params.set("checkHidden", "show");
   }
   if (columns[state.view].length) {
     if (state.query) params.set("q", state.query);

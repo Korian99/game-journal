@@ -40,7 +40,7 @@ export function restoreSql(
     "set local standard_conforming_strings=on;",
     "select pg_advisory_xact_lock(hashtextextended('game-journal-restore',0));",
     "do $$ begin",
-    " if exists(select 1 from public.games) or exists(select 1 from public.playthroughs) or exists(select 1 from public.offers) or exists(select 1 from public.imports) or exists(select 1 from public.notifications) or exists(select 1 from public.scoring_guide) then raise exception 'El proyecto de destino no está vacío';end if;",
+    " if exists(select 1 from public.games) or exists(select 1 from public.playthroughs) or exists(select 1 from public.offers) or exists(select 1 from public.imports) or exists(select 1 from public.notifications) or exists(select 1 from public.scoring_guide) or exists(select 1 from public.data_check_preferences) or exists(select 1 from public.data_check_dismissals) then raise exception 'El proyecto de destino no está vacío';end if;",
     " if not exists(select 1 from public.members where id='" +
       targetOwner +
       "'::uuid and active) then raise exception 'Creá primero la cuenta invitada de destino';end if;",
@@ -65,6 +65,8 @@ export function restoreSql(
   insert("price_history", owned(snapshot.priceHistory));
   insert("imports", owned(tables.imports));
   insert("scoring_guide", owned(tables.scoring_guide));
+  insert("data_check_preferences", owned(tables.data_check_preferences));
+  insert("data_check_dismissals", owned(tables.data_check_dismissals));
   insert("notifications", notifications);
   if (preferences.length)
     sections.push(
@@ -83,6 +85,8 @@ export function restoreSql(
       priceHistory: snapshot.priceHistory.length,
       imports: tables.imports.length,
       scoringGuide: tables.scoring_guide.length,
+      dataCheckPreferences: tables.data_check_preferences.length,
+      dataCheckDismissals: tables.data_check_dismissals.length,
       notifications: notifications.length,
       sharingDisabled: tables.shared_entries.length,
       targetOwner,

@@ -123,6 +123,11 @@ export function useJournalLocation(initialLocation?: JournalLocation) {
         estimateTarget: "story",
         suggestionUnknownEstimates: false,
       }),
+    setCheckCategory: (checkCategory: JournalLocation["checkCategory"]) =>
+      update({ checkCategory }),
+    setCheckKind: (checkKind: JournalLocation["checkKind"]) =>
+      update({ checkKind }),
+    setCheckHidden: (checkHidden: boolean) => update({ checkHidden }),
     setCompareYear: (compareYear: string) => update({ compareYear }),
     setEstimateTarget: (estimateTarget: JournalLocation["estimateTarget"]) =>
       update({ estimateTarget }),

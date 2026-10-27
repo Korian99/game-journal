@@ -29,7 +29,18 @@ await disposableDatabase(async (sql: (input: string) => string) => {
   const snapshotData: BackupSnapshot = parseBackupSnapshot(
     JSON.stringify(backupFixture()),
   );
-  snapshotData.version = 5;
+  snapshotData.version = 6;
+  snapshotData.sourceTables.data_check_preferences = [
+    { owner_id: backupOwner, review: true, console: false, hours: true },
+  ];
+  snapshotData.sourceTables.data_check_dismissals = [
+    {
+      owner_id: backupOwner,
+      entry_id: snapshotData.records[0].id!,
+      kind: "missing-review",
+      field_values: ["completed", null],
+    },
+  ];
   snapshotData.sourceTables.scoring_guide = [
     {
       owner_id: backupOwner,
@@ -121,6 +132,13 @@ await disposableDatabase(async (sql: (input: string) => string) => {
   );
   if (restoredGuide.trim() !== "RECOVERED PERSONAL SCALE")
     throw Error("Recovery lost personal scoring guide");
+  const checkState = sql(
+    "select p.review::text||':'||p.hours::text||':'||d.kind from public.data_check_preferences p join public.data_check_dismissals d using(owner_id) where p.owner_id='" +
+      targetOwner +
+      "';",
+  );
+  if (!checkState.includes("true:true:missing-review"))
+    throw Error("Recovery lost owner-mapped data-check state");
   const privacy = sql("select count(*) from public.shared_entries;");
   if (privacy.trim() !== "0")
     throw Error("Recovery unexpectedly restored sharing");

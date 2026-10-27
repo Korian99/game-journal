@@ -38,7 +38,7 @@ do $$ declare run uuid; payload jsonb; begin
  if has_table_privilege('anon','public.scoring_guide','select') or has_function_privilege('anon','public.replace_scoring_guide(jsonb)','execute') then raise exception 'Anonymous access';end if;
  run := private.capture_daily_backup('91919191-9191-4191-8191-919191919191');
  select s.payload into payload from private.backup_snapshots s where s.run_id=run;
- if payload->>'version'<>'5' or jsonb_array_length(payload->'sourceTables'->'scoring_guide')<>2 then raise exception 'Guide missing from daily snapshot';end if;
+ if payload->>'version'<>'6' or jsonb_array_length(payload->'sourceTables'->'scoring_guide')<>2 then raise exception 'Guide missing from daily snapshot';end if;
 end $$;
 update public.members set active=false where id='92929292-9292-4292-8292-929292929292';
 set local role authenticated;
