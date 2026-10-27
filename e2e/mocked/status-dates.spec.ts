@@ -1,3 +1,4 @@
+import { openFullGame } from "./open-full-game";
 import { test, expect } from "@playwright/test";
 import { emptyRecord } from "../../src/lib/types";
 
@@ -114,7 +115,7 @@ test("the editor saves status dates without list quick actions", async ({
   ).toBeVisible();
   await page.setViewportSize({ width: 390, height: 844 });
   await expect(page.locator(".quick-actions")).toHaveCount(0);
-  await page.locator(".mobile-game").filter({ hasText: record.title }).click();
+  await openFullGame(page, record.title);
   await page.getByRole("tab", { name: "Partida", exact: true }).click();
   await expect(page.getByLabel("Empecé", { exact: true })).toHaveValue(
     "22/10/2026",

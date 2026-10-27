@@ -8,10 +8,9 @@ import { statuses, type Offer } from "@/lib/types";
 import { wishlistPlatforms } from "@/lib/offers/wishlist-display";
 import type { Table } from "@tanstack/react-table";
 import { flexRender } from "@tanstack/react-table";
-import { ArrowUpDown } from "lucide-react";
+import { ArrowUpDown, Pencil } from "lucide-react";
 import { JournalReview, JournalScoreMark } from "./journal-review";
 import { HypeBadge } from "../games/hype-badge";
-import { journalTextFields, libraryTextFields } from "./journal-columns";
 import {
   LibraryFinishReason,
   LibraryPlaythrough,
@@ -26,7 +25,7 @@ export function JournalGameTable({
   view,
   offers,
   releaseNow,
-  onEdit,
+  onQuickEdit,
   entryRowClass,
   focusedEntry = "",
 }: {
@@ -34,7 +33,7 @@ export function JournalGameTable({
   view: JournalView;
   offers: Offer[];
   releaseNow: Date;
-  onEdit: (entry: JournalEntry) => void;
+  onQuickEdit: (entry: JournalEntry) => void;
   entryRowClass: (entry: JournalEntry) => string | undefined;
   focusedEntry?: string;
 }) {
@@ -52,7 +51,7 @@ export function JournalGameTable({
           node.getClientRects().length > 0,
       );
       if (!target) return;
-      const button = target.matches("button")
+      const button = target.matches("button, .mobile-game")
         ? target
         : target.querySelector<HTMLButtonElement>(".game-cell");
       button?.focus({ preventScroll: true });
@@ -71,7 +70,7 @@ export function JournalGameTable({
       <div className="mobile-games">
         {table.getRowModel().rows.map(({ original: r }) => (
           <article className="mobile-game-wrapper" key={r.id}>
-            <button
+            <div
               className={[
                 "mobile-game",
                 commentsBelow ? "mobile-game-played" : "",
@@ -82,19 +81,16 @@ export function JournalGameTable({
                 .join(" ")}
               key={r.id}
               data-entry-id={r.id}
-              onClick={() => onEdit(r)}
+              tabIndex={-1}
             >
-              {view === "library" ? (
-                <ReviewMark rating={r.rating} />
-              ) : view === "journal" ? (
-                <JournalScoreMark record={r} />
-              ) : view === "wishlist" ? (
-                <PriorityMark value={r.priority} />
-              ) : (
-                <span className="game-mark">
-                  {r.title.slice(0, 2).toUpperCase()}
-                </span>
-              )}
+              {!commentsBelow &&
+                (view === "wishlist" ? (
+                  <PriorityMark value={r.priority} />
+                ) : (
+                  <span className="game-mark">
+                    {r.title.slice(0, 2).toUpperCase()}
+                  </span>
+                ))}
               <span className="mobile-game-info">
                 <strong>{r.title}</strong>
                 {view === "upcoming" ? (
@@ -141,25 +137,6 @@ export function JournalGameTable({
                       {statuses[r.status]}
                     </span>
                     {view === "library" && <LibraryPlaythrough record={r} />}
-                    {view === "journal" && <JournalReview record={r} />}
-                    {(view === "library" || view === "journal") &&
-                      (view === "library"
-                        ? libraryTextFields
-                        : journalTextFields
-                      )
-                        .filter(({ key }) => key !== "notes")
-                        .map(({ key, label }) =>
-                          view === "library" && key === "reason" ? (
-                            <small className="mobile-entry-detail" key={key}>
-                              <LibraryFinishReason record={r} showLabel />
-                            </small>
-                          ) : r[key] ? (
-                            <small className="mobile-entry-detail" key={key}>
-                              <b>{label}</b>
-                              <span>{r[key]}</span>
-                            </small>
-                          ) : null,
-                        )}
                   </>
                 )}
                 {view !== "library" && (
@@ -168,12 +145,48 @@ export function JournalGameTable({
                   </small>
                 )}
               </span>
+              <span className="mobile-game-actions">
+                {view === "library" ? (
+                  <ReviewMark rating={r.rating} />
+                ) : view === "journal" ? (
+                  <JournalScoreMark record={r} />
+                ) : null}
+                <button
+                  type="button"
+                  className="mobile-edit-button"
+                  data-quick-edit-id={r.id}
+                  aria-label={"Editar rápidamente " + r.title}
+                  title="Editar"
+                  onClick={() => onQuickEdit(r)}
+                >
+                  <Pencil size={17} aria-hidden="true" />
+                </button>
+              </span>
+              {commentsBelow && (
+                <div className="mobile-game-reflections">
+                  {view === "library" ? (
+                    <>
+                      <small className="mobile-entry-detail">
+                        <LibraryFinishReason record={r} showLabel />
+                      </small>
+                      {r.impression && (
+                        <small className="mobile-entry-detail">
+                          <b>Impresiones</b>
+                          <span>{r.impression}</span>
+                        </small>
+                      )}
+                    </>
+                  ) : (
+                    <JournalReview record={r} />
+                  )}
+                </div>
+              )}
               {commentsBelow && r.notes.trim() && <GameComments entry={r} />}
-            </button>
+            </div>
           </article>
         ))}
       </div>
-      <div className="table-scroll">
+      <div className="table-scroll journal-desktop-table">
         <table
           className={
             view === "upcoming"

@@ -104,3 +104,70 @@ test("wishlist ends at its list without duplicate offer cards", async ({
   );
   await expect(page.locator("table .priority-mark")).toBeVisible();
 });
+
+test("wishlist menu counts discounted entries, once per game entry and independently of filters", async ({
+  page,
+}) => {
+  const record = (n: number, status = "wishlist") => ({
+    ...emptyRecord,
+    id: "20000000-0000-4000-8000-" + String(n).padStart(12, "0"),
+    gameId: "30000000-0000-4000-8000-" + String(n).padStart(12, "0"),
+    title: "Count fixture " + n,
+    status,
+  });
+  const records = [
+    record(1),
+    record(2),
+    record(3),
+    record(4),
+    record(5, "completed"),
+  ];
+  const offer = (n: number, discount: number, error: string | null = null) => ({
+    id: "40000000-0000-4000-8000-" + String(n).padStart(12, "0"),
+    game_id: records[n === 6 ? 0 : n - 1].gameId,
+    url: "https://store.steampowered.com/app/" + n + "/",
+    store: "steam",
+    region: "US",
+    currency: "USD",
+    price: 10,
+    regular_price: 20,
+    discount,
+    status: "available",
+    checked_at: new Date().toISOString(),
+    error,
+    watched: true,
+    target_price: null,
+  });
+  let offers = [
+    offer(1, 50),
+    offer(2, 0),
+    offer(3, 50, "Unavailable"),
+    offer(5, 50),
+    offer(6, 50),
+  ];
+  await page.route("**/api/offers", (route) => route.fulfill({ json: offers }));
+  await page.route("**/api/records?*", (route) =>
+    route.fulfill({
+      json: { records, member: { display_name: "Fixture", role: "member" } },
+    }),
+  );
+  await page.route("**/api/notifications*", (route) =>
+    route.fulfill({
+      json: {
+        items: [],
+        unreadCount: 0,
+        nextCursor: null,
+        checkedAt: new Date().toISOString(),
+      },
+    }),
+  );
+  await page.route("**/api/sharing", (route) =>
+    route.fulfill({ json: { shared: [], members: [], grants: [] } }),
+  );
+  await page.goto("./?tab=wishlist&q=Count+fixture+2");
+  await expect(page.locator(".nav-count")).toHaveText("1");
+  await expect(page.locator("table tbody tr")).toHaveCount(1);
+  offers = [];
+  await page.reload();
+  await expect(page.locator(".nav-count")).toHaveText("0");
+});

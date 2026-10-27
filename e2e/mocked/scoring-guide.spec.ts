@@ -1,3 +1,4 @@
+import { openFullGame } from "./open-full-game";
 import { test, expect } from "@playwright/test";
 import { emptyRecord } from "../../src/lib/types";
 import { defaultScoringGuide } from "../../src/lib/scoring-guide";
@@ -87,10 +88,7 @@ test("personal scoring guide is editable, persists, and opens from a review on m
   ).toBeVisible();
   await page.goto("./?tab=journal");
   await page.setViewportSize({ width: 390, height: 844 });
-  await page
-    .locator(".mobile-games .mobile-game")
-    .filter({ hasText: "Scoring fixture" })
-    .click();
+  await openFullGame(page, "Scoring fixture");
   const editor = page.getByRole("dialog");
   await editor.getByRole("tab", { name: "Reseña" }).click();
   await editor

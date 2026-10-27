@@ -1,3 +1,4 @@
+import { openFullGame } from "./open-full-game";
 import { test, expect } from "@playwright/test";
 import { emptyRecord } from "../../src/lib/types";
 
@@ -135,7 +136,7 @@ for (const view of ["library", "journal"]) {
       await card.screenshot({
         path: "test-results/" + view + "-comments-mobile.png",
       });
-      await card.locator(".mobile-game").click();
+      await openFullGame(page, "FINAL FANTASY VII");
       await page.getByRole("tab", { name: "Reseña", exact: true }).click();
       await expect(
         page.getByRole("textbox", {

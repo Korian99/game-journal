@@ -36,6 +36,7 @@ import {
 
 export function EntryEditor({
   entry,
+  initialDraft,
   offers,
   members,
   grants,
@@ -49,6 +50,7 @@ export function EntryEditor({
   online = true,
 }: {
   entry: JournalEntry;
+  initialDraft?: JournalEntry;
   actionError?: string;
   online?: boolean;
   offers: Offer[];
@@ -61,7 +63,7 @@ export function EntryEditor({
   onDelete: () => Promise<boolean>;
   runAction: PerformJournalAction;
 }) {
-  const [draft, setDraft] = useState({ ...entry });
+  const [draft, setDraft] = useState({ ...entry, ...initialDraft });
   const [targetDrafts, setTargetDrafts] = useState<Record<string, string>>({});
   const [targetError, setTargetError] = useState("");
   const targetChanges = offerTargetChanges(offers, targetDrafts);

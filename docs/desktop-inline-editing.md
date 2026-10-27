@@ -4,7 +4,7 @@ La edición directa está disponible en las tablas de escritorio. No necesita mi
 
 En escritorio, pulsar un valor abre su editor dentro de la tabla. Enter o el botón de confirmación guarda; Escape cancela. En textos largos, Enter agrega una línea y Ctrl+Enter guarda. Los selectores también tienen confirmación explícita. Salir de una celda no guarda automáticamente. Si el valor no cambió, pulsar afuera cierra el editor y permite pasar directamente a otra celda o a los detalles. También se reconocen formatos equivalentes (fechas, números y espacios del nombre). Un borrador cambiado o inválido se conserva hasta guardar o cancelar.
 
-El botón de lápiz junto al título abre el formulario completo. En móvil, tocar la tarjeta sigue abriendo ese formulario.
+El botón de lápiz junto al título abre el formulario completo. En móvil y dispositivos con puntero táctil, la tarjeta es de lectura: el lápiz abre Edición rápida y desde allí se puede transferir el borrador al formulario completo.
 
 - Biblioteca: nombre, consola jugada, estado, reseña, inicio/fin, horas registradas/estimadas, motivo, impresiones y comentarios existentes.
 - Diario: nombre, consola, estado, período, lanzamiento, reseña, memorabilidad, impresiones y comentarios existentes. La insignia de impresiones edita su valor original, no el resultado multiplicado por diez.

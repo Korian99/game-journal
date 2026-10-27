@@ -1,4 +1,6 @@
 "use client";
+import { SuggestionsPanel } from "./suggestions/suggestions-panel";
+import { QuickEditor } from "./mobile/quick-editor";
 import { GlobalSearch } from "./search/global-search";
 import { entryDestination } from "@/lib/journal/entry-destination";
 import { useInlineEditing } from "@/hooks/use-inline-editing";
@@ -35,6 +37,7 @@ import {
   useReactTable,
 } from "@tanstack/react-table";
 import {
+  Compass,
   ChartNoAxesCombined,
   Bell,
   BookOpen,
@@ -75,6 +78,7 @@ const nav = [
   ["journal", "Diario", BookOpen],
   ["wishlist", "Lista de deseos", Heart],
   ["upcoming", "Próximos", CalendarDays],
+  ["suggestions", "¿Qué juego ahora?", Compass],
   ["statistics", "Estadísticas", ChartNoAxesCombined],
   ["shared", "Compartido conmigo", Users],
   ["settings", "Configuración", Settings],
@@ -143,6 +147,10 @@ export function JournalApp({
   });
   const [releaseNow, setReleaseNow] = useState(() => new Date());
   const [editingEntry, setEditingEntry] = useState<JournalEntry | null>(null);
+  const [editingDraft, setEditingDraft] = useState<JournalEntry | undefined>(
+    undefined,
+  );
+  const [quickEntry, setQuickEntry] = useState<JournalEntry | null>(null);
   const [undoEntry, setUndoEntry] = useState<{
     id: string;
     expires: number;
@@ -156,6 +164,7 @@ export function JournalApp({
     return () => clearTimeout(timeout);
   }, [undoEntry]);
   const openEntry = useCallback((entry: JournalEntry) => {
+    setEditingDraft(undefined);
     setEditingEntry(entry);
   }, []);
   async function signOut() {
@@ -238,7 +247,7 @@ export function JournalApp({
   const [batch, setBatch] = useState<ImportBatch | null>(null);
   const [resolutions, setResolutions] = useState<ImportResolutions>({});
   useEffect(() => {
-    if (view !== "upcoming") return;
+    if (view !== "upcoming" && view !== "suggestions") return;
     const update = () => setReleaseNow(new Date());
     update();
     const timer = window.setInterval(update, 60_000);
@@ -343,8 +352,19 @@ export function JournalApp({
               <Icon size={18} />
               {label}
               {key === "wishlist" && (
-                <span className="nav-count">
-                  {records.filter((r) => r.status === "wishlist").length}
+                <span className="nav-count" title="Juegos en descuento">
+                  {
+                    records.filter(
+                      (record) =>
+                        record.status === "wishlist" &&
+                        !!record.gameId &&
+                        hasActiveDiscount(
+                          offers.filter(
+                            (offer) => offer.game_id === record.gameId,
+                          ),
+                        ),
+                    ).length
+                  }
                 </span>
               )}
             </button>
@@ -382,6 +402,7 @@ export function JournalApp({
               savingEntry ||
               inlineEditing.saving ||
               !!editingEntry ||
+              !!quickEntry ||
               !!batch ||
               !!duplicate ||
               journalLocation.notificationOpen
@@ -440,10 +461,12 @@ export function JournalApp({
             <div>
               <h1>
                 {title}
-                <span className="accent">.</span>
+                {!title.endsWith("?") && <span className="accent">.</span>}
               </h1>
             </div>
-            {!["shared", "settings", "statistics"].includes(view) && (
+            {!["shared", "settings", "statistics", "suggestions"].includes(
+              view,
+            ) && (
               <button
                 className="primary"
                 onClick={() =>
@@ -644,6 +667,54 @@ export function JournalApp({
                 )}
               </article>
             </section>
+          ) : view === "suggestions" ? (
+            <SuggestionsPanel
+              records={records}
+              offers={offers}
+              now={releaseNow}
+              location={journalLocation}
+              ready={resourceStates.records.checkedAt !== null}
+              loadError={!!resourceStates.records.error}
+              online={online}
+              blocked={
+                busy ||
+                savingEntry ||
+                inlineEditing.saving ||
+                inlineEditing.dirty
+              }
+              dirty={inlineEditing.dirty}
+              onRetry={() => void reloadRecords()}
+              onView={(entry) => {
+                if (inlineEditing.dirty || inlineEditing.saving) return;
+                const current = getRecord(entry.id ?? "");
+                if (!current) {
+                  setNotice("La partida ya no está disponible.");
+                  return;
+                }
+                inlineEditing.cancel();
+                const destination = entryDestination(current);
+                journalLocation.revealEntry(
+                  destination.view,
+                  destination.entryId,
+                );
+              }}
+              onStart={async (entry) => {
+                if (
+                  inlineEditing.dirty ||
+                  inlineEditing.saving ||
+                  busy ||
+                  savingEntry
+                )
+                  return;
+                inlineEditing.cancel();
+                const saved = await inlineEditing.saveDraft(
+                  entry,
+                  { ...entry, status: "playing" },
+                  entry.status === "paused" ? "Retomar juego" : "Empezar juego",
+                );
+                if (saved?.id) journalLocation.revealEntry("library", saved.id);
+              }}
+            />
           ) : view === "statistics" ? (
             <StatisticsPanel records={records} location={journalLocation} />
           ) : view === "shared" ? (
@@ -787,7 +858,21 @@ export function JournalApp({
                         view={view}
                         offers={offers}
                         releaseNow={releaseNow}
-                        onEdit={openEntry}
+                        onQuickEdit={(entry) => {
+                          if (
+                            inlineEditing.dirty ||
+                            inlineEditing.saving ||
+                            busy ||
+                            savingEntry
+                          ) {
+                            setNotice(
+                              "Guardá o cancelá la edición actual antes de abrir otra.",
+                            );
+                            return;
+                          }
+                          inlineEditing.cancel();
+                          setQuickEntry({ ...entry });
+                        }}
                         entryRowClass={entryRowClass}
                         focusedEntry={journalLocation.focusedEntry}
                       />
@@ -826,10 +911,47 @@ export function JournalApp({
         readsPending={notificationReadsPending}
         onOpenNotification={openNotification}
       />
+      {quickEntry && (
+        <QuickEditor
+          key={quickEntry.id}
+          entry={quickEntry}
+          online={online}
+          saving={inlineEditing.saving}
+          actionError={inlineEditing.error}
+          onClose={() => setQuickEntry(null)}
+          onSave={async (base, draft) =>
+            !!(await inlineEditing.saveDraft(base, draft, "Edición rápida"))
+          }
+          onFull={(base, draft) => {
+            inlineEditing.cancel();
+            setEditingEntry(base);
+            setEditingDraft(draft);
+            setQuickEntry(null);
+          }}
+          onRestoreFocus={() => {
+            const button = Array.from(
+              document.querySelectorAll<HTMLButtonElement>(
+                "[data-quick-edit-id]",
+              ),
+            ).find(
+              (node) =>
+                node.dataset.quickEditId === quickEntry.id &&
+                node.getClientRects().length > 0,
+            );
+            (
+              button ??
+              document.querySelector<HTMLButtonElement>(
+                ".global-search-trigger",
+              )
+            )?.focus({ preventScroll: true });
+          }}
+        />
+      )}
       {editingEntry && (
         <EntryEditor
           key={editingEntry.id ?? "new"}
           entry={editingEntry}
+          initialDraft={editingDraft}
           saving={savingEntry}
           actionError={error}
           offers={offers.filter((o) => o.game_id === editingEntry.gameId)}

@@ -1,6 +1,6 @@
 # Game Journal: search, mobile editing, suggestions, and data checks
 
-Plan prepared 26/10/2026. Phase 1 implementation started on codex/daily-use-improvements for local testing. Phases 2-4 remain planned.
+Plan prepared 26/10/2026. Implementation branch: codex/daily-use-improvements. Phase 1 and the date/highlight refinements are committed locally. Phase 2 is implemented for local testing; phases 3-4 remain planned.
 
 ## Confirmed decisions
 
@@ -122,3 +122,18 @@ Play-session tracking, offline writes, new external game APIs, paid services, au
 ## Phase 1 local testing
 
 The shared header now exposes global search with Ctrl+K / Cmd+K. It uses loaded owner records and offers, groups replays by game identity, and navigates through the same entry destination/highlight behavior as notifications. Dirty inline drafts require an explicit save/discard/cancel decision before navigation. The current list filter remains independent. Loading failures are distinct from empty results, and results are rendered in batches of 30 playthroughs. No migration, production SQL, push, or deployment has been performed for this phase. The owner authorized committing the completed work before starting phase 2.
+
+## Phase 2 local testing
+
+Mobile and primary coarse-pointer layouts now use read-only cards with explicit 44-pixel pencils. QuickEditor opens a bottom sheet focused on the game heading, with status and relevant hours/review or priority fields. The shared useInlineEditing.saveDraft path validates revisions, applies canonical saves, and records session Undo. Failed saves keep the draft. Closing a changed panel through its controls, backdrop, Escape, or browser Back requires an explicit discard decision. Refresh/auth/offline limitations remain visible; offline saves are not queued. Abrir formulario completo transfers changes into EntryEditor via initialDraft while preserving the original entry for dirty and revision checks. The overlay history marker stays on the same URL and is removed after closing.
+
+The local automated scenarios cover narrow phones, wide touch devices, a touch swipe beginning on the pencil, save progress/Undo, stale revisions, failed saves, draft transfer, dirty close paths, and offline read-only behavior. These tests emulate touch in Chromium; hands-on phone/PWA verification remains a rollout step. No production SQL, push, or deployment was performed for phase 2, and its new changes remain uncommitted pending a later request.
+
+
+## Phase 3 local testing
+
+¿Qué juego ahora? is a separate navigation destination. It reads active owner records and existing page/offer identities locally; it does not refresh prices or call external services. Candidates are owned/family unstarted wishlist playthroughs or paused playthroughs. Nonblank play dates/periods or positive recorded hours prevent treating a wishlist entry as unstarted. Abandoned, remembered, playing, completed, upcoming and known future releases are excluded. Same-year approximate releases remain visibly unconfirmed, without inventing hemisphere-specific season dates.
+
+The pure suggestions module chooses one playthrough per game (paused first, latest start date, then stable priority/Hype/title/identity ties). It returns three suggestions per page, with console and total-duration filters, estimate target, explicit unknown-duration inclusion, counts and empty-state explanations. It never subtracts hours already played. Console evidence comes from available-platform metadata and recognized store pages, not the previous play device; available platforms do not establish ownership of a particular edition. URL parameters preserve filters through reload and Back.
+
+Ver juego uses the shared exact-entry destination/highlight. Empezar/Retomar explicitly saves Jugando through the revision-checked canonical save path, preserves existing dates, fills a missing start date through the server's established rule, and supports session Undo. Dirty inline drafts block these actions until saved or cancelled. Loading failures remain distinct from empty results; retained records survive refresh failures. No database migration, production data change, commit, push, deployment or phase 4 implementation is included.

@@ -8,11 +8,15 @@ export function Modal({
   children,
   headerActions,
   headerStatus,
+  onOpenAutoFocus,
+  closeDisabled = false,
   onEscapeKeyDown,
   onCloseAutoFocus,
   variant = "modal",
 }: {
-  variant?: "modal" | "drawer";
+  variant?: "modal" | "drawer" | "sheet";
+  onOpenAutoFocus?: (event: Event) => void;
+  closeDisabled?: boolean;
   open: boolean;
   onClose: () => void;
   title: string;
@@ -28,9 +32,15 @@ export function Modal({
         <Dialog.Overlay className="modal-overlay" />
         <Dialog.Content
           className={
-            "modal-content" + (variant === "drawer" ? " drawer-content" : "")
+            "modal-content" +
+            (variant === "drawer"
+              ? " drawer-content"
+              : variant === "sheet"
+                ? " sheet-content"
+                : "")
           }
           aria-describedby={undefined}
+          onOpenAutoFocus={onOpenAutoFocus}
           onEscapeKeyDown={onEscapeKeyDown}
           onCloseAutoFocus={onCloseAutoFocus}
         >
@@ -42,7 +52,11 @@ export function Modal({
 
             <div className="modal-header-controls">
               {headerActions}
-              <Dialog.Close className="icon-button" aria-label="Cerrar">
+              <Dialog.Close
+                className="icon-button"
+                aria-label="Cerrar"
+                disabled={closeDisabled}
+              >
                 <X size={20} />
               </Dialog.Close>
             </div>

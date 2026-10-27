@@ -1,3 +1,4 @@
+import { openFullGame } from "./open-full-game";
 import { test, expect } from "@playwright/test";
 import { emptyRecord } from "../../src/lib/types";
 for (const mobile of [false, true])
@@ -51,18 +52,7 @@ for (const mobile of [false, true])
         });
       });
       await page.goto("./?tab=wishlist");
-      if (mobile)
-        await page
-          .locator(".mobile-games")
-          .getByText(record.title, { exact: true })
-          .click();
-      else
-        await page
-          .getByRole("button", {
-            name: "Ver detalles de " + record.title,
-            exact: true,
-          })
-          .click();
+      await openFullGame(page, record.title);
       const dialog = page.getByRole("dialog", { name: "Tu partida" });
       await dialog.getByRole("tab", { name: "Partida", exact: true }).click();
       const started = dialog.getByLabel("Empecé", { exact: true });

@@ -1,3 +1,4 @@
+import { openFullGame } from "./open-full-game";
 import { test, expect, type Page, type Route } from "@playwright/test";
 import { emptyRecord } from "../../src/lib/types";
 async function setup(page: Page, status = "completed") {
@@ -358,7 +359,7 @@ test("Ctrl+Z undoes saved edits in order without replacing native text undo", as
   });
   await f.succeed(3);
 });
-test("mobile still opens the full editor when a game is tapped", async ({
+test("mobile cards use the pencil to reach the full editor", async ({
   page,
 }) => {
   await page.setViewportSize({ width: 390, height: 844 });
@@ -368,6 +369,8 @@ test("mobile still opens the full editor when a game is tapped", async ({
     .locator(".mobile-games")
     .getByText("Inline fixture", { exact: true })
     .click();
+  await expect(page.getByRole("dialog")).toHaveCount(0);
+  await openFullGame(page, "Inline fixture");
   await expect(page.getByRole("dialog", { name: "Tu partida" })).toBeVisible();
 });
 

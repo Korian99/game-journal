@@ -112,6 +112,17 @@ export function useJournalLocation(initialLocation?: JournalLocation) {
     setReview: (review: ReviewFilter) => update({ review }),
     setPlatform: (platform: string) => update({ platform }),
     setYear: (year: string) => update({ year }),
+    setSuggestionHours: (suggestionHours: string) =>
+      update({ suggestionHours }, "replace"),
+    setSuggestionUnknownEstimates: (suggestionUnknownEstimates: boolean) =>
+      update({ suggestionUnknownEstimates }),
+    resetSuggestions: () =>
+      update({
+        platform: "",
+        suggestionHours: "",
+        estimateTarget: "story",
+        suggestionUnknownEstimates: false,
+      }),
     setCompareYear: (compareYear: string) => update({ compareYear }),
     setEstimateTarget: (estimateTarget: JournalLocation["estimateTarget"]) =>
       update({ estimateTarget }),

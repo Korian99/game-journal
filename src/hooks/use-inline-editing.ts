@@ -82,60 +82,79 @@ export function useInlineEditing({
     acceptRecord(response.record);
     return response.record;
   }
-  async function save() {
-    if (!active || inFlight.current || !online || blocked) return false;
+  async function saveDraft(
+    base: JournalEntry,
+    candidate: JournalEntry,
+    label: string,
+  ): Promise<JournalEntry | null> {
+    if (inFlight.current || !online || blocked) return null;
     setError("");
-    if (!dirty) {
-      cancel();
-      return true;
-    }
     try {
-      const current = records.find((record) => record.id === active.entry.id);
+      const current = records.find((record) => record.id === base.id);
       if (!current)
         throw Error(
           "La entrada ya no está disponible. No se guardó ningún cambio.",
         );
       if (
-        current.updated_at !== active.entry.updated_at ||
+        candidate.id !== base.id ||
+        candidate.gameId !== base.gameId ||
+        current.updated_at !== base.updated_at ||
         JSON.stringify(recordSchema.parse(current)) !==
-          JSON.stringify(recordSchema.parse(active.entry))
+          JSON.stringify(recordSchema.parse(base))
       )
         throw Error(
           "La entrada cambió. Cancelá y volvé a editar con los datos actuales.",
         );
+      if (
+        JSON.stringify(recordSchema.parse(candidate)) ===
+        JSON.stringify(recordSchema.parse(base))
+      )
+        return current;
+      inFlight.current = true;
+      setSaving(true);
+      const saved = await persist(candidate);
+      setHistory((previous) =>
+        [...previous, inlineChange(base, saved, label)].slice(-50),
+      );
+      setMessage("Guardado: " + label);
+      return saved;
+    } catch (failure) {
+      setError(
+        failure instanceof Error ? failure.message : "No se pudo guardar.",
+      );
+      return null;
+    } finally {
+      inFlight.current = false;
+      setSaving(false);
+    }
+  }
+  async function save() {
+    if (!active || inFlight.current || !online || blocked) return false;
+    if (!dirty) {
+      cancel();
+      return true;
+    }
+    try {
       const candidate = inlineCandidate(
         active.entry,
         active.field,
         active.value,
       );
-      if (
-        JSON.stringify(recordSchema.parse(candidate)) ===
-        JSON.stringify(recordSchema.parse(active.entry))
-      ) {
-        cancel();
+      const saved = await saveDraft(
+        active.entry,
+        candidate,
+        inlineFields[active.field].label,
+      );
+      if (saved) {
+        setActive(null);
         return true;
       }
-      inFlight.current = true;
-      setSaving(true);
-      const saved = await persist(candidate);
-      setHistory((previous) =>
-        [
-          ...previous,
-          inlineChange(active.entry, saved, inlineFields[active.field].label),
-        ].slice(-50),
-      );
-      setMessage(inlineFields[active.field].label + " guardado");
-      setActive(null);
-      return true;
     } catch (failure) {
       setError(
         failure instanceof Error ? failure.message : "No se pudo guardar.",
       );
-      return false;
-    } finally {
-      inFlight.current = false;
-      setSaving(false);
     }
+    return false;
   }
   async function undo() {
     const change = history.at(-1);
@@ -222,6 +241,7 @@ export function useInlineEditing({
     begin,
     cancel,
     save,
+    saveDraft,
     undo,
     setValue: (value: string) => {
       setActive((current) => (current ? { ...current, value } : null));

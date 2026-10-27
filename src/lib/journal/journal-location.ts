@@ -10,6 +10,7 @@ export const journalViews = [
   "shared",
   "settings",
   "statistics",
+  "suggestions",
 ] as const;
 export type JournalView = (typeof journalViews)[number];
 export type DiscountFilter = "" | "discounted" | "not-discounted";
@@ -23,6 +24,8 @@ export type JournalLocation = {
   platform: string;
   year: string;
   sort: SortingState;
+  suggestionHours: string;
+  suggestionUnknownEstimates: boolean;
   compareYear: string;
   estimateTarget: "story" | "extras" | "completionist";
   focusedEntry: string;
@@ -49,6 +52,7 @@ const columns: Record<JournalView, string[]> = {
   shared: [],
   settings: [],
   statistics: [],
+  suggestions: [],
 };
 const locationKeys = [
   "tab",
@@ -61,6 +65,8 @@ const locationKeys = [
   "sort",
   "compareYear",
   "estimateTarget",
+  "maxHours",
+  "unknownEstimates",
   "notifications",
   "notificationRead",
   "notificationType",
@@ -86,6 +92,8 @@ export function defaultJournalLocation(
     sort: columns[view].length ? defaultViewSort(view) : [],
     compareYear: view === "statistics" ? String(Number(present) - 1) : "",
     estimateTarget: "story",
+    suggestionHours: "",
+    suggestionUnknownEstimates: false,
     focusedEntry: "",
     notificationId: "",
     notificationOpen: false,
@@ -135,6 +143,19 @@ export function readJournalLocation(
     state.platform = normalizeConsoleLabels(
       bounded(params.get("platform"), 200),
     );
+  }
+  if (view === "suggestions") {
+    state.platform = normalizeConsoleLabels(
+      bounded(params.get("platform"), 200),
+    );
+    const hours = params.get("maxHours"),
+      target = params.get("estimateTarget");
+    if (hours && /^\d+(?:\.\d+)?$/.test(hours) && Number(hours) <= 100000)
+      state.suggestionHours = String(Number(hours));
+    if (target === "story" || target === "extras" || target === "completionist")
+      state.estimateTarget = target;
+    state.suggestionUnknownEstimates =
+      params.get("unknownEstimates") === "include";
   }
   if (!columns[view].length) return state;
   state.query = bounded(params.get("q"), 500);
@@ -206,6 +227,14 @@ export function writeJournalLocation(
     params.set("compareYear", state.compareYear || "none");
     params.set("estimateTarget", state.estimateTarget);
     if (state.platform) params.set("platform", state.platform);
+  }
+  if (state.view === "suggestions") {
+    if (state.platform) params.set("platform", state.platform);
+    if (state.suggestionHours !== "")
+      params.set("maxHours", state.suggestionHours);
+    params.set("estimateTarget", state.estimateTarget);
+    if (state.suggestionUnknownEstimates)
+      params.set("unknownEstimates", "include");
   }
   if (columns[state.view].length) {
     if (state.query) params.set("q", state.query);

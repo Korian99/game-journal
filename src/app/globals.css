@@ -1078,6 +1078,11 @@ tbody tr:hover {
   .table-scroll {
     display: none;
   }
+}
+@media (max-width: 760px), (pointer: coarse) {
+  .journal-desktop-table {
+    display: none;
+  }
   .mobile-games {
     display: flex;
     flex-direction: column;
@@ -1752,7 +1757,7 @@ tbody tr.wishlist-discounted td:first-child,
     min-width: 0;
   }
 }
-@media (max-width: 760px) {
+@media (max-width: 760px), (pointer: coarse) {
   .mobile-game:has(.review-mark),
   .mobile-game:has(.priority-mark) {
     align-items: flex-start;
@@ -2328,10 +2333,12 @@ tbody tr.wishlist-discounted td:first-child,
 .game-data-row:hover + .game-comments-row {
   background: var(--raised);
 }
-@media (max-width: 760px) {
+@media (max-width: 760px), (pointer: coarse) {
   .mobile-game.mobile-game-played {
     display: grid;
-    grid-template-columns: auto minmax(0, 1fr);
+    grid-template-columns: minmax(0, 1fr) 44px;
+    padding-block: 14px;
+    gap: 10px;
     align-items: start;
   }
   .mobile-game-played > .game-comments {
@@ -2794,5 +2801,258 @@ tbody tr.wishlist-discounted td:first-child,
   }
   .global-search-result-meta {
     font-size: 11px;
+  }
+}
+
+/* Mobile cards are read-only surfaces; the pencil is the explicit edit target. */
+.mobile-game {
+  cursor: default;
+}
+.mobile-edit-button {
+  flex: 0 0 44px;
+  align-self: start;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 44px;
+  min-height: 44px;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  color: var(--accent);
+  background: var(--raised);
+}
+.mobile-edit-button:hover,
+.mobile-edit-button:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+.sheet-content {
+  inset: auto 12px 0;
+  margin-inline: auto;
+  width: min(560px, calc(100% - 24px));
+  max-height: 90dvh;
+  border-radius: 16px 16px 0 0;
+}
+.sheet-content .modal-header-controls button {
+  min-width: 44px;
+  min-height: 44px;
+}
+.quick-editor-body {
+  padding: 20px 22px max(22px, env(safe-area-inset-bottom));
+}
+.quick-editor-title {
+  font:
+    23px/1.3 Georgia,
+    serif;
+  margin: 0 0 22px;
+  outline: none;
+  overflow-wrap: anywhere;
+}
+.quick-editor-body fieldset {
+  border: 0;
+  margin: 0;
+  padding: 0;
+}
+.quick-editor-numbers {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+.quick-editor-body input,
+.quick-editor-body select {
+  min-height: 44px;
+  font-size: 16px;
+}
+.quick-editor-actions {
+  display: grid;
+  gap: 8px;
+  padding-top: 8px;
+}
+.quick-editor-actions > .text-button {
+  justify-self: start;
+  padding-left: 0;
+}
+.quick-editor-actions .button-row {
+  justify-content: flex-end;
+  margin-top: 6px;
+}
+.quick-editor-body button {
+  min-height: 44px;
+}
+.quick-editor-notice,
+.quick-discard p {
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.5;
+}
+.quick-discard h3 {
+  font-size: 17px;
+}
+
+.mobile-game-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+  align-self: start;
+}
+.mobile-game-played .mobile-game-actions > .review-mark {
+  width: 44px;
+  height: 44px;
+  min-height: 44px;
+  flex: 0 0 44px;
+  gap: 2px;
+  border-color: color-mix(in srgb, var(--accent) 40%, var(--line));
+  border-radius: 7px;
+}
+.mobile-game-played .mobile-game-actions > .review-mark b {
+  font-size: 22px;
+  line-height: 1;
+}
+.mobile-game-played .mobile-game-actions > .review-mark small {
+  font-size: 8px;
+  line-height: 1;
+}
+
+.mobile-game-reflections {
+  grid-column: 1 / -1;
+  min-width: 0;
+  width: 100%;
+  display: grid;
+  gap: 8px;
+}
+.mobile-game-reflections small {
+  font-size: 10px;
+  color: var(--muted);
+  line-height: 1.5;
+}
+.mobile-game-played > .mobile-game-info {
+  gap: 7px;
+}
+
+/* Suggestions keep their explanations with each result on desktop and mobile. */
+.suggestions-intro {
+  margin: -8px 0 20px;
+}
+.suggestion-controls {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 16px;
+  padding: 20px;
+}
+.suggestion-unknown {
+  grid-column: 1 / -1;
+  flex-direction: row;
+  align-items: center;
+  gap: 9px;
+}
+.suggestion-unknown input {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--accent);
+}
+.suggestion-results-head,
+.suggestion-card-top,
+.suggestion-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.suggestion-results-head {
+  margin: 18px 0;
+  font-size: 12px;
+}
+.suggestion-results-head p {
+  margin: 0;
+}
+.suggestion-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+}
+.suggestion-card {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  min-width: 0;
+  padding: 22px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-top: 2px solid var(--accent);
+  border-radius: 10px;
+}
+.suggestion-card h2 {
+  margin: 0;
+  font-size: 22px;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
+}
+.suggestion-card-top .status {
+  white-space: nowrap;
+}
+.suggestion-access {
+  min-height: 24px;
+}
+.suggestion-facts {
+  margin: 0;
+  display: grid;
+  gap: 16px;
+}
+.suggestion-facts dt {
+  color: var(--muted);
+  font-size: 11px;
+  margin-bottom: 5px;
+}
+.suggestion-facts dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+.suggestion-card small {
+  line-height: 1.5;
+}
+.suggestion-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding-top: 14px;
+  margin-top: auto;
+  border-top: 1px solid var(--line);
+}
+.suggestion-actions button {
+  flex: 1 1 auto;
+  min-height: 44px;
+  justify-content: center;
+}
+.suggestion-pagination {
+  margin-top: 22px;
+}
+@media (max-width: 1100px) {
+  .suggestion-grid {
+    grid-template-columns: 1fr;
+  }
+  .suggestion-facts {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+@media (max-width: 760px) {
+  .suggestion-controls {
+    grid-template-columns: 1fr;
+    padding: 16px;
+  }
+  .suggestion-unknown {
+    min-height: 44px;
+  }
+  .suggestion-card {
+    padding: 18px;
+  }
+  .suggestion-facts {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+  .suggestion-pagination .button-row {
+    flex-wrap: wrap;
   }
 }

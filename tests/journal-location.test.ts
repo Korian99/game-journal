@@ -7,6 +7,8 @@ it("restores a bookmarked tab, year, search, filters, and sort", () => {
     "2026",
   );
   expect(state).toEqual({
+    suggestionHours: "",
+    suggestionUnknownEstimates: false,
     compareYear: "",
     estimateTarget: "story",
     focusedEntry: "",
