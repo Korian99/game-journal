@@ -59,6 +59,9 @@
 }
 
 .notebook-app .topbar {
+  position: sticky;
+  top: 0;
+  z-index: 30;
   color: var(--muted);
   background: var(--surface);
   border-color: var(--line);
@@ -314,6 +317,63 @@ body:has(.notebook-app) .modal-content {
   color-scheme: dark;
 }
 
+.notebook-app .notebook-trigger {
+  display: inline-flex;
+  width: 44px;
+  min-width: 44px;
+  height: 44px;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  background: var(--raised);
+  color: var(--text);
+}
+
+body:has(.notebook-app) .notebook-modal-body {
+  display: grid;
+  gap: 12px;
+}
+
+body:has(.notebook-app) .notebook-notes-label {
+  margin: 0;
+  color: var(--muted);
+  font-size: 14px;
+}
+
+body:has(.notebook-app) #notebook-notes {
+  width: 100%;
+  min-height: min(56vh, 520px);
+  resize: vertical;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  background: var(--raised);
+  color: var(--text);
+  font: 16px/1.6 var(--font-body);
+}
+
+body:has(.notebook-app) .notebook-notes-label + #notebook-notes:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+body:has(.notebook-app) .notebook-save-row {
+  display: flex;
+  justify-content: flex-end;
+}
+
+body:has(.notebook-app) .notebook-message {
+  margin: 0;
+  color: var(--muted);
+  font-size: 14px;
+}
+
+body:has(.notebook-app) .notebook-saved {
+  color: var(--accent);
+}
+
 @media (max-width: 980px) {
   .notebook-app:not(.notebook-library) .content {
     padding-inline: 30px;
@@ -468,9 +528,6 @@ body:has(.notebook-app) .modal-content {
   }
 
   .notebook-app .topbar {
-    position: sticky;
-    top: 0;
-    z-index: 10;
     height: 68px;
     justify-content: space-between;
     gap: 12px;

@@ -72,6 +72,7 @@ import { JournalGameTable } from "./journal-game-table";
 import { JournalSummary } from "./journal-summary";
 import { JournalToolbar } from "./journal-toolbar";
 import { NotebookLibraryToolbar } from "./notebook-library-toolbar";
+import { Notebook } from "./notebook";
 import { NotificationDrawer } from "../notifications/notification-drawer";
 import { StatisticsPanel } from "./statistics-panel";
 import { NotificationSettings } from "../settings/notification-settings";
@@ -507,6 +508,7 @@ export function JournalApp({
             }}
           />
           <span className="topbar-right">
+            <Notebook />
             <button
               className="notification-count"
               aria-label="Ver notificaciones"
