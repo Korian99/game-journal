@@ -155,6 +155,7 @@ test("Diario combines reviews, includes played states, and persists its status f
     path: "test-results/diario-desktop.png",
     fullPage: true,
   });
+  await page.locator(".notebook-view-filters > summary").click();
   await page.getByLabel("Filtrar estado").selectOption("paused");
   await expect(bestConsole.locator("strong")).toHaveText("—");
   await expect(bestConsole).toContainText("Sin datos suficientes");
@@ -163,6 +164,7 @@ test("Diario combines reviews, includes played states, and persists its status f
   await page.reload();
   await expect(page.getByLabel("Filtrar estado")).toHaveValue("paused");
   await expect(table.locator(".game-data-row")).toHaveCount(1);
+  await page.locator(".notebook-view-filters > summary").click();
   await page.getByLabel("Filtrar estado").selectOption("");
   await page.setViewportSize({ width: 390, height: 844 });
   const mobile = page.locator(".mobile-games");

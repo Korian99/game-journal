@@ -54,6 +54,7 @@ test("Diario filters actual reviews, includes zero, and restores its URL state",
   const filter = page.getByLabel("Filtrar reseña", { exact: true });
   const table = page.locator("table");
   await expect(table.locator("tbody tr")).toHaveCount(3);
+  await page.locator(".notebook-view-filters > summary").click();
   await filter.selectOption("with");
   await expect(page).toHaveURL(/review=with/);
   await expect(table.locator("tbody tr")).toHaveCount(2);
@@ -67,6 +68,7 @@ test("Diario filters actual reviews, includes zero, and restores its URL state",
   await page.reload();
   await expect(filter).toHaveValue("with");
   await expect(table.locator("tbody tr")).toHaveCount(2);
+  await page.locator(".notebook-view-filters > summary").click();
   await filter.selectOption("without");
   await expect(table.locator("tbody tr")).toHaveCount(1);
   await expect(
@@ -76,6 +78,9 @@ test("Diario filters actual reviews, includes zero, and restores its URL state",
   await page.goBack();
   await expect(filter).toHaveValue("with");
   await expect(table.locator("tbody tr")).toHaveCount(2);
+  if (!(await filter.isVisible())) {
+    await page.locator(".notebook-view-filters > summary").click();
+  }
   await filter.selectOption("");
   await expect(table.locator("tbody tr")).toHaveCount(3);
   expect(new URL(page.url()).searchParams.has("review")).toBe(false);

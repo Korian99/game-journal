@@ -11,14 +11,10 @@ import { flexRender } from "@tanstack/react-table";
 import { ArrowUpDown, Pencil } from "lucide-react";
 import { JournalReview, JournalScoreMark } from "./journal-review";
 import { HypeBadge } from "../games/hype-badge";
-import {
-  LibraryFinishReason,
-  LibraryPlaythrough,
-  ReviewMark,
-} from "./library-game-details";
 import { OwnershipBadge } from "../games/ownership-badge";
 import { PriorityMark } from "../games/priority-mark";
 import { WishlistPrice } from "../offers/wishlist-price";
+import { NotebookLibraryEntries } from "./notebook-library-entries";
 
 export function JournalGameTable({
   table,
@@ -68,123 +64,111 @@ export function JournalGameTable({
   return (
     <>
       <div className="mobile-games">
-        {table.getRowModel().rows.map(({ original: r }) => (
-          <article className="mobile-game-wrapper" key={r.id}>
-            <div
-              className={[
-                "mobile-game",
-                commentsBelow ? "mobile-game-played" : "",
-                entryRowClass(r),
-                r.id === focusedEntry ? "notification-highlight" : "",
-              ]
-                .filter(Boolean)
-                .join(" ")}
-              key={r.id}
-              data-entry-id={r.id}
-              tabIndex={-1}
-            >
-              {!commentsBelow &&
-                (view === "wishlist" ? (
-                  <PriorityMark value={r.priority} />
-                ) : (
-                  <span className="game-mark">
-                    {r.title.slice(0, 2).toUpperCase()}
-                  </span>
-                ))}
-              <span className="mobile-game-info">
-                <strong>{r.title}</strong>
-                {view === "upcoming" ? (
-                  <>
-                    <small>
-                      {wishlistPlatforms(
-                        r,
-                        offers.filter((o) => o.game_id === r.gameId),
-                      ).join(" · ") || "Plataforma sin confirmar"}
-                    </small>
-                    <small>
-                      Fecha de salida: {releaseLabel(r)}
-                      {releaseHasArrived(r, releaseNow) && (
-                        <span className="released-badge">Ya salió</span>
-                      )}
-                    </small>
-                    <small className="upcoming-mobile-hype">
-                      Hype <HypeBadge value={r.hype} />
-                    </small>
-                  </>
-                ) : view === "wishlist" ? (
-                  <>
-                    <small>
-                      {wishlistPlatforms(
-                        r,
-                        offers.filter((o) => o.game_id === r.gameId),
-                      ).join(" · ") || "Plataforma sin confirmar"}
-                    </small>
-                    <small className="wishlist-mobile-meta">
-                      <OwnershipBadge value={r.ownership} />
-                    </small>
-                    <small>Hs. estimadas: {r.estimated || "—"}</small>
-                    <WishlistPrice
-                      offers={offers.filter((o) => o.game_id === r.gameId)}
-                    />
-                  </>
-                ) : (
-                  <>
-                    <small>
-                      {r.device || r.platforms || "Plataforma sin definir"}
-                      {view !== "library" && r.period ? " · " + r.period : ""}
-                    </small>
-                    <span className={"status " + r.status}>
-                      {statuses[r.status]}
+        {view === "library" ? (
+          <NotebookLibraryEntries
+            entries={table.getRowModel().rows.map(({ original }) => original)}
+            focusedEntry={focusedEntry}
+            entryRowClass={entryRowClass}
+            onQuickEdit={onQuickEdit}
+          />
+        ) : (
+          table.getRowModel().rows.map(({ original: r }) => (
+            <article className="mobile-game-wrapper" key={r.id}>
+              <div
+                className={[
+                  "mobile-game",
+                  commentsBelow ? "mobile-game-played" : "",
+                  entryRowClass(r),
+                  r.id === focusedEntry ? "notification-highlight" : "",
+                ]
+                  .filter(Boolean)
+                  .join(" ")}
+                key={r.id}
+                data-entry-id={r.id}
+                tabIndex={-1}
+              >
+                {!commentsBelow &&
+                  (view === "wishlist" ? (
+                    <PriorityMark value={r.priority} />
+                  ) : (
+                    <span className="game-mark">
+                      {r.title.slice(0, 2).toUpperCase()}
                     </span>
-                    {view === "library" && <LibraryPlaythrough record={r} />}
-                  </>
-                )}
-                {view !== "library" && (
+                  ))}
+                <span className="mobile-game-info">
+                  <strong>{r.title}</strong>
+                  {view === "upcoming" ? (
+                    <>
+                      <small>
+                        {wishlistPlatforms(
+                          r,
+                          offers.filter((o) => o.game_id === r.gameId),
+                        ).join(" · ") || "Plataforma sin confirmar"}
+                      </small>
+                      <small>
+                        Fecha de salida: {releaseLabel(r)}
+                        {releaseHasArrived(r, releaseNow) && (
+                          <span className="released-badge">Ya salió</span>
+                        )}
+                      </small>
+                      <small className="upcoming-mobile-hype">
+                        Hype <HypeBadge value={r.hype} />
+                      </small>
+                    </>
+                  ) : view === "wishlist" ? (
+                    <>
+                      <small>
+                        {wishlistPlatforms(
+                          r,
+                          offers.filter((o) => o.game_id === r.gameId),
+                        ).join(" · ") || "Plataforma sin confirmar"}
+                      </small>
+                      <small className="wishlist-mobile-meta">
+                        <OwnershipBadge value={r.ownership} />
+                      </small>
+                      <small>Hs. estimadas: {r.estimated || "—"}</small>
+                      <WishlistPrice
+                        offers={offers.filter((o) => o.game_id === r.gameId)}
+                      />
+                    </>
+                  ) : (
+                    <>
+                      <small>
+                        {r.device || r.platforms || "Plataforma sin definir"}
+                        {r.period ? " · " + r.period : ""}
+                      </small>
+                      <span className={"status " + r.status}>
+                        {statuses[r.status]}
+                      </span>
+                    </>
+                  )}
                   <small className="mobile-game-hours">
                     Hs. jugadas: {r.hours == null ? "—" : r.hours + " h"}
                   </small>
-                )}
-              </span>
-              <span className="mobile-game-actions">
-                {view === "library" ? (
-                  <ReviewMark rating={r.rating} />
-                ) : view === "journal" ? (
-                  <JournalScoreMark record={r} />
-                ) : null}
-                <button
-                  type="button"
-                  className="mobile-edit-button"
-                  data-quick-edit-id={r.id}
-                  aria-label={"Editar rápidamente " + r.title}
-                  title="Editar"
-                  onClick={() => onQuickEdit(r)}
-                >
-                  <Pencil size={17} aria-hidden="true" />
-                </button>
-              </span>
-              {commentsBelow && (
-                <div className="mobile-game-reflections">
-                  {view === "library" ? (
-                    <>
-                      <small className="mobile-entry-detail">
-                        <LibraryFinishReason record={r} showLabel />
-                      </small>
-                      {r.impression && (
-                        <small className="mobile-entry-detail">
-                          <b>Impresiones</b>
-                          <span>{r.impression}</span>
-                        </small>
-                      )}
-                    </>
-                  ) : (
+                </span>
+                <span className="mobile-game-actions">
+                  {view === "journal" ? <JournalScoreMark record={r} /> : null}
+                  <button
+                    type="button"
+                    className="mobile-edit-button"
+                    data-quick-edit-id={r.id}
+                    aria-label={"Editar rápidamente " + r.title}
+                    title="Editar"
+                    onClick={() => onQuickEdit(r)}
+                  >
+                    <Pencil size={17} aria-hidden="true" />
+                  </button>
+                </span>
+                {commentsBelow && (
+                  <div className="mobile-game-reflections">
                     <JournalReview record={r} />
-                  )}
-                </div>
-              )}
-              {commentsBelow && r.notes.trim() && <GameComments entry={r} />}
-            </div>
-          </article>
-        ))}
+                  </div>
+                )}
+                {commentsBelow && r.notes.trim() && <GameComments entry={r} />}
+              </div>
+            </article>
+          ))
+        )}
       </div>
       <div className="table-scroll journal-desktop-table">
         <table

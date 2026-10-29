@@ -102,7 +102,7 @@ test("cards do not open on taps or scrolling and only the pencil opens a panel w
 }) => {
   const f = await setup(page);
   await page.goto("./?tab=library&year=all");
-  await page.locator(".mobile-game-info strong").tap();
+  await page.getByRole("heading", { name: "Quick fixture", exact: true }).tap();
   await page.mouse.wheel(0, 250);
   await expect(page.getByRole("dialog")).toHaveCount(0);
   await pencil(page).tap();
@@ -232,7 +232,7 @@ test("wide touch devices get deliberate editing instead of inline table controls
   await page.goto("./?tab=library&year=all");
   await expect(page.locator(".table-scroll")).toBeHidden();
   await expect(pencil(page)).toBeVisible();
-  await page.locator(".mobile-game-info strong").tap();
+  await page.getByRole("heading", { name: "Quick fixture", exact: true }).tap();
   await expect(page.getByRole("dialog")).toHaveCount(0);
   await pencil(page).tap();
   await expect(panel(page)).toBeVisible();

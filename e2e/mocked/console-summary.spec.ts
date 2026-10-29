@@ -63,6 +63,7 @@ test("Mejor consola requires five games and combines emulator labels under filte
   await expect(tile).toContainText("MEJOR CONSOLA");
   await expect(tile).toContainText("5 juegos");
   await expect(tile).toContainText("80");
+  await page.locator(".notebook-view-filters > summary").click();
   await page.getByLabel("Filtrar estado").selectOption("completed");
   await expect(tile.locator("strong")).toHaveText("—");
   await expect(tile).toContainText("Sin datos suficientes");

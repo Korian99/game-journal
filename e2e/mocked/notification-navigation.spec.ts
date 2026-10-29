@@ -137,8 +137,9 @@ test("a phone deep link locates a game in its current tab, even after it moved o
   await expect(target).toContainText("The notification game");
   await expect(target).toBeInViewport();
   await expect(target.locator(".game-cell")).toBeFocused();
+  await page.locator(".notebook-library-filters summary").click();
   await expect(
-    page.getByRole("combobox", { name: "Año", exact: true }),
+    page.getByRole("combobox", { name: "Filtrar año", exact: true }),
   ).toHaveValue("");
   await expect.poll(() => f.pending.length).toBe(1);
   f.event.read_at = "2026-10-23T12:00:00Z";

@@ -421,7 +421,7 @@ test("unchanged cells dismiss outside or switch directly to another field withou
     exact: true,
   });
   await title.click();
-  await page.getByRole("heading", { name: "Biblioteca.", exact: true }).click();
+  await page.getByRole("heading", { name: "Biblioteca", exact: true }).click();
   await expect(
     page.getByRole("textbox", { name: "Nombre", exact: true }),
   ).toHaveCount(0);
@@ -459,7 +459,7 @@ test("equivalent date and number formats close outside while changed or invalid 
   await page
     .getByRole("textbox", { name: "Empecé", exact: true })
     .fill("2026-01-01");
-  await page.getByRole("heading", { name: "Biblioteca.", exact: true }).click();
+  await page.getByRole("heading", { name: "Biblioteca", exact: true }).click();
   await expect(
     page.getByRole("textbox", { name: "Empecé", exact: true }),
   ).toHaveCount(0);
@@ -472,7 +472,7 @@ test("equivalent date and number formats close outside while changed or invalid 
   await page
     .getByRole("spinbutton", { name: "Reseña", exact: true })
     .fill("80.00");
-  await page.getByRole("heading", { name: "Biblioteca.", exact: true }).click();
+  await page.getByRole("heading", { name: "Biblioteca", exact: true }).click();
   await expect(
     page.getByRole("spinbutton", { name: "Reseña", exact: true }),
   ).toHaveCount(0);
@@ -484,13 +484,13 @@ test("equivalent date and number formats close outside while changed or invalid 
     .click();
   const input = page.getByRole("textbox", { name: "Nombre", exact: true });
   await input.fill("Changed");
-  await page.getByRole("heading", { name: "Biblioteca.", exact: true }).click();
+  await page.getByRole("heading", { name: "Biblioteca", exact: true }).click();
   await expect(input).toHaveValue("Changed");
   await input.fill("");
-  await page.getByRole("heading", { name: "Biblioteca.", exact: true }).click();
+  await page.getByRole("heading", { name: "Biblioteca", exact: true }).click();
   await expect(input).toHaveValue("");
   await input.fill("Inline fixture");
-  await page.getByRole("heading", { name: "Biblioteca.", exact: true }).click();
+  await page.getByRole("heading", { name: "Biblioteca", exact: true }).click();
   await expect(input).toHaveCount(0);
   expect(f.pending).toHaveLength(0);
 });

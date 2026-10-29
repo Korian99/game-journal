@@ -52,6 +52,7 @@ import {
   Plus,
   Settings,
   Users,
+  X,
 } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { saveResponseSchema } from "@/lib/contracts";
@@ -70,9 +71,12 @@ import { useJournalColumns } from "./journal-columns";
 import { JournalGameTable } from "./journal-game-table";
 import { JournalSummary } from "./journal-summary";
 import { JournalToolbar } from "./journal-toolbar";
+import { NotebookLibraryToolbar } from "./notebook-library-toolbar";
 import { NotificationDrawer } from "../notifications/notification-drawer";
 import { StatisticsPanel } from "./statistics-panel";
 import { NotificationSettings } from "../settings/notification-settings";
+import "./notebook-library.css";
+import "./notebook-theme.css";
 
 const nav = [
   ["library", "Biblioteca", Library],
@@ -337,12 +341,28 @@ export function JournalApp({
     setSidebarOpen(false);
   }
   return (
-    <div className="app-shell">
-      <aside className={"sidebar " + (sidebarOpen ? "open" : "")}>
+    <div
+      className={
+        "app-shell notebook-app" +
+        (view === "library" ? " notebook-library" : "")
+      }
+    >
+      <aside
+        id="journal-full-navigation"
+        className={"sidebar " + (sidebarOpen ? "open" : "")}
+      >
         <a href="/" className="brand">
           <span className="brand-icon">gj.</span>
           <span>Game Journal</span>
         </a>
+        <button
+          type="button"
+          className="notebook-menu-close"
+          aria-label="Cerrar menú"
+          onClick={() => setSidebarOpen(false)}
+        >
+          <X size={20} aria-hidden="true" />
+        </button>
         <nav>
           {nav.map(([key, label, Icon]) => (
             <button
@@ -384,11 +404,61 @@ export function JournalApp({
           </button>
         </div>
       </aside>
+      {sidebarOpen && (
+        <button
+          type="button"
+          className="notebook-menu-scrim"
+          aria-label="Cerrar menú"
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
+      <nav className="notebook-bottom-nav" aria-label="Navegación móvil">
+        <button
+          type="button"
+          aria-current={view === "library" ? "page" : undefined}
+          onClick={() => switchView("library")}
+        >
+          <Library size={20} aria-hidden="true" />
+          <span>Biblioteca</span>
+        </button>
+        <button
+          type="button"
+          aria-current={view === "journal" ? "page" : undefined}
+          onClick={() => switchView("journal")}
+        >
+          <BookOpen size={20} aria-hidden="true" />
+          <span>Diario</span>
+        </button>
+        <button
+          type="button"
+          aria-current={view === "wishlist" ? "page" : undefined}
+          onClick={() => switchView("wishlist")}
+        >
+          <Heart size={20} aria-hidden="true" />
+          <span>Deseos</span>
+        </button>
+        <button
+          type="button"
+          aria-expanded={sidebarOpen}
+          aria-controls="journal-full-navigation"
+          aria-current={
+            ["library", "journal", "wishlist"].includes(view)
+              ? undefined
+              : "page"
+          }
+          onClick={() => setSidebarOpen((open) => !open)}
+        >
+          <Menu size={20} aria-hidden="true" />
+          <span>Más</span>
+        </button>
+      </nav>
       <main className="main">
         <header className="topbar">
           <button
             className="icon-button mobile-only"
             aria-label="Abrir menú"
+            aria-expanded={sidebarOpen}
+            aria-controls="journal-full-navigation"
             onClick={() => setSidebarOpen(!sidebarOpen)}
           >
             <Menu size={21} />
@@ -458,30 +528,45 @@ export function JournalApp({
               : "")
           }
         >
-          <div className="page-heading">
-            <div>
-              <h1>
-                {title}
-                {!title.endsWith("?") && <span className="accent">.</span>}
-              </h1>
+          {view === "library" ? (
+            <NotebookLibraryToolbar
+              location={journalLocation}
+              platforms={platforms}
+              yearOptions={yearOptions}
+              resultsCount={games.length}
+              onAdd={() =>
+                openEntry({
+                  ...emptyRecord,
+                  status: "wishlist",
+                })
+              }
+            />
+          ) : (
+            <div className="page-heading">
+              <div>
+                <h1>
+                  {title}
+                  {!title.endsWith("?") && <span className="accent">.</span>}
+                </h1>
+              </div>
+              {!["shared", "settings", "statistics", "suggestions"].includes(
+                view,
+              ) && (
+                <button
+                  className="primary"
+                  onClick={() =>
+                    openEntry({
+                      ...emptyRecord,
+                      status: "wishlist",
+                    })
+                  }
+                >
+                  <Plus size={17} />
+                  Agregar juego
+                </button>
+              )}
             </div>
-            {!["shared", "settings", "statistics", "suggestions"].includes(
-              view,
-            ) && (
-              <button
-                className="primary"
-                onClick={() =>
-                  openEntry({
-                    ...emptyRecord,
-                    status: "wishlist",
-                  })
-                }
-              >
-                <Plus size={17} />
-                Agregar juego
-              </button>
-            )}
-          </div>
+          )}
           {!online && (
             <div className="banner" role="status">
               Sin conexión. Los precios pueden estar desactualizados.
@@ -801,21 +886,23 @@ export function JournalApp({
             </section>
           ) : (
             <>
-              <JournalToolbar
-                location={journalLocation}
-                platforms={platforms}
-                yearOptions={yearOptions}
-                busy={busy}
-                onRefresh={() =>
-                  performAction(
-                    () => apiRequest("/api/refresh", "POST", {}),
-                    "Precios consultados.",
-                  )
-                }
-              />
+              {view !== "library" && (
+                <JournalToolbar
+                  location={journalLocation}
+                  platforms={platforms}
+                  yearOptions={yearOptions}
+                  busy={busy}
+                  onRefresh={() =>
+                    performAction(
+                      () => apiRequest("/api/refresh", "POST", {}),
+                      "Precios consultados.",
+                    )
+                  }
+                />
+              )}
               <div
                 className={
-                  ["library", "journal"].includes(view)
+                  view === "journal"
                     ? "collection-layout with-summary"
                     : "collection-layout"
                 }
@@ -829,64 +916,6 @@ export function JournalApp({
                           " " +
                           (games.length === 1 ? "juego" : "juegos")}
                     </span>
-                    {view === "library" && (
-                      <select
-                        className="library-sort"
-                        aria-label="Ordenar Biblioteca"
-                        value={
-                          sort[0]
-                            ? sort[0].id + "." + (sort[0].desc ? "desc" : "asc")
-                            : ""
-                        }
-                        onChange={(event) => {
-                          const [id, direction] = event.target.value.split(".");
-                          setSort(
-                            id
-                              ? [
-                                  { id, desc: direction === "desc" },
-                                  ...(id === "title"
-                                    ? []
-                                    : [{ id: "title", desc: false }]),
-                                ]
-                              : [],
-                          );
-                        }}
-                      >
-                        <option value="">Sin ordenar</option>
-                        <option value="title.asc">Juego: A → Z</option>
-                        <option value="title.desc">Juego: Z → A</option>
-                        <option value="status.asc">Estado: A → Z</option>
-                        <option value="status.desc">Estado: Z → A</option>
-                        <option value="started.desc">
-                          Empecé: más reciente
-                        </option>
-                        <option value="started.asc">Empecé: más antiguo</option>
-                        <option value="finished.desc">
-                          Terminé: más reciente
-                        </option>
-                        <option value="finished.asc">
-                          Terminé: más antiguo
-                        </option>
-                        <option value="hours.desc">Horas: mayor a menor</option>
-                        <option value="hours.asc">Horas: menor a mayor</option>
-                        <option value="rating.desc">
-                          Reseña: mayor a menor
-                        </option>
-                        <option value="rating.asc">
-                          Reseña: menor a mayor
-                        </option>
-                        <option value="reason.asc">Por qué: A → Z</option>
-                        <option value="reason.desc">Por qué: Z → A</option>
-                        <option value="impression.asc">
-                          Impresiones: A → Z
-                        </option>
-                        <option value="impression.desc">
-                          Impresiones: Z → A
-                        </option>
-                        <option value="notes.asc">Comentarios: A → Z</option>
-                        <option value="notes.desc">Comentarios: Z → A</option>
-                      </select>
-                    )}
                   </div>
                   {!loading && games.length === 0 ? (
                     <Empty
@@ -931,7 +960,7 @@ export function JournalApp({
                     </InlineEditContext.Provider>
                   )}
                 </section>
-                {["library", "journal"].includes(view) && (
+                {view === "journal" && (
                   <JournalSummary
                     summary={summary}
                     view={view}
@@ -939,6 +968,18 @@ export function JournalApp({
                   />
                 )}
               </div>
+              {view === "library" && (
+                <details className="notebook-library-summary">
+                  <summary>
+                    Ver resumen de {selectedYear || "todos los años"}
+                  </summary>
+                  <JournalSummary
+                    summary={summary}
+                    view={view}
+                    selectedYear={selectedYear}
+                  />
+                </details>
+              )}
             </>
           )}
         </div>
