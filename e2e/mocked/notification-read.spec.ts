@@ -88,12 +88,12 @@ test("individual read updates immediately and a failed concurrent read restores 
     .click();
   await expect.poll(() => f.pending.length).toBe(1);
   await expect(item("Aviso 1")).toHaveCount(0);
-  await expect(page.locator(".notification-count")).toHaveText("4");
+  await expect(page.getByRole("button", { name: "Ver notificaciones", includeHidden: true })).toHaveText("4");
   await item("Aviso 2")
     .getByRole("button", { name: "Marcar como leída", exact: true })
     .click();
   await expect.poll(() => f.pending.length).toBe(2);
-  await expect(page.locator(".notification-count")).toHaveText("3");
+  await expect(page.getByRole("button", { name: "Ver notificaciones", includeHidden: true })).toHaveText("3");
   await page.evaluate(() => window.dispatchEvent(new Event("focus")));
   await expect(item("Aviso 1")).toHaveCount(0);
   await expect(item("Aviso 2")).toHaveCount(0);
@@ -108,14 +108,14 @@ test("individual read updates immediately and a failed concurrent read restores 
   );
   await expect(item("Aviso 2")).toBeVisible();
   await expect(item("Aviso 1")).toHaveCount(0);
-  await expect(page.locator(".notification-count")).toHaveText("4");
+  await expect(page.getByRole("button", { name: "Ver notificaciones", includeHidden: true })).toHaveText("4");
   await item("Aviso 2")
     .getByRole("button", { name: "Marcar como leída", exact: true })
     .click();
   await expect.poll(() => f.pending.length).toBe(3);
   f.read.add(f.items[1].id);
   await f.pending[2].fulfill({ json: { ok: true } });
-  await expect(page.locator(".notification-count")).toHaveText("3");
+  await expect(page.getByRole("button", { name: "Ver notificaciones", includeHidden: true })).toHaveText("3");
 });
 
 test("mark all is immediate, closing stays responsive, and refresh failure does not undo a saved read", async ({
@@ -131,7 +131,7 @@ test("mark all is immediate, closing stays responsive, and refresh failure does 
   await expect.poll(() => f.pending.length).toBe(1);
   await expect(f.drawer).toContainText("0 sin leer en total");
   await expect(f.drawer.locator("li.notification")).toHaveCount(0);
-  await expect(page.locator(".notification-count")).toHaveText("0");
+  await expect(page.getByRole("button", { name: "Ver notificaciones", includeHidden: true })).toHaveText("0");
   await page.keyboard.press("Escape");
   await expect(f.drawer).toHaveCount(0);
   await page.getByRole("button", { name: "Ver notificaciones" }).click();
@@ -186,7 +186,7 @@ test("marking read from settings also updates a previously opened drawer immedia
     .getByRole("button", { name: "Marcar como leídas", exact: true })
     .click();
   await expect.poll(() => f.pending.length).toBe(1);
-  await expect(page.locator(".notification-count")).toHaveText("0");
+  await expect(page.getByRole("button", { name: "Ver notificaciones", includeHidden: true })).toHaveText("0");
   await page.getByRole("button", { name: "Ver notificaciones" }).click();
   await expect(f.drawer.locator("li.notification")).toHaveCount(0);
   await expect(f.drawer).toContainText("0 sin leer en total");
@@ -195,7 +195,7 @@ test("marking read from settings also updates a previously opened drawer immedia
     json: { error: "No se pudo guardar la lectura", code: "TEMPORARY" },
   });
   await expect(f.drawer.locator("li.notification")).toHaveCount(3);
-  await expect(page.locator(".notification-count")).toHaveText("5");
+  await expect(page.getByRole("button", { name: "Ver notificaciones", includeHidden: true })).toHaveText("5");
 });
 
 test("a failed read of a paginated notification restores it even when refreshing also fails", async ({
@@ -212,7 +212,7 @@ test("a failed read of a paginated notification restores it even when refreshing
     .click();
   await expect.poll(() => f.pending.length).toBe(1);
   await expect(older).toHaveCount(0);
-  await expect(page.locator(".notification-count")).toHaveText("4");
+  await expect(page.getByRole("button", { name: "Ver notificaciones", includeHidden: true })).toHaveText("4");
   f.failNextRefresh();
   await f.pending[0].fulfill({
     status: 503,
@@ -220,5 +220,5 @@ test("a failed read of a paginated notification restores it even when refreshing
   });
   await expect(older).toBeVisible();
   await expect(f.drawer.locator("li.notification")).toHaveCount(4);
-  await expect(page.locator(".notification-count")).toHaveText("5");
+  await expect(page.getByRole("button", { name: "Ver notificaciones", includeHidden: true })).toHaveText("5");
 });

@@ -181,7 +181,12 @@ test("notification drawer has exact unread counts, pagination and targeted read 
     .first()
     .click();
   await expect.poll(() => readId).toBe(item.id);
-  await expect(page.locator(".notification-count")).toHaveText("344");
+  await expect(
+    page.getByRole("button", {
+      name: "Ver notificaciones",
+      includeHidden: true,
+    }),
+  ).toHaveText("344");
   await drawer.getByLabel("Mostrar").selectOption("all");
   await expect(page).toHaveURL(/notificationRead=all/);
   await page.screenshot({
