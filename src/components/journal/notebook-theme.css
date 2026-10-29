@@ -684,3 +684,10 @@ body:has(.notebook-app) .notebook-saved {
     border-radius: 7px;
   }
 }
+body:has(.notebook-app) .inline-edit-bar.is-confirmation {
+  pointer-events: none;
+}
+
+body:has(.notebook-app) .inline-edit-bar.is-confirmation .inline-bar-actions {
+  pointer-events: auto;
+}

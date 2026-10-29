@@ -359,6 +359,62 @@ test("Ctrl+Z undoes saved edits in order without replacing native text undo", as
   });
   await f.succeed(3);
 });
+test("saved confirmation can be dismissed without losing undo history", async ({
+  page,
+}) => {
+  const f = await setup(page);
+  await page.goto("./?tab=library&year=all");
+  await page
+    .getByRole("button", {
+      name: "Editar Hs. jugadas de Inline fixture",
+      exact: true,
+    })
+    .click();
+  const hours = page.getByRole("spinbutton", {
+    name: "Hs. jugadas",
+    exact: true,
+  });
+  await hours.fill("12.5");
+  await hours.press("Enter");
+  await expect.poll(() => f.pending.length).toBe(1);
+  await f.succeed(0);
+
+  const confirmation = page.locator(".inline-edit-bar");
+  await confirmation
+    .getByRole("button", { name: "Cerrar confirmación", exact: true })
+    .click({ timeout: 1000 });
+  await expect(confirmation).toHaveCount(0);
+
+  await page.keyboard.press("Control+z");
+  await expect.poll(() => f.pending.length).toBe(2);
+  expect(f.pending[1].request().postDataJSON()).toMatchObject({
+    hours: null,
+    intent: "undo",
+  });
+});
+test("saved confirmation expires after 2.5 seconds", async ({ page }) => {
+  const f = await setup(page);
+  await page.goto("./?tab=library&year=all");
+  await page
+    .getByRole("button", {
+      name: "Editar Hs. jugadas de Inline fixture",
+      exact: true,
+    })
+    .click();
+  const hours = page.getByRole("spinbutton", {
+    name: "Hs. jugadas",
+    exact: true,
+  });
+  await hours.fill("12.5");
+  await hours.press("Enter");
+  await expect.poll(() => f.pending.length).toBe(1);
+  await f.succeed(0);
+
+  await expect(page.locator(".inline-edit-bar")).toBeVisible();
+  await expect(page.locator(".inline-edit-bar")).toHaveCount(0, {
+    timeout: 4000,
+  });
+});
 test("mobile cards use the pencil to reach the full editor", async ({
   page,
 }) => {

@@ -137,6 +137,11 @@ for (const editing of [true, false]) {
         json: { records, member: { display_name: "Fixture", role: "member" } },
       });
       await expect(dialog).toHaveCount(0);
+      const successNotice = page
+        .getByRole("status")
+        .filter({ hasText: "Entrada guardada." });
+      await expect(successNotice).toBeVisible();
+      await expect(successNotice).toHaveCount(0, { timeout: 4000 });
     },
   );
 }

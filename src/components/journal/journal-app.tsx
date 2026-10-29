@@ -169,6 +169,11 @@ export function JournalApp({
     );
     return () => clearTimeout(timeout);
   }, [undoEntry]);
+  useEffect(() => {
+    if (!notice) return;
+    const timeout = window.setTimeout(() => setNotice(""), 2500);
+    return () => window.clearTimeout(timeout);
+  }, [notice, setNotice]);
   const openEntry = useCallback((entry: JournalEntry) => {
     setEditingDraft(undefined);
     setEditingEntry(entry);
