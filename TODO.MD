@@ -1,3 +1,3 @@
 - [x] Notebook: A place to write things in a hurry, opened with a button next to notifications. Just plain old text.
-- [ ] If added game release date has not yet happend, default state should be proximo
+- [x] If added game release date has not yet happend, default state should be proximo
 - [ ] The swal that confirms things should last less and have a close button. Sometimes it overlaps with the thing im trying to edit

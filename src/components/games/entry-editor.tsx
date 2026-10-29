@@ -14,7 +14,11 @@ import { ReviewTab } from "./editor/review-tab";
 import { MoreTab } from "./editor/more-tab";
 
 import { periodAfterDateEdits } from "@/lib/journal/entry-period";
-import { statusAfterDateEdits } from "@/lib/journal/entry-status";
+import {
+  defaultNewEntryStatus,
+  statusAfterDateEdits,
+} from "@/lib/journal/entry-status";
+import { parseRelease } from "@/lib/releases";
 import type {
   JournalEntry,
   PerformJournalAction,
@@ -63,7 +67,13 @@ export function EntryEditor({
   onDelete: () => Promise<boolean>;
   runAction: PerformJournalAction;
 }) {
-  const [draft, setDraft] = useState({ ...entry, ...initialDraft });
+  const statusExplicitlyChosen = useRef(initialDraft?.status !== undefined);
+  const [draft, setDraft] = useState(() => {
+    const initial = { ...entry, ...initialDraft };
+    if (!initialDraft?.status && !initial.id && !initial.gameId)
+      initial.status = defaultNewEntryStatus(initial);
+    return initial;
+  });
   const [targetDrafts, setTargetDrafts] = useState<Record<string, string>>({});
   const [targetError, setTargetError] = useState("");
   const targetChanges = offerTargetChanges(offers, targetDrafts);
@@ -102,12 +112,19 @@ export function EntryEditor({
             .filter(Boolean),
         ),
       ].join("; ");
-      return {
+      const next = {
         ...current,
         ...preview.fields,
         platforms,
         pages: [...new Set([...(current.pages ?? []), preview.url])],
       };
+      if (!statusExplicitlyChosen.current && !next.id && !next.gameId)
+        next.status = defaultNewEntryStatus(
+          next,
+          new Date(),
+          preview.quote.status === "upcoming",
+        );
+      return next;
     });
     setStorePreview(preview);
     setPageUrl("");
@@ -178,13 +195,25 @@ export function EntryEditor({
     { id: "review", label: "Reseña" },
     { id: "more", label: "Más" },
   ];
-  const updateDraftField = (key: keyof JournalEntry, value: unknown) =>
+  const updateDraftField = (key: keyof JournalEntry, value: unknown) => {
+    if (key === "status") statusExplicitlyChosen.current = true;
     setDraft((current) => {
       const next = { ...current, [key]: value };
       if (key === "started" || key === "finished")
         next.period = periodAfterDateEdits(next, current);
+      if (key === "release") {
+        const parsed = parseRelease(String(value ?? ""));
+        next.year = parsed.kind === "unknown" ? null : parsed.year;
+        if (!statusExplicitlyChosen.current && !next.id && !next.gameId)
+          next.status = defaultNewEntryStatus(
+            next,
+            new Date(),
+            storePreview?.quote.status === "upcoming",
+          );
+      }
       return next;
     });
+  };
   const renderField = (
     key: keyof JournalEntry,
     label: string,
@@ -532,7 +561,6 @@ export function EntryEditor({
               dirty={dirty}
               entry={entry}
               draft={draft}
-              setDraft={setDraft}
               updateDraftField={updateDraftField}
               renderField={renderField}
               formId={formId}

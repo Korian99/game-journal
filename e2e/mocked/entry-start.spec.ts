@@ -134,6 +134,97 @@ for (const tab of ["library", "journal", "wishlist", "upcoming"]) {
     },
   );
 }
+test("a future release defaults a new game to Próximos until status is chosen", async ({
+  page,
+}) => {
+  const { saves } = await fixture(page);
+  await page
+    .getByRole("button", { name: "Completar manualmente", exact: true })
+    .click();
+  await page
+    .getByLabel("Nombre del juego", { exact: true })
+    .fill("Future game");
+  await page.getByRole("tab", { name: "Más", exact: true }).click();
+  await page.getByLabel("Precisión del lanzamiento").selectOption("date");
+  const release = page.getByLabel("Fecha de lanzamiento", { exact: true });
+  await release.fill("2199-01-01");
+  await page.getByRole("tab", { name: "Principal", exact: true }).click();
+  const status = page.getByLabel("Estado", { exact: true });
+  await expect(status).toHaveValue("upcoming");
+
+  await page.getByRole("tab", { name: "Más", exact: true }).click();
+  await release.fill("2011-01-01");
+  await page.getByRole("tab", { name: "Principal", exact: true }).click();
+  await expect(status).toHaveValue("wishlist");
+
+  await status.selectOption("wishlist");
+  await page.getByRole("tab", { name: "Más", exact: true }).click();
+  await release.fill("2199-01-01");
+  await page.getByRole("tab", { name: "Principal", exact: true }).click();
+  await expect(status).toHaveValue("wishlist");
+  await page
+    .getByRole("button", { name: "Guardar entrada", exact: true })
+    .click();
+  await expect.poll(() => saves.length).toBe(1);
+  expect(saves[0]).toMatchObject({ title: "Future game", status: "wishlist" });
+});
+
+test("store upcoming previews default new games to Próximos", async ({
+  page,
+}) => {
+  const futurePreview = {
+    ...metadata,
+    fields: { ...metadata.fields, release: "2199-01-01", year: 2199 },
+    quote: { ...metadata.quote, status: "upcoming" },
+  };
+  const { saves } = await fixture(page, futurePreview);
+  await page
+    .getByRole("button", { name: "Usar una página", exact: true })
+    .click();
+  await page
+    .getByLabel("Página de Steam o Nintendo", { exact: true })
+    .fill(url);
+  await page.getByRole("button", { name: "Traer datos", exact: true }).click();
+  await expect(page.getByLabel("Estado", { exact: true })).toHaveValue(
+    "upcoming",
+  );
+  await page
+    .getByRole("button", { name: "Guardar entrada", exact: true })
+    .click();
+  await expect.poll(() => saves.length).toBe(1);
+  expect(saves[0]).toMatchObject({ status: "upcoming", year: 2199 });
+});
+
+test("editing an existing entry keeps its selected status with a future release", async ({
+  page,
+}) => {
+  const existing: JournalEntry = {
+    ...emptyRecord,
+    id: "20000000-0000-4000-8000-000000000001",
+    gameId: "30000000-0000-4000-8000-000000000001",
+    title: "Existing paused game",
+    status: "paused",
+    period: "2024",
+    release: "2011-04-18",
+    year: 2011,
+  };
+  const { saves } = await fixture(page, metadata, existing, "journal");
+  const status = page.getByLabel("Estado", { exact: true });
+  await expect(status).toHaveValue("paused");
+  await page.getByRole("tab", { name: "Más", exact: true }).click();
+  await page.getByLabel("Precisión del lanzamiento").selectOption("date");
+  await page
+    .getByLabel("Fecha de lanzamiento", { exact: true })
+    .fill("2199-01-01");
+  await page.getByRole("tab", { name: "Principal", exact: true }).click();
+  await expect(status).toHaveValue("paused");
+  await page
+    .getByRole("button", { name: "Guardar entrada", exact: true })
+    .click();
+  await expect.poll(() => saves.length).toBe(1);
+  expect(saves[0]).toMatchObject({ id: existing.id, status: "paused" });
+});
+
 test("Steam lookup fills an editable draft and waits for an explicit save", async ({
   page,
 }) => {

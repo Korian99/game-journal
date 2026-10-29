@@ -1,8 +1,6 @@
 "use client";
 import { apiRequest } from "@/lib/api-client";
 
-import { parseRelease } from "@/lib/releases";
-
 import { Share2 } from "lucide-react";
 
 import { ReleaseField } from "../release-field";
@@ -12,7 +10,6 @@ export function MoreTab({
   dirty,
   entry,
   draft,
-  setDraft,
   updateDraftField,
   renderField,
   formId,
@@ -32,7 +29,6 @@ export function MoreTab({
   | "dirty"
   | "entry"
   | "draft"
-  | "setDraft"
   | "updateDraftField"
   | "renderField"
   | "formId"
@@ -54,12 +50,7 @@ export function MoreTab({
         form={formId}
         error={releaseError}
         onChange={(release) => {
-          const parsed = parseRelease(release);
-          setDraft((current) => ({
-            ...current,
-            release,
-            year: parsed.kind === "unknown" ? null : parsed.year,
-          }));
+          updateDraftField("release", release);
           setReleaseError("");
         }}
       />

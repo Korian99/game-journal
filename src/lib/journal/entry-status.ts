@@ -1,7 +1,36 @@
 import type { JournalRecord, Status } from "../types";
 import { dateOrder } from "./view-config";
+import { recordRelease, releaseHasArrived } from "../releases";
 
 type DatedEntry = Pick<JournalRecord, "started" | "finished" | "status">;
+
+type NewEntryRelease = Pick<
+  JournalRecord,
+  "id" | "release" | "year" | "sourceSnapshot" | "status"
+> & { gameId?: string };
+
+export function defaultNewEntryStatus(
+  entry: NewEntryRelease,
+  now = new Date(),
+  upcomingQuote = false,
+): Status {
+  if (entry.id || entry.gameId) return entry.status;
+
+  const release = recordRelease(entry);
+  if (release.kind === "date")
+    return releaseHasArrived(entry, now) ? "wishlist" : "upcoming";
+
+  const parts = new Intl.DateTimeFormat("en", {
+    timeZone: "America/Argentina/Buenos_Aires",
+    year: "numeric",
+  }).formatToParts(now);
+  const currentYear = Number(parts.find((part) => part.type === "year")!.value);
+  if (release.kind === "year" || release.kind === "season") {
+    if (release.year > currentYear) return "upcoming";
+    return upcomingQuote ? "upcoming" : "wishlist";
+  }
+  return upcomingQuote ? "upcoming" : "wishlist";
+}
 
 export function statusAfterDateEdits(
   draft: DatedEntry,

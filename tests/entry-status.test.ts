@@ -99,3 +99,41 @@ describe("status when saving play dates", () => {
     },
   );
 });
+
+describe("status defaults for new games", () => {
+  it("uses only known future releases and an explicit upcoming quote", async () => {
+    const { defaultNewEntryStatus } =
+      await import("../src/lib/journal/entry-status");
+    expect(defaultNewEntryStatus).toBeTypeOf("function");
+
+    const now = new Date("2026-06-30T23:00:00-03:00");
+    const status = (release: string, upcomingQuote = false) =>
+      defaultNewEntryStatus(
+        { ...emptyRecord, release, year: Number(release.slice(0, 4)) || null },
+        now,
+        upcomingQuote,
+      );
+
+    expect(status("2026-07-01")).toBe("upcoming");
+    expect(status("2026-06-30")).toBe("wishlist");
+    expect(status("2026-01-01")).toBe("wishlist");
+    expect(status("2027")).toBe("upcoming");
+    expect(status("2026")).toBe("wishlist");
+    expect(status("2027-spring")).toBe("upcoming");
+    expect(status("2026-summer")).toBe("wishlist");
+    expect(status("unknown")).toBe("wishlist");
+    expect(status("unknown", true)).toBe("upcoming");
+    expect(status("2026-06-30", true)).toBe("wishlist");
+    expect(
+      defaultNewEntryStatus(
+        {
+          ...emptyRecord,
+          id: "existing",
+          status: "paused",
+          release: "2027-01-01",
+        },
+        now,
+      ),
+    ).toBe("paused");
+  });
+});
