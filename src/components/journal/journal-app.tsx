@@ -1,5 +1,6 @@
 "use client";
 import { DataCheckPanel } from "../settings/data-check-panel";
+import { ThemeSettings } from "../settings/theme-settings";
 import { SuggestionsPanel } from "./suggestions/suggestions-panel";
 import { QuickEditor } from "./mobile/quick-editor";
 import { GlobalSearch } from "./search/global-search";
@@ -635,182 +636,219 @@ export function JournalApp({
               </button>
             </div>
           )}
-          {online && (
+          {online && view !== "settings" && (
             <>
-              <BackupStatus details={view === "settings"} />
-              <DriveBackupPanel details={view === "settings"} />
+              <BackupStatus details={false} />
+              <DriveBackupPanel details={false} />
             </>
           )}
           {view === "settings" ? (
-            <section className="settings-grid">
-              <DataCheckPanel
-                records={records}
-                recordsReady={resourceStates.records.checkedAt !== null}
-                recordsError={!!resourceStates.records.error}
-                online={online}
-                blocked={
-                  busy ||
-                  savingEntry ||
-                  inlineEditing.saving ||
-                  inlineEditing.dirty
-                }
-                dirty={inlineEditing.dirty}
-                location={journalLocation}
-                onReload={() => void reloadRecords()}
-                onView={(entry) => {
-                  if (
-                    inlineEditing.dirty ||
-                    inlineEditing.saving ||
-                    busy ||
-                    savingEntry
-                  )
-                    return;
-                  const current = getRecord(entry.id ?? "");
-                  if (!current) {
-                    setNotice("La partida ya no está disponible.");
-                    return;
-                  }
-                  inlineEditing.cancel();
-                  const destination = entryDestination(current);
-                  journalLocation.revealEntry(
-                    destination.view,
-                    destination.entryId,
-                  );
-                }}
-                onEdit={(entry) => {
-                  if (
-                    inlineEditing.dirty ||
-                    inlineEditing.saving ||
-                    busy ||
-                    savingEntry
-                  )
-                    return;
-                  const current = getRecord(entry.id ?? "");
-                  if (!current) {
-                    setNotice("La partida ya no está disponible.");
-                    return;
-                  }
-                  inlineEditing.cancel();
-                  openEntry({ ...current });
-                }}
-              />
-              <article className="panel">
-                <ScoringGuide />
-              </article>
-              <TrashPanel
-                onChanged={async () => {
-                  setUndoEntry(null);
-                  await reloadJournal();
-                }}
-              />
-              <article className="panel">
-                <h2>Datos</h2>
-                <p>Revisá los cambios antes de importar.</p>
-                <button
-                  className="primary"
-                  disabled={busy || !online}
-                  onClick={importSheet}
-                >
-                  <Download size={16} />
-                  Importar desde Google Sheets
-                </button>
-                <div className="button-row">
-                  <a className="secondary" href="/api/export?format=xlsx">
-                    Exportar Excel
-                  </a>
-                  <a className="secondary" href="/api/export">
-                    Respaldo JSON
-                  </a>
-                  <a className="secondary" href="/api/export?format=csv">
-                    Exportar CSV
-                  </a>
+            <div className="settings-groups">
+              <section
+                className="settings-group"
+                aria-labelledby="settings-appearance-title"
+              >
+                <div className="settings-group-heading">
+                  <p className="eyebrow">LECTURA</p>
+                  <h2 id="settings-appearance-title">
+                    Apariencia y preferencias
+                  </h2>
                 </div>
-                <p className="fine-print">
-                  Excel y JSON incluyen todos tus juegos, páginas e historial de
-                  precios. CSV incluye los juegos. Guardá una copia fuera de la
-                  app.
-                </p>
-              </article>
-              <article className="panel">
-                <h2>Preferencias</h2>
-                <button
-                  className="secondary"
-                  onClick={() => {
-                    const light =
-                      !document.documentElement.classList.contains("light");
-                    document.documentElement.classList.toggle("light", light);
-                    localStorage.setItem(
-                      "journal-theme",
-                      light ? "light" : "dark",
-                    );
-                  }}
+                <div className="settings-grid">
+                  <ThemeSettings />
+                  <article className="panel">
+                    <h2>Avisos y alertas</h2>
+                    <NotificationSettings onChanged={reloadJournal} />
+                  </article>
+                </div>
+              </section>
+              {online && (
+                <section
+                  className="settings-group"
+                  aria-labelledby="settings-backup-title"
                 >
-                  Cambiar tema
-                </button>
-                <NotificationSettings onChanged={reloadJournal} />
-              </article>
-              {member?.role === "admin" && (
-                <article className="panel">
-                  <h2>Invitaciones privadas</h2>
-                  <p>Acceso solo por invitación.</p>
-                  <AdminInvite onError={setError} />
-                </article>
+                  <div className="settings-group-heading">
+                    <p className="eyebrow">COPIAS</p>
+                    <h2 id="settings-backup-title">Respaldos</h2>
+                  </div>
+                  <div className="settings-grid">
+                    <BackupStatus details />
+                    <DriveBackupPanel details />
+                  </div>
+                </section>
               )}
-              <article className="panel">
-                <div className="notification-heading">
-                  <h2>Últimas novedades</h2>
-                  {notifications.some((n) => !n.read_at) && (
-                    <button
-                      className="text-button"
-                      disabled={
-                        notificationReadsPending ||
-                        !online ||
-                        !notificationPageCheckedAt
-                      }
-                      onClick={() =>
-                        void readNotifications(
-                          { allBefore: notificationPageCheckedAt },
-                          unreadCount ?? 0,
-                        ).catch(() => undefined)
-                      }
-                    >
-                      Marcar como leídas
-                    </button>
-                  )}
+              <section
+                className="settings-group"
+                aria-labelledby="settings-data-title"
+              >
+                <div className="settings-group-heading">
+                  <p className="eyebrow">ARCHIVO</p>
+                  <h2 id="settings-data-title">Datos y biblioteca</h2>
                 </div>
-                {notifications.length ? (
-                  notifications.slice(0, 10).map((n) => (
-                    <div className="notification" key={n.id}>
-                      <a
-                        className="notification-link"
-                        href={notificationHref(n)}
-                        onClick={(event) => {
-                          if (
-                            event.metaKey ||
-                            event.ctrlKey ||
-                            event.shiftKey ||
-                            event.altKey
-                          )
-                            return;
-                          event.preventDefault();
-                          openNotification(n);
-                        }}
-                      >
-                        <strong>{n.title}</strong>
-                        <p>{n.body}</p>
-                        <small>{formatDateTime(n.created_at)}</small>
+                <div className="settings-grid">
+                  <DataCheckPanel
+                    records={records}
+                    recordsReady={resourceStates.records.checkedAt !== null}
+                    recordsError={!!resourceStates.records.error}
+                    online={online}
+                    blocked={
+                      busy ||
+                      savingEntry ||
+                      inlineEditing.saving ||
+                      inlineEditing.dirty
+                    }
+                    dirty={inlineEditing.dirty}
+                    location={journalLocation}
+                    onReload={() => void reloadRecords()}
+                    onView={(entry) => {
+                      if (
+                        inlineEditing.dirty ||
+                        inlineEditing.saving ||
+                        busy ||
+                        savingEntry
+                      )
+                        return;
+                      const current = getRecord(entry.id ?? "");
+                      if (!current) {
+                        setNotice("La partida ya no está disponible.");
+                        return;
+                      }
+                      inlineEditing.cancel();
+                      const destination = entryDestination(current);
+                      journalLocation.revealEntry(
+                        destination.view,
+                        destination.entryId,
+                      );
+                    }}
+                    onEdit={(entry) => {
+                      if (
+                        inlineEditing.dirty ||
+                        inlineEditing.saving ||
+                        busy ||
+                        savingEntry
+                      )
+                        return;
+                      const current = getRecord(entry.id ?? "");
+                      if (!current) {
+                        setNotice("La partida ya no está disponible.");
+                        return;
+                      }
+                      inlineEditing.cancel();
+                      openEntry({ ...current });
+                    }}
+                  />
+                  <TrashPanel
+                    onChanged={async () => {
+                      setUndoEntry(null);
+                      await reloadJournal();
+                    }}
+                  />
+                  <article className="panel">
+                    <h2>Datos</h2>
+                    <p>Revisá los cambios antes de importar.</p>
+                    <button
+                      className="primary"
+                      disabled={busy || !online}
+                      onClick={importSheet}
+                    >
+                      <Download size={16} />
+                      Importar desde Google Sheets
+                    </button>
+                    <div className="button-row">
+                      <a className="secondary" href="/api/export?format=xlsx">
+                        Exportar Excel
+                      </a>
+                      <a className="secondary" href="/api/export">
+                        Respaldo JSON
+                      </a>
+                      <a className="secondary" href="/api/export?format=csv">
+                        Exportar CSV
                       </a>
                     </div>
-                  ))
-                ) : (
-                  <p className="muted">
-                    {resourceStates.notifications.error
-                      ? "No se pudieron cargar las alertas."
-                      : "Sin alertas."}
-                  </p>
-                )}
-              </article>
-            </section>
+                    <p className="fine-print">
+                      Excel y JSON incluyen todos tus juegos, páginas e
+                      historial de precios. CSV incluye los juegos. Guardá una
+                      copia fuera de la app.
+                    </p>
+                  </article>
+                </div>
+              </section>
+              <section
+                className="settings-group"
+                aria-labelledby="settings-activity-title"
+              >
+                <div className="settings-group-heading">
+                  <p className="eyebrow">SEGUIMIENTO</p>
+                  <h2 id="settings-activity-title">Actividad y referencias</h2>
+                </div>
+                <div className="settings-grid">
+                  <article className="panel">
+                    <ScoringGuide />
+                  </article>
+                  {member?.role === "admin" && (
+                    <article className="panel">
+                      <h2>Invitaciones privadas</h2>
+                      <p>Acceso solo por invitación.</p>
+                      <AdminInvite onError={setError} />
+                    </article>
+                  )}
+                  <article className="panel">
+                    <div className="notification-heading">
+                      <h2>Últimas novedades</h2>
+                      {notifications.some((n) => !n.read_at) && (
+                        <button
+                          className="text-button"
+                          disabled={
+                            notificationReadsPending ||
+                            !online ||
+                            !notificationPageCheckedAt
+                          }
+                          onClick={() =>
+                            void readNotifications(
+                              { allBefore: notificationPageCheckedAt },
+                              unreadCount ?? 0,
+                            ).catch(() => undefined)
+                          }
+                        >
+                          Marcar como leídas
+                        </button>
+                      )}
+                    </div>
+                    {notifications.length ? (
+                      notifications.slice(0, 10).map((n) => (
+                        <div className="notification" key={n.id}>
+                          <a
+                            className="notification-link"
+                            href={notificationHref(n)}
+                            onClick={(event) => {
+                              if (
+                                event.metaKey ||
+                                event.ctrlKey ||
+                                event.shiftKey ||
+                                event.altKey
+                              )
+                                return;
+                              event.preventDefault();
+                              openNotification(n);
+                            }}
+                          >
+                            <strong>{n.title}</strong>
+                            <p>{n.body}</p>
+                            <small>{formatDateTime(n.created_at)}</small>
+                          </a>
+                        </div>
+                      ))
+                    ) : (
+                      <p className="muted">
+                        {resourceStates.notifications.error
+                          ? "No se pudieron cargar las alertas."
+                          : "Sin alertas."}
+                      </p>
+                    )}
+                  </article>
+                </div>
+              </section>
+            </div>
           ) : view === "suggestions" ? (
             <SuggestionsPanel
               records={records}

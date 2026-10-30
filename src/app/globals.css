@@ -10,18 +10,20 @@
   --accent: #e5bc6b;
   --ink: #17160f;
   --error: #f8a193;
+  --collection-highlight: #80b780;
   --font-body: "Trebuchet MS", "Segoe UI", sans-serif;
   color-scheme: dark;
 }
 :root.light {
-  --bg: #f4f1e9;
-  --surface: #fffdf8;
-  --raised: #eae6dc;
-  --line: #d8d4c7;
-  --text: #25291f;
-  --muted: #696e60;
-  --accent: #916b23;
-  --ink: #fffdf8;
+  --bg: #ede5d8;
+  --surface: #f5eee3;
+  --raised: #e2d5c2;
+  --line: #cebea7;
+  --text: #332a21;
+  --muted: #7a6957;
+  --accent: #a46b32;
+  --collection-highlight: #326ba4;
+  --ink: #f5eee3;
   --error: #a42e24;
   color-scheme: light;
 }
@@ -1547,12 +1549,16 @@ tbody tr:hover {
   font-weight: 600;
 }
 
-/* Active wishlist offers use the collection's green accent. */
+/* Active wishlist discounts and released upcoming entries share one highlight. */
 tbody tr.wishlist-discounted,
 tbody tr.upcoming-released,
 .mobile-game.upcoming-released,
 .mobile-game.wishlist-discounted {
-  background: color-mix(in srgb, #80b780 12%, transparent);
+  background: color-mix(
+    in srgb,
+    var(--collection-highlight) 12%,
+    transparent
+  );
 }
 tbody tr.upcoming-released:hover,
 .mobile-game.upcoming-released:hover,
@@ -1560,13 +1566,17 @@ tbody tr.upcoming-released:hover,
 tbody tr.wishlist-discounted:hover,
 .mobile-game.wishlist-discounted:hover,
 .mobile-game.wishlist-discounted:focus-visible {
-  background: color-mix(in srgb, #80b780 20%, var(--raised));
+  background: color-mix(
+    in srgb,
+    var(--collection-highlight) 20%,
+    var(--raised)
+  );
 }
 tbody tr.upcoming-released td:first-child,
 .mobile-game.upcoming-released,
 tbody tr.wishlist-discounted td:first-child,
 .mobile-game.wishlist-discounted {
-  box-shadow: inset 3px 0 #80b780;
+  box-shadow: inset 3px 0 var(--collection-highlight);
 }
 
 .upcoming-table td {
@@ -2413,22 +2423,30 @@ tbody tr.wishlist-discounted td:first-child,
   outline: 2px solid var(--accent);
   outline-offset: 5px;
 }
-/* Playing entries use the same green emphasis as active discounts. */
+/* Playing entries share the light collection highlight and keep the dark fallback. */
 .library-playing:not(.notification-highlight),
 .library-playing:not(.notification-highlight) + .game-comments-row {
-  background: color-mix(in srgb, #80b780 12%, transparent);
+  background: color-mix(
+    in srgb,
+    var(--collection-highlight) 12%,
+    transparent
+  );
 }
 .library-playing:not(.notification-highlight):hover,
 .library-playing:not(.notification-highlight):focus-visible,
 .library-playing:not(.notification-highlight):hover + .game-comments-row,
 .library-playing:not(.notification-highlight):has(+ .game-comments-row:hover),
 .library-playing:not(.notification-highlight) + .game-comments-row:hover {
-  background: color-mix(in srgb, #80b780 20%, var(--raised));
+  background: color-mix(
+    in srgb,
+    var(--collection-highlight) 20%,
+    var(--raised)
+  );
 }
 .library-playing:not(.notification-highlight) > td:first-child,
 .library-playing:not(.notification-highlight) + .game-comments-row > td,
 .mobile-game.library-playing:not(.notification-highlight) {
-  box-shadow: inset 3px 0 #80b780;
+  box-shadow: inset 3px 0 var(--collection-highlight);
 }
 
 .game-data-row.notification-highlight,
