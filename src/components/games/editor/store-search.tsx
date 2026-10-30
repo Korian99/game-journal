@@ -8,6 +8,7 @@ import {
   storePreviewSchema,
   type StorePreview,
 } from "@/lib/offers/store-preview-contract";
+import { coverSchema } from "@/lib/covers";
 import type { StoreSearchResult } from "@/lib/offers/store-search";
 
 const searchSchema = z.object({
@@ -18,6 +19,7 @@ const searchSchema = z.object({
       id: z.string(),
       url: z.url(),
       platform: z.string().optional(),
+      cover: coverSchema.optional(),
     }),
   ),
 });
@@ -133,6 +135,7 @@ export function StoreSearch({
         storePreviewSchema,
         AbortSignal.any([controller.signal, AbortSignal.timeout(15000)]),
       );
+      if (!preview.cover && result.cover) preview.cover = result.cover;
       if (activePreview.current === controller && !controller.signal.aborted)
         onLoaded(preview);
     } catch (failure) {

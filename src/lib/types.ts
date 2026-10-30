@@ -1,3 +1,5 @@
+import type { Cover } from "./covers";
+
 export type Status =
   | "playing"
   | "completed"
@@ -7,6 +9,7 @@ export type Status =
   | "wishlist"
   | "upcoming";
 export type JournalRecord = {
+  cover?: Cover;
   id?: string;
   title: string;
   year: number | null;

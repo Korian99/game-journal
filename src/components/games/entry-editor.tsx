@@ -27,6 +27,7 @@ import type {
 import { statuses, type Offer } from "@/lib/types";
 import { pagesSchema, releaseSchema } from "@/lib/validation";
 import { formatDate } from "@/lib/journal/view-config";
+import { mergeProviderCover } from "@/lib/covers";
 import { Check, LoaderCircle, Trash2 } from "lucide-react";
 import { useEffect, useId, useRef, useState } from "react";
 import { EntryActionsMenu } from "./entry-actions-menu";
@@ -112,9 +113,11 @@ export function EntryEditor({
             .filter(Boolean),
         ),
       ].join("; ");
+      const cover = mergeProviderCover(current.cover, preview.cover);
       const next = {
         ...current,
         ...preview.fields,
+        ...(cover ? { cover } : {}),
         platforms,
         pages: [
           ...new Set([

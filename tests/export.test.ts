@@ -247,6 +247,20 @@ it("keeps raw source data in JSON and reads every owned offer and history page",
   expect(queries.every((q) => q.owner === owner)).toBe(true);
   expect(queries.some((q) => q.after)).toBe(true);
 });
+it("keeps owner cover metadata in JSON while tabular exports retain their columns", async () => {
+  const cover = {
+    provider: "steam",
+    providerUrl:
+      "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/620/header.jpg",
+  } as const;
+  records[0].cover = cover;
+  const response = await GET(request("json"));
+  expect((await response.json()).records[0].cover).toEqual(cover);
+  const { book } = await workbook();
+  expect(book.getWorksheet("Juegos")!.getRow(1).values).not.toContain(
+    "Portada",
+  );
+});
 it.each(["offers", "price_history"])(
   "fails rather than silently omitting unreadable %s",
   async (table) => {

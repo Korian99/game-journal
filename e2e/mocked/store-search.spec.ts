@@ -60,6 +60,11 @@ async function openEntry(page: Page, options: FixtureOptions = {}) {
                       id: "the-legend-of-zelda-breath-of-the-wild-switch",
                       url: "https://www.nintendo.com/es-ar/store/products/the-legend-of-zelda-breath-of-the-wild-switch/",
                       platform: "Switch",
+                      cover: {
+                        providerUrl:
+                          "https://assets.nintendo.com/image/upload/the-legend-of-zelda.jpg",
+                        provider: "nintendo",
+                      },
                     },
                   ]
                 : term === "half-life"
@@ -69,6 +74,11 @@ async function openEntry(page: Page, options: FixtureOptions = {}) {
                         title: "Half-Life",
                         id: "70",
                         url: "https://store.steampowered.com/app/70/",
+                        cover: {
+                          providerUrl:
+                            "https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/70/capsule.jpg",
+                          provider: "steam",
+                        },
                       },
                     ]
                   : [
@@ -77,12 +87,22 @@ async function openEntry(page: Page, options: FixtureOptions = {}) {
                         title: `Portal Companion ${index + 1}`,
                         id: String(500 + index),
                         url: `https://store.steampowered.com/app/${500 + index}/`,
+                        cover: {
+                          providerUrl:
+                            "https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/500/capsule.jpg",
+                          provider: "steam",
+                        },
                       })),
                       {
                         store: "steam",
                         title: "Portal 2",
                         id: "620",
                         url: "https://store.steampowered.com/app/620/",
+                        cover: {
+                          providerUrl:
+                            "https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/620/capsule.jpg",
+                          provider: "steam",
+                        },
                       },
                     ],
         },
@@ -256,6 +276,11 @@ for (const viewport of [
     await expect.poll(() => saves.length).toBe(1);
     expect(saves[0]).toMatchObject({
       title: "Portal 2",
+      cover: {
+        providerUrl:
+          "https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/620/capsule.jpg",
+        provider: "steam",
+      },
       pages: ["https://store.steampowered.com/app/620/"],
     });
   });
@@ -346,6 +371,11 @@ for (const viewport of [
     await expect.poll(() => saves.length).toBe(1);
     expect(saves[0]).toMatchObject({
       title: "The Legend of Zelda: Breath of the Wild",
+      cover: {
+        providerUrl:
+          "https://assets.nintendo.com/image/upload/the-legend-of-zelda.jpg",
+        provider: "nintendo",
+      },
       pages: [
         "https://www.nintendo.com/es-ar/store/products/the-legend-of-zelda-breath-of-the-wild-switch/",
         "https://www.nintendo.com/us/store/products/the-legend-of-zelda-breath-of-the-wild-switch/",

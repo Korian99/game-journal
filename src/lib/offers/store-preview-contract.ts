@@ -1,10 +1,12 @@
 import { z } from "zod";
 import { releaseSchema } from "../validation";
+import { coverSchema } from "../covers";
 
 // Only fields the stores can supply. Personal playthrough fields stay untouched.
 export const storePreviewSchema = z.object({
   url: z.url(),
   additionalPages: z.array(z.url()).max(1).optional(),
+  cover: coverSchema.optional(),
   store: z.enum(["steam", "nintendo"]),
   region: z.string().length(2),
   checkedAt: z.iso.datetime(),

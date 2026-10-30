@@ -2,6 +2,7 @@ import { load } from "cheerio";
 import { parseNintendo, parseSteam, parseStoreUrl } from "../domain";
 import { HttpError } from "../api-errors";
 import { parseRelease } from "../releases";
+import { parseCoverImageUrl, type Cover } from "../covers";
 import {
   storePreviewSchema,
   type StorePreview,
@@ -190,7 +191,21 @@ function nintendoMetadata(html: string, url: string, requireIdentity = false) {
       ? { platforms: [...new Set(platforms)].join("; ") }
       : {}),
     ...releaseFields(release),
+    ...(nintendoProductImage(selected.image)
+      ? {
+          cover: {
+            providerUrl: nintendoProductImage(selected.image)!,
+            provider: "nintendo" as const,
+          },
+        }
+      : {}),
   };
+}
+function nintendoProductImage(value: unknown): string | undefined {
+  const candidate = Array.isArray(value) ? value[0] : value;
+  const source =
+    typeof candidate === "string" ? candidate : object(candidate).url;
+  return parseCoverImageUrl(source);
 }
 export async function loadStorePreview(
   rawUrl: string,
@@ -218,6 +233,7 @@ export async function loadStorePreview(
         ? verifyUsCounterpart(target.product, signal)
         : Promise.resolve(undefined);
     let fields: StorePreview["fields"], quote: StorePreview["quote"];
+    let cover: Cover | undefined;
     if (target.store === "steam") {
       const body = await fetchText(
         "https://store.steampowered.com/api/appdetails?appids=" +
@@ -231,6 +247,11 @@ export async function loadStorePreview(
       quote = parseSteam(result);
       const data = object(object(result).data),
         platforms = object(data.platforms);
+      const image =
+        parseCoverImageUrl(data.header_image) ??
+        parseCoverImageUrl(data.capsule_image) ??
+        parseCoverImageUrl(data.capsule_imagev5);
+      if (image) cover = { providerUrl: image, provider: "steam" };
       fields = {
         title: quote.name ?? "",
         ...(Object.values(platforms).some((value) => value === true)
@@ -240,7 +261,10 @@ export async function loadStorePreview(
       };
     } else {
       const html = await fetchText(target.url, signal);
-      fields = nintendoMetadata(html, target.url);
+      const metadata = nintendoMetadata(html, target.url);
+      fields = metadata;
+      cover = metadata.cover;
+      delete (fields as typeof metadata & { cover?: Cover }).cover;
       try {
         quote = parseNintendo(html, target.url);
       } catch {
@@ -257,6 +281,7 @@ export async function loadStorePreview(
     return storePreviewSchema.parse({
       url: target.url,
       ...(additionalPage ? { additionalPages: [additionalPage] } : {}),
+      ...(cover ? { cover } : {}),
       store: target.store,
       region: target.region,
       fields,

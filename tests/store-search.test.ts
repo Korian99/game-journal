@@ -36,7 +36,14 @@ function upstream(resultsHtml: string) {
 }
 
 it("requests the Steam game category and returns canonical app results", async () => {
-  fetchStore.mockResolvedValue(upstream(row("620", "Portal 2")));
+  fetchStore.mockResolvedValue(
+    upstream(
+      row("620", "Portal 2").replace(
+        "Portal 2</span>",
+        'Portal 2</span><div class="search_capsule"><img src="https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/620/capsule.jpg"></div>',
+      ),
+    ),
+  );
   const response = await search("  portal  ");
   expect(response.status).toBe(200);
   expect(response.headers.get("cache-control")).toBe("private, no-store");
@@ -54,6 +61,11 @@ it("requests the Steam game category and returns canonical app results", async (
         title: "Portal 2",
         id: "620",
         url: "https://store.steampowered.com/app/620/",
+        cover: {
+          providerUrl:
+            "https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/620/capsule.jpg",
+          provider: "steam",
+        },
       },
     ],
   });
@@ -147,6 +159,8 @@ it("searches the Nintendo Argentina game catalog and filters non-title products"
           isUpgrade: false,
           visibleInSearch: true,
           eshopDetails: { productType: "TITLE" },
+          productImageSquare:
+            "https://assets.nintendo.com/image/upload/c_fill,w_512/example.jpg",
         },
         {
           title: "Breath of the Wild Expansion Pass",
@@ -204,6 +218,11 @@ it("searches the Nintendo Argentina game catalog and filters non-title products"
         id: "the-legend-of-zelda-breath-of-the-wild-switch",
         url: "https://www.nintendo.com/es-ar/store/products/the-legend-of-zelda-breath-of-the-wild-switch/",
         platform: "Switch",
+        cover: {
+          providerUrl:
+            "https://assets.nintendo.com/image/upload/c_fill,w_512/example.jpg",
+          provider: "nintendo",
+        },
       },
     ],
   });

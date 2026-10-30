@@ -3,6 +3,7 @@ import { z } from "zod";
 import { normalizeConsoleLabels } from "./journal/console-labels";
 import { statusSchema } from "./journal/status-schema";
 import { parseRelease } from "./releases";
+import { coverSchema } from "./covers";
 export const releaseSchema = z
   .string()
   .trim()
@@ -40,6 +41,7 @@ export const pagesSchema = z
   .transform((pages) => [...new Set(pages)]);
 export const recordSchema = z
   .object({
+    cover: coverSchema.optional(),
     id: z.uuid().optional(),
     gameId: z.uuid().optional(),
     title: z.string().trim().min(1).max(300),

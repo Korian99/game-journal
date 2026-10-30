@@ -1,5 +1,6 @@
 import { parseStoreUrl } from "../domain";
 import { HttpError } from "../api-errors";
+import { parseCoverImageUrl, type Cover } from "../covers";
 
 export type NintendoSearchResult = {
   store: "nintendo";
@@ -7,6 +8,7 @@ export type NintendoSearchResult = {
   id: string;
   url: string;
   platform?: string;
+  cover?: Cover;
 };
 
 const applicationId = "U3B6GR4UA3";
@@ -16,6 +18,7 @@ const attributesToRetrieve = [
   "title",
   "url",
   "urlKey",
+  "productImageSquare",
   "platform",
   "platformCode",
   "topLevelCategoryCode",
@@ -84,6 +87,14 @@ export function parseNintendoSearchResults(
         id: urlKey,
         url: identity.url,
         ...(platform(hit.platform) ? { platform: platform(hit.platform) } : {}),
+        ...(parseCoverImageUrl(hit.productImageSquare)
+          ? {
+              cover: {
+                providerUrl: parseCoverImageUrl(hit.productImageSquare)!,
+                provider: "nintendo" as const,
+              },
+            }
+          : {}),
       });
     } catch {
       continue;

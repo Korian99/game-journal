@@ -1,9 +1,9 @@
 # Covers, recaps, and game series
 
-**State:** Implementation requested 2026-10-30; checkpoint 0 complete; checkpoint 1 not started
+**State:** Implementation requested 2026-10-30; checkpoint 0 complete; checkpoint 1 complete locally; checkpoint 2 not started
 **Prepared:** 2026-10-30
 
-This plan adds game cover art, private monthly and yearly recaps, and user-defined game series. Checkpoint 0 is complete; starting checkpoint 1 and committing its work still follow the user’s working agreement. No production SQL, push, or deployment is authorized.
+This plan adds game cover art, private monthly and yearly recaps, and user-defined game series. Checkpoint 0 is complete. Checkpoint 1 implementation, focused checks, and independent data/privacy review are complete locally; committing it or starting checkpoint 2 still follows the user’s working agreement. No production SQL, push, or deployment is authorized.
 
 The delivery order is **covers → recaps → series**. Each numbered checkpoint is one coherent implementation unit. For each unit, complete the focused checks and present the diff and results; wait for explicit approval before committing or beginning the next unit. Do not reconstruct intermediate commits or perform remote operations.
 
@@ -37,14 +37,14 @@ Checkpoint 0 verifies these defaults against the current data model, ownership a
 - **Exports and sharing:** `/api/export` returns JSON version 2 from the `list_records` projection; CSV/XLSX use fixed columns in `src/lib/export.ts`. Include validated cover metadata in structured JSON and backups; preserve existing CSV/XLSX columns. `private.read_shared()` in migration `20261022104421_recoverable_playthrough_trash.sql` constructs an explicit field allowlist and currently exposes no cover metadata. For an already-shared game, expose only its validated effective cover URL through the same grant, projection, and revocation rules; never expose provider or override metadata. Require privacy and grant-revocation tests in checkpoint 1.
 - **Date and statistics:** `src/lib/journal/view-config.ts` parses full valid dates and formats date-only values from UTC calendar components to avoid day shifts; it does not parse year-only values as dates. `src/lib/journal/statistics.ts` sums playthrough hours over its year cohort, not hours played during that calendar year. Recap period hours stay out of scope; date-only full dates are the only dates eligible for monthly and yearly counts.
 - **Checkpoint 1 contract:** `games.data.cover` is an optional object with optional `providerUrl`, `overrideUrl`, and provider (`steam` or `nintendo`) members, so an override-only value is valid. Each present URL is at most 2000 characters and uses one of the exact HTTPS hosts listed above. Absent or empty values resolve to no cover; effective art is override first, then provider URL. Provider refresh and adding a Nintendo US page must not replace a manual override or the existing AR cover. Keep the cover object as private owner metadata. Include validated cover metadata in the owner’s structured JSON export and backup; keep existing CSV/XLSX columns unchanged. Shared games expose only the validated effective cover URL through the same existing grant, projection, and revocation rules; never expose provider or override metadata. Add privacy and revocation tests before completing this implementation unit, without changing auth boundaries.
-- **Checkpoint 0 review outcome:** The main agent reviewed and approved the data map and working defaults above. This is based on local code and migration history; no claim is made about a live database version. Checkpoint 0 is complete; checkpoint 1 has not started.
+- **Checkpoint 0 review outcome:** The main agent reviewed and approved the data map and working defaults above. This is based on local code and migration history; no claim is made about a live database version. Checkpoint 0 is complete.
 
 ## Checkpoints
 
 | Done | # | Deliverable |
 |---|---:|---|
 | [x] | 0 | Confirm defaults and map existing data |
-| [ ] | 1 | Persist and ingest cover metadata |
+| [x] | 1 | Persist and ingest cover metadata |
 | [ ] | 2 | Display and manually manage covers |
 | [ ] | 3 | Define recap calculations |
 | [ ] | 4 | Present and export recaps |
@@ -65,6 +65,7 @@ Checkpoint 0 verifies these defaults against the current data model, ownership a
 - **Acceptance:** New results can provide an approved cover; unsupported, absent, malformed, or oversized metadata falls back cleanly. Existing covers survive provider refresh. One game with several playthroughs has one shared cover.
 - **Focused verification:** Unit tests for host/URL validation, field bounds, provider refresh versus override, and old backup decoding; mocked preview/save browser flow; synthetic export/backup/restore compatibility check.
 - **Commit boundary:** Cover metadata and provider/save integration together, with tests and compatibility notes.
+- **Checkpoint 1 verification (2026-10-30):** Completed local implementation adds the shared cover contract and Steam/Nintendo provider URLs, preserves cover metadata in canonical records and owner JSON/backup data, validates game-level SQL writes, and shares only the effective validated URL under existing grants. Focused Vitest: 74 tests passed; TypeScript and ESLint passed; mocked search-to-save browser suite: 12 tests passed (desktop/mobile included); `node --import tsx tests/run-covers-database.mjs` passed cover save/legacy omission/replay isolation/stale revision/owner denial/validation/share/revocation checks, existing RLS and release scenarios, and synthetic backup restore of provider plus override URLs. Independent data/privacy review found no actionable issues. Checkpoint 1 is complete locally; its migration has not been applied to production.
 
 ### 2. Display and manually manage covers
 

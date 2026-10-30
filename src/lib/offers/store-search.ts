@@ -1,5 +1,6 @@
 import { load } from "cheerio";
 import { HttpError } from "../api-errors";
+import { parseCoverImageUrl, type Cover } from "../covers";
 
 export type StoreSearchResult = {
   store: "steam" | "nintendo";
@@ -7,6 +8,7 @@ export type StoreSearchResult = {
   id: string;
   url: string;
   platform?: string;
+  cover?: Cover;
 };
 
 function record(value: unknown): Record<string, unknown> {
@@ -30,6 +32,10 @@ export function parseSteamSearchResults(value: unknown): StoreSearchResult[] {
     const row = $(element);
     const rawId = row.attr("data-ds-appid") ?? "";
     const title = row.find(".title").first().text().replace(/\s+/g, " ").trim();
+    const image = row.find(".search_capsule img").first();
+    const coverUrl = parseCoverImageUrl(
+      image.attr("src") ?? image.attr("data-src"),
+    );
     if (!/^\d+$/.test(rawId) || !title || title.length > 300) return;
     const appId = Number(rawId);
     if (!Number.isSafeInteger(appId) || appId <= 0) return;
@@ -56,6 +62,9 @@ export function parseSteamSearchResults(value: unknown): StoreSearchResult[] {
       title,
       id,
       url: `https://store.steampowered.com/app/${id}/`,
+      ...(coverUrl
+        ? { cover: { providerUrl: coverUrl, provider: "steam" as const } }
+        : {}),
     });
   });
   return results;

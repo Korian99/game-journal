@@ -3,6 +3,7 @@ import { normalizeConsoleLabels } from "./journal/console-labels";
 import { emptyRecord } from "./types";
 import { statusSchema } from "./journal/status-schema";
 import type { JournalEntry } from "./journal/journal-types";
+import { coverSchema, coverImageUrlSchema } from "./covers";
 const text = z.string(),
   optionalText = text.nullish().transform((value) => value ?? "");
 const nullableNumber = z.number().finite().nullable();
@@ -17,6 +18,7 @@ export const journalEntrySchema = z
   .object({
     id: text.optional(),
     gameId: text.optional(),
+    cover: coverSchema.optional(),
     title: text,
     year: nullableNumber.optional(),
     release: text.optional(),
@@ -95,6 +97,7 @@ export const sharedEntrySchema = z.object({
   impression: optionalText,
   focus: optionalText,
   replay: optionalText,
+  coverUrl: coverImageUrlSchema.nullable().optional(),
 });
 export const sharingResponseSchema = z.object({
   shared: z.array(sharedEntrySchema),

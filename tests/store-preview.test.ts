@@ -132,6 +132,8 @@ it("previews Steam fields and its regional price without writing to the database
         success: true,
         data: {
           name: "Portal 2",
+          header_image:
+            "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/620/header.jpg",
           platforms: { windows: true, mac: true, linux: true },
           release_date: { coming_soon: false, date: "18 Apr, 2011" },
           price_overview: {
@@ -151,6 +153,11 @@ it("previews Steam fields and its regional price without writing to the database
     url: "https://store.steampowered.com/app/620/?cc=US",
     store: "steam",
     region: "US",
+    cover: {
+      providerUrl:
+        "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/620/header.jpg",
+      provider: "steam",
+    },
     fields: {
       title: "Portal 2",
       platforms: "PC",
@@ -196,6 +203,7 @@ it("loads only the selected Nintendo product, including release, system and quot
           name: "Selected game",
           offers: { url: nintendo, price: 1000, priceCurrency: "ARS" },
           gamePlatform: "Nintendo Switch",
+          image: "https://assets.nintendo.com/image/upload/selected.jpg",
         },
       ],
     }) +
@@ -207,6 +215,10 @@ it("loads only the selected Nintendo product, including release, system and quot
       platforms: "Switch",
       release: "2018-06-12",
       year: 2018,
+    },
+    cover: {
+      providerUrl: "https://assets.nintendo.com/image/upload/selected.jpg",
+      provider: "nintendo",
     },
     quote: { price: 1000, currency: "ARS" },
   });
@@ -233,6 +245,22 @@ it("allows Nintendo metadata when the price is not available", async () => {
     },
     quote: { price: null },
   });
+});
+it("omits an unsupported upstream image without failing the preview", async () => {
+  fetchStore.mockResolvedValue(
+    Response.json({
+      "620": {
+        success: true,
+        data: {
+          name: "Portal 2",
+          header_image: "https://images.example.org/untrusted.jpg",
+        },
+      },
+    }),
+  );
+  const body = await (await preview(steam)).json();
+  expect(body).toMatchObject({ fields: { title: "Portal 2" } });
+  expect(body.cover).toBeUndefined();
 });
 it.each([
   "https://example.org/app/620/",
