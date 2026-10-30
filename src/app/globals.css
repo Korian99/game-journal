@@ -10,7 +10,7 @@
   --accent: #e5bc6b;
   --ink: #17160f;
   --error: #f8a193;
-  --collection-highlight: #80b780;
+  --collection-highlight: #A4A432;
   --font-body: "Trebuchet MS", "Segoe UI", sans-serif;
   color-scheme: dark;
 }
@@ -22,7 +22,7 @@
   --text: #332a21;
   --muted: #7a6957;
   --accent: #a46b32;
-  --collection-highlight: #326ba4;
+  --collection-highlight: #A4A432;
   --ink: #f5eee3;
   --error: #a42e24;
   color-scheme: light;
