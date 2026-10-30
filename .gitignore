@@ -10,3 +10,6 @@ supabase/.temp/
 .bootstrap-link.txt
 
 .vercel/
+*/TODO.MD
+.atl/
+.gitignore
