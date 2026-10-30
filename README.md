@@ -38,6 +38,7 @@ La prueba autenticada requiere una cuenta **descartable e invitada**, con biblio
 - [Mapa del código](docs/codebase-map.md)
 - [Plan aprobado](docs/implementation-plan.md)
 - [Roadmap actualizado](docs/improvement-roadmap.md)
+- [Plan de portadas, resúmenes y sagas](docs/artwork-recaps-series-plan.md)
 - [Papelera, Drive y recuperación](docs/improvements-setup.md)
 - [Estado y verificaciones](docs/status.md)
 - [Instalación y operaciones](docs/setup.md)
