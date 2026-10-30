@@ -6,6 +6,7 @@ import {
   storePreviewSchema,
   type StorePreview,
 } from "@/lib/offers/store-preview-contract";
+import { StoreSearch } from "./store-search";
 
 export function EntryStart({
   step,
@@ -61,33 +62,36 @@ export function EntryStart({
   return (
     <div className="modal-body entry-start">
       {step === "choose" ? (
-        <div className="entry-start-options">
-          <button
-            className="entry-start-option"
-            aria-label="Usar una página"
-            onClick={onPage}
-            disabled={!online}
-          >
-            <Link size={22} />
-            <span>
-              <strong>Usar una página</strong>
-              <small>Traer datos de Steam o Nintendo</small>
-            </span>
-            <ArrowRight size={18} />
-          </button>
-          <button
-            className="entry-start-option"
-            aria-label="Completar manualmente"
-            onClick={onManual}
-          >
-            <PenLine size={22} />
-            <span>
-              <strong>Completar manualmente</strong>
-              <small>Empezar con el formulario vacío</small>
-            </span>
-            <ArrowRight size={18} />
-          </button>
-        </div>
+        <>
+          {!editing && <StoreSearch online={online} onLoaded={onLoaded} />}
+          <div className="entry-start-options">
+            <button
+              className="entry-start-option"
+              aria-label="Usar una página"
+              onClick={onPage}
+              disabled={!online}
+            >
+              <Link size={22} />
+              <span>
+                <strong>Usar una página</strong>
+                <small>Traer datos de Steam o Nintendo</small>
+              </span>
+              <ArrowRight size={18} />
+            </button>
+            <button
+              className="entry-start-option"
+              aria-label="Completar manualmente"
+              onClick={onManual}
+            >
+              <PenLine size={22} />
+              <span>
+                <strong>Completar manualmente</strong>
+                <small>Empezar con el formulario vacío</small>
+              </span>
+              <ArrowRight size={18} />
+            </button>
+          </div>
+        </>
       ) : (
         <form
           className="entry-start-form"
