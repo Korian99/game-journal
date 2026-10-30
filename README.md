@@ -2,6 +2,8 @@
 
 Diario personal de videojuegos en español. Next.js, TypeScript y Supabase. Biblioteca y partidas, lista de deseos, próximos lanzamientos, ofertas regionales, importación revisada de Google Sheets y entradas compartidas por invitación.
 
+Al agregar un juego, se puede buscar por título en Steam o traer datos desde una página de Steam o Nintendo; los datos se revisan en el borrador antes de guardar. Ver [carga desde una página](docs/store-page-creation.md).
+
 ## Desarrollo
 
 Requiere Node.js 22 o superior.
