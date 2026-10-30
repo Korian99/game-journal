@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
-import { ArrowRight, Link, LoaderCircle, PenLine } from "lucide-react";
+import { ArrowRight, LoaderCircle, PenLine } from "lucide-react";
 import { apiRequest } from "@/lib/api-client";
 import {
   storePreviewSchema,
@@ -13,7 +13,6 @@ export function EntryStart({
   online,
   url,
   setUrl,
-  onPage,
   onManual,
   onLoaded,
   editing = false,
@@ -23,7 +22,6 @@ export function EntryStart({
   online: boolean;
   url: string;
   setUrl: (url: string) => void;
-  onPage: () => void;
   onManual: () => void;
   onLoaded: (preview: StorePreview) => void;
 }) {
@@ -65,19 +63,6 @@ export function EntryStart({
         <>
           {!editing && <StoreSearch online={online} onLoaded={onLoaded} />}
           <div className="entry-start-options">
-            <button
-              className="entry-start-option"
-              aria-label="Usar una página"
-              onClick={onPage}
-              disabled={!online}
-            >
-              <Link size={22} />
-              <span>
-                <strong>Usar una página</strong>
-                <small>Traer datos de Steam o Nintendo</small>
-              </span>
-              <ArrowRight size={18} />
-            </button>
             <button
               className="entry-start-option"
               aria-label="Completar manualmente"

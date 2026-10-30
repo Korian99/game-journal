@@ -15,14 +15,116 @@ beforeEach(() => {
   vi.stubGlobal("fetch", fetchStore);
   auth.mockResolvedValue({ db: {} });
 });
-async function preview(url: string) {
+async function preview(url: string, includeUsPage = false) {
   return POST(
     new Request("http://fixture/api/store-preview", {
       method: "POST",
-      body: JSON.stringify({ url }),
+      body: JSON.stringify({
+        url,
+        ...(includeUsPage ? { includeUsPage } : {}),
+      }),
     }),
   );
 }
+function nintendoProductHtml(url: string | undefined, title = "Verified game") {
+  const product = { "@type": "Product", name: title, ...(url ? { url } : {}) };
+  return (
+    '<script type="application/ld+json">' +
+    JSON.stringify(product) +
+    "</script>"
+  );
+}
+it("adds a verified US Nintendo counterpart when requested", async () => {
+  const us = "https://www.nintendo.com/us/store/products/test-switch/";
+  const html = (url: string, name: string) =>
+    '<script type="application/ld+json">' +
+    JSON.stringify({ "@type": "Product", name, url }) +
+    "</script>";
+  fetchStore.mockImplementation(
+    async (input) =>
+      new Response(
+        html(
+          String(input).includes("/us/") ? us : nintendo,
+          "Verified Nintendo product",
+        ),
+      ),
+  );
+  const response = await preview(nintendo, true);
+  expect(response.status).toBe(200);
+  expect(fetchStore).toHaveBeenCalledTimes(2);
+  expect(await response.json()).toMatchObject({
+    url: nintendo,
+    additionalPages: [us],
+    fields: { title: "Verified Nintendo product" },
+  });
+});
+it.each([
+  ["a 404 page", async () => new Response("not found", { status: 404 })],
+  [
+    "a different product",
+    async () =>
+      new Response(nintendoProductHtml("/us/store/products/other-game/")),
+  ],
+  [
+    "generic metadata without a product URL",
+    async () => new Response(nintendoProductHtml(undefined)),
+  ],
+  [
+    "a network failure",
+    async () => {
+      throw new Error("offline");
+    },
+  ],
+])(
+  "keeps the AR preview when the US counterpart has %s",
+  async (_label, loadUs) => {
+    const arHtml = nintendoProductHtml(nintendo, "Selected AR game");
+    fetchStore.mockImplementation(async (input) =>
+      String(input).includes("/us/") ? loadUs() : new Response(arHtml),
+    );
+    const response = await preview(nintendo, true);
+    expect(response.status).toBe(200);
+    const body = await response.json();
+    expect(body).toMatchObject({
+      url: nintendo,
+      fields: { title: "Selected AR game" },
+    });
+    expect(body).not.toHaveProperty("additionalPages");
+  },
+);
+
+it("does not request a US page without opt-in or for Steam", async () => {
+  fetchStore.mockResolvedValue(
+    Response.json({
+      "620": {
+        success: true,
+        data: { name: "Portal 2", platforms: { windows: true } },
+      },
+    }),
+  );
+  expect((await preview(steam)).status).toBe(200);
+  expect(fetchStore).toHaveBeenCalledTimes(1);
+});
+it("keeps the AR preview when the optional US request times out", async () => {
+  const arHtml = nintendoProductHtml(nintendo, "Selected AR game");
+  fetchStore.mockImplementation((input, init) => {
+    if (String(input).includes("/us/"))
+      return new Promise<Response>((_resolve, reject) => {
+        const signal = init?.signal;
+        if (!signal) return reject(new Error("Missing request signal"));
+        signal.addEventListener("abort", () => reject(signal.reason), {
+          once: true,
+        });
+      });
+    return Promise.resolve(new Response(arHtml));
+  });
+  const response = await preview(nintendo, true);
+  expect(response.status).toBe(200);
+  expect(await response.json()).toMatchObject({
+    url: nintendo,
+    fields: { title: "Selected AR game" },
+  });
+});
 it("previews Steam fields and its regional price without writing to the database", async () => {
   fetchStore.mockResolvedValue(
     Response.json({

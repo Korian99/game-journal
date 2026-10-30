@@ -2,10 +2,11 @@ import { load } from "cheerio";
 import { HttpError } from "../api-errors";
 
 export type StoreSearchResult = {
-  store: "steam";
+  store: "steam" | "nintendo";
   title: string;
   id: string;
   url: string;
+  platform?: string;
 };
 
 function record(value: unknown): Record<string, unknown> {

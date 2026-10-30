@@ -7,9 +7,14 @@ export async function POST(request: Request) {
   try {
     await authorized();
     const input = z
-      .object({ url: z.string().trim().min(1).max(2000) })
+      .object({
+        url: z.string().trim().min(1).max(2000),
+        includeUsPage: z.boolean().optional(),
+      })
       .parse(await bodyJson(request));
-    const preview = await loadStorePreview(input.url, request.signal);
+    const preview = await loadStorePreview(input.url, request.signal, {
+      includeUsPage: input.includeUsPage,
+    });
     return Response.json(preview, {
       headers: { "Cache-Control": "private, no-store" },
     });

@@ -21,11 +21,13 @@ type FixtureOptions = {
   search?: "results" | "empty" | "error";
   holdSearch?: boolean;
   holdPreview?: boolean;
+  usPage?: boolean;
 };
 
 async function openEntry(page: Page, options: FixtureOptions = {}) {
   const saves: Record<string, unknown>[] = [];
   const searches: string[] = [];
+  const providers: string[] = [];
   const searchReleases = new Map<string, () => void>();
   const previews: Record<string, unknown>[] = [];
   let releasePreview: (() => void) | undefined;
@@ -33,9 +35,13 @@ async function openEntry(page: Page, options: FixtureOptions = {}) {
     const url = new URL(route.request().url());
     if (url.pathname === "/api/store-search") {
       const term = url.searchParams.get("q") ?? "";
+      const store = url.searchParams.get("store") ?? "steam";
       searches.push(term);
+      providers.push(store);
       if (options.holdSearch)
-        await new Promise<void>((resolve) => searchReleases.set(term, resolve));
+        await new Promise<void>((resolve) =>
+          searchReleases.set(`${store}:${term}`, resolve),
+        );
       if (options.search === "error")
         return route.fulfill({
           status: 503,
@@ -46,40 +52,80 @@ async function openEntry(page: Page, options: FixtureOptions = {}) {
           results:
             options.search === "empty"
               ? []
-              : term === "half-life"
+              : store === "nintendo"
                 ? [
                     {
-                      store: "steam",
-                      title: "Half-Life",
-                      id: "70",
-                      url: "https://store.steampowered.com/app/70/",
+                      store: "nintendo",
+                      title: "The Legend of Zelda: Breath of the Wild",
+                      id: "the-legend-of-zelda-breath-of-the-wild-switch",
+                      url: "https://www.nintendo.com/es-ar/store/products/the-legend-of-zelda-breath-of-the-wild-switch/",
+                      platform: "Switch",
                     },
                   ]
-                : [
-                    ...Array.from({ length: 8 }, (_, index) => ({
-                      store: "steam",
-                      title: `Portal Companion ${index + 1}`,
-                      id: String(500 + index),
-                      url: `https://store.steampowered.com/app/${500 + index}/`,
-                    })),
-                    {
-                      store: "steam",
-                      title: "Portal 2",
-                      id: "620",
-                      url: "https://store.steampowered.com/app/620/",
-                    },
-                  ],
+                : term === "half-life"
+                  ? [
+                      {
+                        store: "steam",
+                        title: "Half-Life",
+                        id: "70",
+                        url: "https://store.steampowered.com/app/70/",
+                      },
+                    ]
+                  : [
+                      ...Array.from({ length: 8 }, (_, index) => ({
+                        store: "steam",
+                        title: `Portal Companion ${index + 1}`,
+                        id: String(500 + index),
+                        url: `https://store.steampowered.com/app/${500 + index}/`,
+                      })),
+                      {
+                        store: "steam",
+                        title: "Portal 2",
+                        id: "620",
+                        url: "https://store.steampowered.com/app/620/",
+                      },
+                    ],
         },
       });
     }
     if (url.pathname === "/api/store-preview") {
-      previews.push(route.request().postDataJSON());
+      const input = route.request().postDataJSON();
+      previews.push(input);
       if (options.holdPreview)
         await new Promise<void>((resolve) => {
           releasePreview = resolve;
         });
       try {
-        return await route.fulfill({ json: preview });
+        return await route.fulfill({
+          json: String(input.url).includes("nintendo.com")
+            ? {
+                ...preview,
+                url: input.url,
+                store: "nintendo",
+                fields: {
+                  title: "The Legend of Zelda: Breath of the Wild",
+                  platforms: "Switch",
+                  release: "2017-03-03",
+                  year: 2017,
+                },
+                ...(options.usPage === false
+                  ? {}
+                  : {
+                      additionalPages: [
+                        "https://www.nintendo.com/us/store/products/the-legend-of-zelda-breath-of-the-wild-switch/",
+                      ],
+                    }),
+                quote: {
+                  name: "The Legend of Zelda: Breath of the Wild",
+                  status: "available",
+                  price: 90999,
+                  regular: 90999,
+                  currency: "ARS",
+                  discount: 0,
+                },
+              }
+            : preview,
+        });
       } catch {
         return;
       }
@@ -132,11 +178,36 @@ async function openEntry(page: Page, options: FixtureOptions = {}) {
   return {
     saves,
     searches,
+    providers,
     previews,
     releasePreview: () => releasePreview?.(),
-    releaseSearch: (term: string) => searchReleases.get(term)?.(),
+    releaseSearch: (store: string, term: string) =>
+      searchReleases.get(`${store}:${term}`)?.(),
   };
 }
+
+test("Nintendo search saves the AR page when no US counterpart is verified", async ({
+  page,
+}) => {
+  const { saves } = await openEntry(page, { usPage: false });
+  await page.getByLabel("Tienda de búsqueda").selectOption("nintendo");
+  await page.getByLabel("Buscar por título en Nintendo").fill("zelda");
+  await page.getByRole("button", { name: "Buscar", exact: true }).click();
+  await page.getByRole("button", { name: /The Legend of Zelda/ }).click();
+  await expect(
+    page.getByLabel("Nombre del juego", { exact: true }),
+  ).toHaveValue("The Legend of Zelda: Breath of the Wild");
+  await page
+    .getByRole("button", { name: "Guardar entrada", exact: true })
+    .click();
+  await expect.poll(() => saves.length).toBe(1);
+  expect(saves[0]).toMatchObject({
+    title: "The Legend of Zelda: Breath of the Wild",
+    pages: [
+      "https://www.nintendo.com/es-ar/store/products/the-legend-of-zelda-breath-of-the-wild-switch/",
+    ],
+  });
+});
 
 for (const viewport of [
   { name: "desktop", width: 1280, height: 900 },
@@ -224,6 +295,65 @@ test("search is disabled while offline", async ({ page, context }) => {
   await context.setOffline(false);
 });
 
+test("new-game title search offers Steam and Nintendo providers", async ({
+  page,
+}) => {
+  await openEntry(page);
+  const provider = page.getByLabel("Tienda de búsqueda");
+  await expect(provider).toHaveValue("steam");
+  await expect(provider.locator("option")).toHaveText([
+    "Steam",
+    "Nintendo (Argentina)",
+  ]);
+});
+
+for (const viewport of [
+  { name: "desktop", width: 1280, height: 900 },
+  { name: "mobile", width: 390, height: 844 },
+]) {
+  test(`Nintendo title search previews and saves the selected game on ${viewport.name}`, async ({
+    page,
+  }) => {
+    await page.setViewportSize({
+      width: viewport.width,
+      height: viewport.height,
+    });
+    const { searches, providers, previews, saves } = await openEntry(page);
+    await page.getByLabel("Tienda de búsqueda").selectOption("nintendo");
+    await page.getByLabel("Buscar por título en Nintendo").fill("zelda");
+    await page.getByRole("button", { name: "Buscar", exact: true }).click();
+    const result = page.getByRole("button", { name: /The Legend of Zelda/ });
+    await expect(result).toContainText("Nintendo · Switch");
+    expect(searches).toEqual(["zelda"]);
+    expect(providers).toEqual(["nintendo"]);
+    await result.click();
+    await expect(
+      page.getByLabel("Nombre del juego", { exact: true }),
+    ).toHaveValue("The Legend of Zelda: Breath of the Wild");
+    await expect(
+      page.getByRole("complementary", { name: "Datos de la tienda" }),
+    ).toBeVisible();
+    expect(previews).toEqual([
+      {
+        url: "https://www.nintendo.com/es-ar/store/products/the-legend-of-zelda-breath-of-the-wild-switch/",
+        includeUsPage: true,
+      },
+    ]);
+    expect(saves).toHaveLength(0);
+    await page
+      .getByRole("button", { name: "Guardar entrada", exact: true })
+      .click();
+    await expect.poll(() => saves.length).toBe(1);
+    expect(saves[0]).toMatchObject({
+      title: "The Legend of Zelda: Breath of the Wild",
+      pages: [
+        "https://www.nintendo.com/es-ar/store/products/the-legend-of-zelda-breath-of-the-wild-switch/",
+        "https://www.nintendo.com/us/store/products/the-legend-of-zelda-breath-of-the-wild-switch/",
+      ],
+    });
+  });
+}
+
 test("canceling a pending result preview preserves a manual draft", async ({
   page,
 }) => {
@@ -264,9 +394,36 @@ test("search stays editable and a newer query wins over a late response", async 
   await input.fill("half-life");
   await page.getByRole("button", { name: "Buscar", exact: true }).click();
   await expect.poll(() => searches.length).toBe(2);
-  releaseSearch("half-life");
+  releaseSearch("steam", "half-life");
   await expect(page.getByRole("button", { name: "Half-Life" })).toBeVisible();
-  releaseSearch("portal");
+  releaseSearch("steam", "portal");
   await expect(page.getByRole("button", { name: "Portal 2" })).toHaveCount(0);
   await expect(page.getByRole("button", { name: "Half-Life" })).toBeVisible();
+});
+
+test("switching providers cancels the old search and preserves the query", async ({
+  page,
+}) => {
+  const { searches, providers, releaseSearch } = await openEntry(page, {
+    holdSearch: true,
+  });
+  const input = page.locator("#store-title-search");
+  await input.fill("zelda");
+  await page.getByRole("button", { name: "Buscar", exact: true }).click();
+  await expect.poll(() => searches.length).toBe(1);
+
+  await page.getByLabel("Tienda de búsqueda").selectOption("nintendo");
+  await expect(input).toHaveValue("zelda");
+  await expect(page.getByRole("button", { name: /Portal 2/ })).toHaveCount(0);
+  await page.getByRole("button", { name: "Buscar", exact: true }).click();
+  await expect.poll(() => searches.length).toBe(2);
+  releaseSearch("nintendo", "zelda");
+  await expect(
+    page.getByRole("button", { name: /The Legend of Zelda/ }),
+  ).toBeVisible();
+  releaseSearch("steam", "zelda");
+  await expect(
+    page.getByRole("button", { name: /The Legend of Zelda/ }),
+  ).toBeVisible();
+  expect(providers).toEqual(["steam", "nintendo"]);
 });

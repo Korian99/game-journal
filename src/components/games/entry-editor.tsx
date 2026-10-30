@@ -116,7 +116,13 @@ export function EntryEditor({
         ...current,
         ...preview.fields,
         platforms,
-        pages: [...new Set([...(current.pages ?? []), preview.url])],
+        pages: [
+          ...new Set([
+            ...(current.pages ?? []),
+            preview.url,
+            ...(preview.additionalPages ?? []),
+          ]),
+        ],
       };
       if (!statusExplicitlyChosen.current && !next.id && !next.gameId)
         next.status = defaultNewEntryStatus(
@@ -354,7 +360,6 @@ export function EntryEditor({
           online={online}
           url={pageUrl}
           setUrl={setPageUrl}
-          onPage={() => setStep("page")}
           onManual={() => setStep("editor")}
           onLoaded={applyStorePreview}
         />

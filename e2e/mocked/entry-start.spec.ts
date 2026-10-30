@@ -91,21 +91,38 @@ async function fixture(
       .click();
   return { saves, lookups };
 }
+async function openPageLookup(page: Page) {
+  await page
+    .getByRole("button", { name: "Completar manualmente", exact: true })
+    .click();
+  await page
+    .getByRole("button", { name: "Completar desde una página", exact: true })
+    .click();
+}
 for (const tab of ["library", "journal", "wishlist", "upcoming"]) {
   test(
     "manual creation in " +
       tab +
       " defaults to wishlist without calling a store",
     async ({ page }) => {
+      if (tab === "wishlist")
+        await page.setViewportSize({ width: 390, height: 844 });
       const { saves, lookups } = await fixture(page, metadata, undefined, tab);
       await expect(
         page.getByRole("heading", { name: "¿Cómo querés cargar el juego?" }),
       ).toBeVisible();
       await expect(
+        page.getByRole("button", { name: "Usar una página", exact: true }),
+      ).toHaveCount(0);
+      await expect(page.getByLabel("Buscar por título en Steam")).toBeVisible();
+      await expect(
         page.getByRole("button", { name: "Guardar entrada", exact: true }),
       ).toHaveCount(0);
       await page.screenshot({
-        path: "test-results/entry-start-choice.png",
+        path:
+          tab === "wishlist"
+            ? "test-results/entry-start-choice-mobile.png"
+            : "test-results/entry-start-choice.png",
         fullPage: true,
       });
       await page
@@ -178,9 +195,7 @@ test("store upcoming previews default new games to Próximos", async ({
     quote: { ...metadata.quote, status: "upcoming" },
   };
   const { saves } = await fixture(page, futurePreview);
-  await page
-    .getByRole("button", { name: "Usar una página", exact: true })
-    .click();
+  await openPageLookup(page);
   await page
     .getByLabel("Página de Steam o Nintendo", { exact: true })
     .fill(url);
@@ -229,9 +244,7 @@ test("Steam lookup fills an editable draft and waits for an explicit save", asyn
   page,
 }) => {
   const { saves, lookups } = await fixture(page);
-  await page
-    .getByRole("button", { name: "Usar una página", exact: true })
-    .click();
+  await openPageLookup(page);
   await page
     .getByLabel("Página de Steam o Nintendo", { exact: true })
     .fill(url);
@@ -281,9 +294,7 @@ test("Nintendo lookup also works on mobile", async ({ page }) => {
       year: 2026,
     },
   });
-  await page
-    .getByRole("button", { name: "Usar una página", exact: true })
-    .click();
+  await openPageLookup(page);
   await page
     .getByLabel("Página de Steam o Nintendo", { exact: true })
     .fill(nintendo);
@@ -317,9 +328,7 @@ test("lookup errors allow retry or manual completion without losing the URL", as
       json: { code: "TEMPORARY", error: "La tienda no respondió." },
     }),
   );
-  await page
-    .getByRole("button", { name: "Usar una página", exact: true })
-    .click();
+  await openPageLookup(page);
   await page
     .getByLabel("Página de Steam o Nintendo", { exact: true })
     .fill(url);
@@ -389,9 +398,7 @@ test("switching to manual entry cancels a pending lookup without overwriting the
     await route.fulfill({ json: metadata }).catch(() => {});
     delivered = true;
   });
-  await page
-    .getByRole("button", { name: "Usar una página", exact: true })
-    .click();
+  await openPageLookup(page);
   await page
     .getByLabel("Página de Steam o Nintendo", { exact: true })
     .fill(url);

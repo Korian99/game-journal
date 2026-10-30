@@ -119,7 +119,7 @@ async function fetchText(url: string, signal: AbortSignal): Promise<string> {
   }
   throw Error("Demasiadas redirecciones");
 }
-function nintendoMetadata(html: string, url: string) {
+function nintendoMetadata(html: string, url: string, requireIdentity = false) {
   const $ = load(html),
     target = parseStoreUrl(url);
   const nodes: Record<string, unknown>[] = [];
@@ -149,11 +149,13 @@ function nintendoMetadata(html: string, url: string) {
       Array.isArray(node.offers) ? node.offers[0] : node.offers,
     );
     const candidate = node.url ?? offer.url;
-    if (!candidate) return products.length === 1;
+    if (!candidate) return !requireIdentity && products.length === 1;
     try {
       const identity = parseStoreUrl(new URL(String(candidate), url).href);
       return (
-        identity.product === target.product && identity.region === target.region
+        identity.store === target.store &&
+        identity.product === target.product &&
+        identity.region === target.region
       );
     } catch {
       return false;
@@ -193,6 +195,7 @@ function nintendoMetadata(html: string, url: string) {
 export async function loadStorePreview(
   rawUrl: string,
   requestSignal?: AbortSignal,
+  options: { includeUsPage?: boolean } = {},
 ): Promise<StorePreview> {
   let target: ReturnType<typeof parseStoreUrl>;
   try {
@@ -208,6 +211,12 @@ export async function loadStorePreview(
     ? AbortSignal.any([requestSignal, AbortSignal.timeout(12000)])
     : AbortSignal.timeout(12000);
   try {
+    const additionalPagePromise =
+      options.includeUsPage &&
+      target.store === "nintendo" &&
+      target.region === "AR"
+        ? verifyUsCounterpart(target.product, signal)
+        : Promise.resolve(undefined);
     let fields: StorePreview["fields"], quote: StorePreview["quote"];
     if (target.store === "steam") {
       const body = await fetchText(
@@ -244,8 +253,10 @@ export async function loadStorePreview(
         };
       }
     }
+    const additionalPage = await additionalPagePromise;
     return storePreviewSchema.parse({
       url: target.url,
+      ...(additionalPage ? { additionalPages: [additionalPage] } : {}),
       store: target.store,
       region: target.region,
       fields,
@@ -258,5 +269,20 @@ export async function loadStorePreview(
       "No se pudieron traer los datos de la tienda. Reintentá o completá el juego manualmente.",
       503,
     );
+  }
+}
+
+async function verifyUsCounterpart(
+  product: string,
+  requestSignal: AbortSignal,
+): Promise<string | undefined> {
+  const url = `https://www.nintendo.com/us/store/products/${product}/`;
+  const signal = AbortSignal.any([requestSignal, AbortSignal.timeout(3000)]);
+  try {
+    const html = await fetchText(url, signal);
+    const fields = nintendoMetadata(html, url, true);
+    return fields.title ? url : undefined;
+  } catch {
+    return undefined;
   }
 }

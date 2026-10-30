@@ -13,10 +13,11 @@ import type { StoreSearchResult } from "@/lib/offers/store-search";
 const searchSchema = z.object({
   results: z.array(
     z.object({
-      store: z.literal("steam"),
+      store: z.enum(["steam", "nintendo"]),
       title: z.string(),
       id: z.string(),
       url: z.url(),
+      platform: z.string().optional(),
     }),
   ),
 });
@@ -29,6 +30,7 @@ export function StoreSearch({
   onLoaded: (preview: StorePreview) => void;
 }) {
   const [query, setQuery] = useState("");
+  const [store, setStore] = useState<"steam" | "nintendo">("steam");
   const [results, setResults] = useState<StoreSearchResult[]>([]);
   const [searching, setSearching] = useState(false);
   const [previewing, setPreviewing] = useState(false);
@@ -65,6 +67,14 @@ export function StoreSearch({
     setPreviewing(false);
   }
 
+  function changeStore(nextStore: "steam" | "nintendo") {
+    cancelRequests();
+    setStore(nextStore);
+    setResults([]);
+    setError("");
+    setSearched(false);
+  }
+
   async function submit(event: React.FormEvent) {
     event.preventDefault();
     const term = query.trim();
@@ -78,7 +88,7 @@ export function StoreSearch({
     setSearched(true);
     try {
       const response = await apiRequest(
-        `/api/store-search?q=${encodeURIComponent(term)}`,
+        `/api/store-search?store=${store}&q=${encodeURIComponent(term)}`,
         "GET",
         undefined,
         searchSchema,
@@ -95,7 +105,7 @@ export function StoreSearch({
         setError(
           failure instanceof Error
             ? failure.message
-            : "No se pudo buscar en Steam.",
+            : "No se pudo buscar en la tienda.",
         );
     } finally {
       if (activeSearch.current === controller) {
@@ -116,15 +126,14 @@ export function StoreSearch({
       const preview = await apiRequest(
         "/api/store-preview",
         "POST",
-        { url: result.url },
+        {
+          url: result.url,
+          ...(result.store === "nintendo" ? { includeUsPage: true } : {}),
+        },
         storePreviewSchema,
         AbortSignal.any([controller.signal, AbortSignal.timeout(15000)]),
       );
-      if (
-        activePreview.current === controller &&
-        !controller.signal.aborted &&
-        query.trim().length >= 2
-      )
+      if (activePreview.current === controller && !controller.signal.aborted)
         onLoaded(preview);
     } catch (failure) {
       if (activePreview.current === controller && !controller.signal.aborted)
@@ -142,20 +151,38 @@ export function StoreSearch({
   }
 
   return (
-    <section className="store-search" aria-label="Buscar juegos en Steam">
+    <section
+      className="store-search"
+      aria-label="Buscar juegos en Steam o Nintendo"
+    >
       <form
         className="store-search-form"
         onSubmit={submit}
         aria-busy={searching || previewing}
       >
-        <label htmlFor="store-title-search">Buscar por título en Steam</label>
+        <label htmlFor="store-provider">Tienda de búsqueda</label>
+        <select
+          id="store-provider"
+          aria-label="Tienda de búsqueda"
+          value={store}
+          disabled={!online}
+          onChange={(event) =>
+            changeStore(event.target.value as "steam" | "nintendo")
+          }
+        >
+          <option value="steam">Steam</option>
+          <option value="nintendo">Nintendo (Argentina)</option>
+        </select>
+        <label htmlFor="store-title-search">
+          Buscar por título en {store === "steam" ? "Steam" : "Nintendo"}
+        </label>
         <div className="store-search-controls">
           <input
             id="store-title-search"
             type="search"
             minLength={2}
             maxLength={100}
-            placeholder="Ej.: Portal 2"
+            placeholder={store === "steam" ? "Ej.: Portal 2" : "Ej.: Zelda"}
             value={query}
             disabled={!online}
             onChange={(event) => {
@@ -180,11 +207,7 @@ export function StoreSearch({
             ) : (
               <Search size={16} />
             )}
-            {searching
-              ? "Buscar de nuevo"
-              : previewing
-                ? "Nueva búsqueda"
-                : "Buscar"}
+            {searching || previewing ? "Nueva búsqueda" : "Buscar"}
           </button>
         </div>
       </form>
@@ -195,7 +218,8 @@ export function StoreSearch({
       )}
       {searching && (
         <p className="store-search-status" role="status" aria-live="polite">
-          Buscando en Steam… Podés seguir escribiendo mientras tanto.
+          Buscando en {store === "steam" ? "Steam" : "Nintendo"}… Podés seguir
+          escribiendo mientras tanto.
         </p>
       )}
       {previewing && (
@@ -218,9 +242,12 @@ export function StoreSearch({
             {results.length}{" "}
             {results.length === 1 ? "juego encontrado" : "juegos encontrados"}
           </p>
-          <ul className="store-search-results" aria-label="Resultados de Steam">
+          <ul
+            className="store-search-results"
+            aria-label="Resultados de tienda"
+          >
             {results.map((result) => (
-              <li key={result.id}>
+              <li key={`${result.store}:${result.id}`}>
                 <button
                   type="button"
                   disabled={!online || previewing}
@@ -229,7 +256,10 @@ export function StoreSearch({
                   <span className="store-search-result-title">
                     {result.title}
                   </span>
-                  <small>Steam · Juego</small>
+                  <small>
+                    {result.store === "steam" ? "Steam" : "Nintendo"} ·{" "}
+                    {result.platform ?? "Juego"}
+                  </small>
                   <ArrowRight size={16} aria-hidden="true" />
                 </button>
               </li>

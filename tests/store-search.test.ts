@@ -15,12 +15,10 @@ beforeEach(() => {
 });
 afterEach(() => vi.unstubAllGlobals());
 
-function search(term: string) {
-  return GET(
-    new Request(
-      `http://fixture/api/store-search?q=${encodeURIComponent(term)}`,
-    ),
-  );
+function search(term: string, store?: string) {
+  const params = new URLSearchParams({ q: term });
+  if (store !== undefined) params.set("store", store);
+  return GET(new Request(`http://fixture/api/store-search?${params}`));
 }
 function row(
   id: string,
@@ -110,6 +108,12 @@ it("requires an active account before making a store request", async () => {
   expect(fetchStore).not.toHaveBeenCalled();
 });
 
+it("rejects an unsupported store before making an upstream request", async () => {
+  const response = await search("portal", "playstation");
+  expect(response.status).toBe(400);
+  expect(fetchStore).not.toHaveBeenCalled();
+});
+
 it.each([
   Response.json({ success: 0, results_html: "" }),
   Response.json({ success: 1, results_html: 4 }),
@@ -128,4 +132,79 @@ it("reports Steam lookup failures without exposing upstream details", async () =
   const response = await search("portal");
   expect(response.status).toBe(503);
   expect((await response.json()).error).toContain("No se pudieron buscar");
+});
+
+it("searches the Nintendo Argentina game catalog and filters non-title products", async () => {
+  fetchStore.mockResolvedValue(
+    Response.json({
+      hits: [
+        {
+          title: "The Legend of Zelda: Breath of the Wild",
+          url: "/es-ar/store/products/the-legend-of-zelda-breath-of-the-wild-switch/",
+          urlKey: "the-legend-of-zelda-breath-of-the-wild-switch",
+          platform: "Nintendo Switch",
+          topLevelCategoryCode: "GAMES",
+          isUpgrade: false,
+          visibleInSearch: true,
+          eshopDetails: { productType: "TITLE" },
+        },
+        {
+          title: "Breath of the Wild Expansion Pass",
+          url: "/es-ar/store/products/breath-of-the-wild-expansion-pass/",
+          urlKey: "breath-of-the-wild-expansion-pass",
+          topLevelCategoryCode: "GAMES",
+          isUpgrade: false,
+          visibleInSearch: true,
+          eshopDetails: { productType: "BUNDLE" },
+        },
+        {
+          title: "Breath of the Wild Upgrade Pack",
+          url: "/es-ar/store/products/breath-of-the-wild-upgrade/",
+          urlKey: "breath-of-the-wild-upgrade",
+          topLevelCategoryCode: "GAMES",
+          isUpgrade: true,
+          visibleInSearch: true,
+          eshopDetails: { productType: "TITLE" },
+        },
+        {
+          title: "Breath of the Wild Soundtrack",
+          url: "/es-ar/store/products/breath-of-the-wild-soundtrack/",
+          urlKey: "breath-of-the-wild-soundtrack",
+          topLevelCategoryCode: "ADD_ON_CONTENT",
+          isUpgrade: false,
+          visibleInSearch: true,
+          eshopDetails: { productType: "TITLE" },
+        },
+      ],
+    }),
+  );
+  const response = await search("zelda", "nintendo");
+  expect(response.status).toBe(200);
+  expect(String(fetchStore.mock.calls[0][0])).toBe(
+    "https://u3b6gr4ua3-dsn.algolia.net/1/indexes/store_game_es_ar/query",
+  );
+  const [url, init] = fetchStore.mock.calls[0];
+  expect(new URL(String(url)).hostname).toBe("u3b6gr4ua3-dsn.algolia.net");
+  expect(init?.method).toBe("POST");
+  expect(new Headers(init?.headers).get("x-algolia-application-id")).toBe(
+    "U3B6GR4UA3",
+  );
+  expect(new Headers(init?.headers).get("x-algolia-api-key")).toBeTruthy();
+  expect(JSON.parse(String(init?.body))).toMatchObject({
+    query: "zelda",
+    hitsPerPage: 30,
+    analytics: false,
+    clickAnalytics: false,
+  });
+  expect(await response.json()).toEqual({
+    results: [
+      {
+        store: "nintendo",
+        title: "The Legend of Zelda: Breath of the Wild",
+        id: "the-legend-of-zelda-breath-of-the-wild-switch",
+        url: "https://www.nintendo.com/es-ar/store/products/the-legend-of-zelda-breath-of-the-wild-switch/",
+        platform: "Switch",
+      },
+    ],
+  });
 });
