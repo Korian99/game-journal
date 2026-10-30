@@ -203,10 +203,13 @@ test("collection filters remain discoverable inside a compact disclosure", async
       const filters = document
         .querySelector(".notebook-view-filters > summary")!
         .getBoundingClientRect();
+      const sort = document
+        .querySelector(".notebook-view-sort")!
+        .getBoundingClientRect();
       const refresh = document
         .querySelector(".notebook-view-toolbar-actions > .secondary")!
         .getBoundingClientRect();
-      return [search, filters, refresh].map(({ top, height }) => ({
+      return [search, filters, sort, refresh].map(({ top, height }) => ({
         top,
         height,
       }));
@@ -225,7 +228,9 @@ test("collection filters remain discoverable inside a compact disclosure", async
         page.getByLabel("Buscar juegos en esta lista", { exact: true }),
       ).toBeVisible();
       const filters = page.locator(".notebook-view-filters > summary");
+      const sort = page.locator(".notebook-view-sort");
       await expect(filters).toBeVisible();
+      await expect(sort).toBeVisible();
       const toolbar = page.locator(".notebook-view-toolbar");
       const search = toolbar.locator(".search");
       const searchBox = await search.boundingBox();
@@ -238,12 +243,22 @@ test("collection filters remain discoverable inside a compact disclosure", async
           name: "Actualizar precios",
         });
         await expect(refresh).toBeVisible();
-        const [filterBox, refreshBox] = await Promise.all([
+        const [filterBox, sortBox, refreshBox] = await Promise.all([
           filters.boundingBox(),
+          sort.boundingBox(),
           refresh.boundingBox(),
         ]);
         expect(filterBox?.height).toBe(refreshBox?.height);
-        expect(filterBox?.y).toBe(refreshBox?.y);
+        expect(filterBox?.height).toBe(sortBox?.height);
+        expect(filterBox?.y).toBe(sortBox?.y);
+        expect(refreshBox!.y).toBeGreaterThan(filterBox!.y);
+      } else {
+        const [filterBox, sortBox] = await Promise.all([
+          filters.boundingBox(),
+          sort.boundingBox(),
+        ]);
+        expect(filterBox?.height).toBe(sortBox?.height);
+        expect(filterBox?.y).toBe(sortBox?.y);
       }
       await filters.click();
       await expect(page.getByLabel("Filtrar plataforma")).toBeVisible();

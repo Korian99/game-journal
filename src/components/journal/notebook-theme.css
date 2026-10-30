@@ -220,6 +220,35 @@
   position: relative;
 }
 
+.notebook-view-sort {
+  display: flex;
+  flex-direction: row;
+  min-width: 0;
+  min-height: 46px;
+  align-items: center;
+  gap: 7px;
+  margin: 0;
+  padding: 0 9px;
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  background: var(--surface);
+  color: var(--muted);
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+.notebook-view-sort select {
+  width: auto;
+  min-width: 0;
+  max-width: 210px;
+  min-height: 44px;
+  padding: 0 4px;
+  border: 0;
+  background: transparent;
+  color: var(--text);
+  font-size: 14px;
+}
+
 .notebook-view-filters > summary {
   display: flex;
   min-height: 46px;
@@ -643,11 +672,26 @@ body:has(.notebook-app) .notebook-saved {
   }
 
   .notebook-view-toolbar-actions > .secondary {
+    grid-column: 1 / -1;
     min-height: 44px;
   }
 
-  .notebook-view-toolbar-actions:not(:has(.secondary)) .notebook-view-filters {
-    grid-column: 1 / -1;
+  .notebook-view-sort {
+    min-height: 44px;
+    justify-content: center;
+    gap: 5px;
+    padding: 0 5px;
+  }
+
+  .notebook-view-sort > span {
+    display: none;
+  }
+
+  .notebook-app:not(.notebook-library) .content .notebook-view-sort select {
+    width: calc(100% - 20px);
+    max-width: none;
+    min-height: 42px;
+    font-size: 14px;
   }
 
   .notebook-view-filters > summary {
