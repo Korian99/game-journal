@@ -15,6 +15,8 @@ import { OwnershipBadge } from "../games/ownership-badge";
 import { PriorityMark } from "../games/priority-mark";
 import { WishlistPrice } from "../offers/wishlist-price";
 import { NotebookLibraryEntries } from "./notebook-library-entries";
+import { LibraryCoverGrid } from "./library-cover-grid";
+import { GameRowArtwork } from "../games/game-cover";
 
 export function JournalGameTable({
   table,
@@ -24,6 +26,7 @@ export function JournalGameTable({
   onQuickEdit,
   entryRowClass,
   focusedEntry = "",
+  libraryLayout = "table",
 }: {
   table: Table<JournalEntry>;
   view: JournalView;
@@ -32,6 +35,7 @@ export function JournalGameTable({
   onQuickEdit: (entry: JournalEntry) => void;
   entryRowClass: (entry: JournalEntry) => string | undefined;
   focusedEntry?: string;
+  libraryLayout?: "table" | "grid";
 }) {
   const hasTarget = table
     .getRowModel()
@@ -49,7 +53,9 @@ export function JournalGameTable({
       if (!target) return;
       const button = target.matches("button, .mobile-game")
         ? target
-        : target.querySelector<HTMLButtonElement>(".game-cell");
+        : target.querySelector<HTMLButtonElement>(
+            ".game-cell, .library-cover-edit",
+          );
       button?.focus({ preventScroll: true });
       target.scrollIntoView({
         block: "center",
@@ -61,6 +67,15 @@ export function JournalGameTable({
     return () => window.clearTimeout(timer);
   }, [focusedEntry, hasTarget, view]);
   const commentsBelow = view === "library" || view === "journal";
+  if (view === "library" && libraryLayout === "grid")
+    return (
+      <LibraryCoverGrid
+        entries={table.getRowModel().rows.map(({ original }) => original)}
+        onQuickEdit={onQuickEdit}
+        focusedEntry={focusedEntry}
+        entryRowClass={entryRowClass}
+      />
+    );
   return (
     <>
       <div className="mobile-games">
@@ -87,6 +102,7 @@ export function JournalGameTable({
                 data-entry-id={r.id}
                 tabIndex={-1}
               >
+                <GameRowArtwork cover={r.cover} />
                 {!commentsBelow &&
                   (view === "wishlist" ? (
                     <PriorityMark value={r.priority} />
@@ -230,7 +246,12 @@ export function JournalGameTable({
                   >
                     {r.getVisibleCells().map((c) => (
                       <td key={c.column.id}>
-                        {flexRender(c.column.columnDef.cell, c.getContext())}
+                        <div className="game-row-cell-content">
+                          {flexRender(c.column.columnDef.cell, c.getContext())}
+                        </div>
+                        {c.id === r.getVisibleCells().at(-1)?.id && (
+                          <GameRowArtwork cover={r.original.cover} wide />
+                        )}
                       </td>
                     ))}
                   </tr>

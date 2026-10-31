@@ -1,11 +1,11 @@
 # Covers, recaps, and game series
 
-**State:** Implementation requested 2026-10-30; checkpoint 0 complete; checkpoint 1 complete locally; checkpoint 2 not started
+**State:** Implementation requested 2026-10-30; checkpoints 0–2 complete locally; source-sheet URL import pending after checkpoint 2 review/approval
 **Prepared:** 2026-10-30
 
-This plan adds game cover art, private monthly and yearly recaps, and user-defined game series. Checkpoint 0 is complete. Checkpoint 1 implementation, focused checks, and independent data/privacy review are complete locally; committing it or starting checkpoint 2 still follows the user’s working agreement. No production SQL, push, or deployment is authorized.
+This plan adds game cover art, private monthly and yearly recaps, and user-defined game series. Checkpoint 0 is complete. Checkpoints 1 and 2 implementation and focused checks are complete locally, and checkpoint 1 has an independent data/privacy review. Present the checkpoint 2 diff and results for review; explicit approval is still required before committing or starting the source-sheet URL import. No production SQL, push, or deployment is authorized.
 
-The delivery order is **covers → recaps → series**. Each numbered checkpoint is one coherent implementation unit. For each unit, complete the focused checks and present the diff and results; wait for explicit approval before committing or beginning the next unit. Do not reconstruct intermediate commits or perform remote operations.
+The delivery order is **covers → recaps → series**. Each numbered checkpoint is one coherent implementation unit. For each unit, complete the focused checks and present the diff and results; wait for explicit approval before committing or beginning the next unit. Do not reconstruct intermediate commits or perform remote operations. The user has also requested importing cover art URLs from the connected source sheet [Juegos que jugar](https://docs.google.com/spreadsheets/d/1p7FgewLSMujSi4WS0lqQOEga-wbLhgErOjAHVVVTX4M/edit) into Game Journal as a separate follow-up unit after checkpoint 2 is reviewed and approved. URL columns: `Cover Art URL` on `<2025`, `2025`, and `2026`; `Cover Art URL (Nombre)` and `Cover Art URL (Próximos)` on `Tablas`. Source values include hosts outside the current approved provider image allowlist; preserve current URL validation and do not import or broaden the allowlist as part of checkpoint 2.
 
 ## Proposed defaults for checkpoint 0
 
@@ -45,7 +45,7 @@ Checkpoint 0 verifies these defaults against the current data model, ownership a
 |---|---:|---|
 | [x] | 0 | Confirm defaults and map existing data |
 | [x] | 1 | Persist and ingest cover metadata |
-| [ ] | 2 | Display and manually manage covers |
+| [x] | 2 | Display and manually manage covers |
 | [ ] | 3 | Define recap calculations |
 | [ ] | 4 | Present and export recaps |
 | [ ] | 5 | Create and edit ordered series with recovery compatibility |
@@ -69,11 +69,14 @@ Checkpoint 0 verifies these defaults against the current data model, ownership a
 
 ### 2. Display and manually manage covers
 
-- **Outcome:** Covers appear consistently in game details and library views, with a usable fallback and manual correction.
+- **Outcome:** Covers appear consistently in collection rows and library views, with no placeholder for missing or failed art and manual correction.
 - **Scope:** Add cover thumbnails to search results, a game header/thumbnail, and an optional library grid behind an explicit view choice (keep the current table as default). Add lazy loading, fixed image dimensions, manual HTTPS override, reset action, and mobile/keyboard support.
 - **Acceptance:** Broken art does not shift layout or block editing. A user-selected image stays selected after provider refresh and when a second playthrough or page is added. Existing table workflow remains available.
 - **Focused verification:** Browser primary flow at desktop and narrow mobile sizes; keyboard/focus check; broken-image and long-title fixtures; render an exported view with and without artwork.
 - **Commit boundary:** Cover presentation and manual override together, after checkpoint 1 is complete.
+
+- **Display preference update (2026-10-31):** In Diario, Lista de deseos, Biblioteca, and Próximos, show available art as a right-aligned crop that fades smoothly into each row background so text stays readable. Missing or failed images render no icon or placeholder. Preserve the existing cover editor and library cover-grid choice. Spreadsheet URL import is separate work after this UI unit is reviewed and approved; URLs outside the current approved hosts need a deliberate validation decision before they can display.
+- **Checkpoint 2 verification (2026-10-31):** Implemented row artwork across all four views: desktop art reaches the row’s right edge, and mobile art fades behind card content. Missing and failed art render no icon or placeholder; existing editor and library grid remain available. Focused browser specs `e2e/mocked/notebook-library.spec.ts` and `e2e/mocked/entry-start.spec.ts`: 18 passed, including desktop/mobile light/dark captures and a full-row right-edge bound assertion. `npm run typecheck` and `npm run lint` passed. Screenshots: `test-results/artwork-full-row-desktop.png` and `test-results/artwork-full-row-mobile.png`. Checkpoint 2 is complete locally; no commit was made.
 
 ### 3. Define recap calculations
 

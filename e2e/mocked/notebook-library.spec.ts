@@ -101,6 +101,11 @@ test("the library keeps its filters and editor in a responsive notebook layout",
       notes:
         "Red XIII made me cry. The narrative is warm, the cast is memorable, and the materia system kept every fight interesting.",
       rating: 92,
+      cover: {
+        provider: "steam",
+        providerUrl:
+          "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/620/header.jpg",
+      },
       updated_at: "2026-10-21T10:00:00Z",
     },
     {
@@ -114,6 +119,16 @@ test("the library keeps its filters and editor in a responsive notebook layout",
     },
   ];
 
+  await page.route("https://shared.akamai.steamstatic.com/**", (route) =>
+    route.abort(),
+  );
+  await page.route("https://assets.nintendo.com/**", (route) =>
+    route.fulfill({
+      status: 200,
+      contentType: "image/svg+xml",
+      body: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 4 3"><rect width="4" height="3" fill="#82a8ff"/></svg>',
+    }),
+  );
   await page.route("**/api/**", async (route) => {
     const { pathname } = new URL(route.request().url());
     if (pathname === "/api/records")
@@ -228,6 +243,35 @@ test("the library keeps its filters and editor in a responsive notebook layout",
   await expect(
     page.locator(".library-table").getByText("Filtered out", { exact: true }),
   ).toHaveCount(0);
+  await page
+    .getByRole("button", { name: "Vista de portadas", exact: true })
+    .click();
+  await expect(page.locator(".library-cover-grid")).toHaveCount(1);
+  await expect(
+    page
+      .locator(".library-cover-grid")
+      .getByText("Filtered out", { exact: true }),
+  ).toHaveCount(0);
+  await page.screenshot({
+    path: "test-results/cover-grid-desktop.png",
+    fullPage: true,
+  });
+  await expect(
+    page.getByRole("img", {
+      name: "Sin portada de The Last Route Through the Forgotten Kingdom",
+    }),
+  ).toHaveCount(0);
+  await page
+    .getByRole("button", {
+      name: "Editar The Last Route Through the Forgotten Kingdom",
+      exact: true,
+    })
+    .click();
+  await expect(page.getByRole("dialog")).toBeVisible();
+  await page.getByRole("button", { name: "Cerrar", exact: true }).click();
+  await page
+    .getByRole("button", { name: "Vista de tabla", exact: true })
+    .click();
   await filterDisclosure.click();
   await page
     .getByRole("button", {
@@ -235,7 +279,18 @@ test("the library keeps its filters and editor in a responsive notebook layout",
     })
     .click();
   await expect(page.getByRole("dialog")).toBeVisible();
+  await page.screenshot({ path: "test-results/cover-editor-desktop.png", fullPage: true });
+  await page
+    .getByLabel("URL de portada", { exact: true })
+    .fill("https://assets.nintendo.com/image/upload/recovery.jpg");
+  await expect(page.locator(".cover-editor img")).toHaveAttribute(
+    "src",
+    "https://assets.nintendo.com/image/upload/recovery.jpg",
+  );
+  await expect(page.locator(".cover-editor img")).toBeVisible();
   await page.getByRole("button", { name: "Cerrar", exact: true }).click();
+  await expect(page.getByRole("heading", { name: "Descartar cambios" })).toBeVisible();
+  await page.getByRole("button", { name: "Descartar cambios", exact: true }).click();
   await expect(page.getByRole("dialog")).toHaveCount(0);
 
   await page.goto("./?tab=library&year=all&sort=rating.desc%2Cimpression.asc");
@@ -262,6 +317,17 @@ test("the library keeps its filters and editor in a responsive notebook layout",
   await librarySearch.evaluate((input) => input.blur());
   await expect(page.locator(".notebook-entry-card")).toHaveCount(2);
   await expect(page.locator(".mobile-games")).toBeVisible();
+  await page
+    .getByRole("button", { name: "Vista de portadas", exact: true })
+    .click();
+  await expect(page.locator(".library-cover-card")).toHaveCount(2);
+  await page.screenshot({ path: "test-results/cover-grid-mobile.png", fullPage: true });
+  await page.evaluate(() => document.documentElement.classList.add("light"));
+  await page.screenshot({ path: "test-results/cover-grid-mobile-light.png", fullPage: true });
+  await page.evaluate(() => document.documentElement.classList.remove("light"));
+  await page
+    .getByRole("button", { name: "Vista de tabla", exact: true })
+    .click();
   await expect(
     page.locator(".notebook-entry-card .review-mark").first(),
   ).toBeVisible();
@@ -404,4 +470,210 @@ test("the library keeps its filters and editor in a responsive notebook layout",
     })
     .click();
   await expect(page.getByRole("dialog")).toBeVisible();
+});
+
+test("row artwork appears in every collection view and missing or failed art stays empty", async ({
+  page,
+}) => {
+  const records = [
+    {
+      ...emptyRecord,
+      id: "art-library",
+      gameId: "game-library",
+      title: "Library art",
+      status: "completed",
+      finished: "2026-10-01",
+      cover: {
+        provider: "nintendo",
+        providerUrl: "https://assets.nintendo.com/image/upload/library.jpg",
+      },
+    },
+    {
+      ...emptyRecord,
+      id: "art-journal",
+      gameId: "game-journal",
+      title: "Journal art",
+      status: "playing",
+      started: "2026-10-01",
+      cover: {
+        provider: "nintendo",
+        providerUrl: "https://assets.nintendo.com/image/upload/journal.jpg",
+      },
+    },
+    {
+      ...emptyRecord,
+      id: "art-wishlist",
+      gameId: "game-wishlist",
+      title: "Wishlist art",
+      status: "wishlist",
+      cover: {
+        provider: "nintendo",
+        providerUrl: "https://assets.nintendo.com/image/upload/wishlist.jpg",
+      },
+    },
+    {
+      ...emptyRecord,
+      id: "art-upcoming",
+      gameId: "game-upcoming",
+      title: "Upcoming art",
+      status: "upcoming",
+      release: "2099-10-01",
+      cover: {
+        provider: "nintendo",
+        providerUrl: "https://assets.nintendo.com/image/upload/upcoming.jpg",
+      },
+    },
+    {
+      ...emptyRecord,
+      id: "art-missing",
+      gameId: "game-missing",
+      title: "No art",
+      status: "completed",
+      finished: "2026-10-01",
+    },
+    {
+      ...emptyRecord,
+      id: "art-failed",
+      gameId: "game-failed",
+      title: "Failed art",
+      status: "completed",
+      finished: "2026-10-02",
+      cover: {
+        provider: "nintendo",
+        providerUrl: "https://assets.nintendo.com/image/upload/fail.jpg",
+      },
+    },
+  ];
+  await page.route("https://assets.nintendo.com/**", (route) =>
+    route.request().url().includes("fail.jpg")
+      ? route.abort()
+      : route.fulfill({
+          status: 200,
+          contentType: "image/svg+xml",
+          body: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 480 320"><defs><linearGradient id="g"><stop stop-color="#242b54"/><stop offset="1" stop-color="#df785b"/></linearGradient></defs><rect width="480" height="320" fill="url(#g)"/><circle cx="360" cy="92" r="66" fill="#f5d77b"/><path d="M0 270 145 120l100 110 85-84 150 174H0Z" fill="#293b47"/><path d="m0 300 125-92 86 62 90-106 179 156H0Z" fill="#1c2831" opacity=".8"/></svg>`,
+        }),
+  );
+  await page.route("**/api/**", async (route) => {
+    const { pathname } = new URL(route.request().url());
+    if (pathname === "/api/records")
+      return route.fulfill({
+        json: {
+          records,
+          member: { id: "fixture", display_name: "Fixture", role: "member" },
+        },
+      });
+    if (pathname === "/api/notifications")
+      return route.fulfill({
+        json: {
+          items: [],
+          unreadCount: 0,
+          nextCursor: null,
+          checkedAt: new Date().toISOString(),
+        },
+      });
+    if (pathname === "/api/sharing")
+      return route.fulfill({ json: { shared: [], members: [], grants: [] } });
+    if (pathname === "/api/backups/drive")
+      return route.fulfill({
+        json: {
+          configured: false,
+          connected: false,
+          state: "disconnected",
+          folderId: null,
+          errorCode: null,
+          recoveryVerifiedAt: null,
+          latest: null,
+          lastSuccess: null,
+          checkedAt: new Date().toISOString(),
+        },
+      });
+    return route.fulfill({ json: [] });
+  });
+
+  for (const [view, title] of [
+    ["library", "Library art"],
+    ["journal", "Journal art"],
+    ["wishlist", "Wishlist art"],
+    ["upcoming", "Upcoming art"],
+  ] as const) {
+    await page.setViewportSize({ width: 1280, height: 900 });
+    await page.goto(`./?tab=${view}&year=all`);
+    const row = page
+      .locator(".journal-desktop-table tr.game-data-row")
+      .filter({ hasText: title });
+    await expect(row.locator(".game-row-art img")).toBeVisible();
+    const rowBounds = await row.boundingBox();
+    const artBounds = await row.locator(".game-row-art-wide").boundingBox();
+    expect(rowBounds).not.toBeNull();
+    expect(artBounds).not.toBeNull();
+    expect(
+      Math.abs(
+        artBounds!.x + artBounds!.width - (rowBounds!.x + rowBounds!.width),
+      ),
+    ).toBeLessThanOrEqual(1);
+    if (view === "library")
+      await page.screenshot({
+        path: "test-results/artwork-full-row-desktop.png",
+        fullPage: true,
+        animations: "disabled",
+      });
+    await row.screenshot({
+      path: `test-results/artwork-row-${view}-dark-desktop.png`,
+    });
+    await page.evaluate(() => document.documentElement.classList.add("light"));
+    await row.screenshot({
+      path: `test-results/artwork-row-${view}-light-desktop.png`,
+    });
+    await page.evaluate(() =>
+      document.documentElement.classList.remove("light"),
+    );
+    await page.setViewportSize({ width: 390, height: 844 });
+    const mobileRow = page
+      .locator(
+        view === "library"
+          ? ".notebook-entry-card"
+          : ".mobile-game-wrapper > .mobile-game",
+      )
+      .filter({ hasText: title });
+    await expect(mobileRow.locator(".game-row-art img")).toBeVisible();
+    if (view === "library")
+      await page.screenshot({
+        path: "test-results/artwork-full-row-mobile.png",
+        fullPage: true,
+        animations: "disabled",
+      });
+    await mobileRow.screenshot({
+      path: `test-results/artwork-row-${view}-dark-mobile.png`,
+    });
+    await page.evaluate(() => document.documentElement.classList.add("light"));
+    await mobileRow.screenshot({
+      path: `test-results/artwork-row-${view}-light-mobile.png`,
+    });
+    await page.evaluate(() =>
+      document.documentElement.classList.remove("light"),
+    );
+  }
+  await page.goto("./?tab=library&year=all");
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await expect(
+    page
+      .locator(".game-data-row")
+      .filter({ hasText: "No art" })
+      .locator(".game-row-art"),
+  ).toHaveCount(0);
+  await expect(
+    page
+      .locator(".game-data-row")
+      .filter({ hasText: "Failed art" })
+      .locator(".game-row-art"),
+  ).toHaveCount(0);
+  await page
+    .locator(".game-data-row")
+    .filter({ hasText: "No art" })
+    .getByRole("button", { name: "Ver detalles de No art" })
+    .click();
+  await expect(page.getByRole("dialog")).toBeVisible();
+  await expect(
+    page.getByLabel("Nombre del juego", { exact: true }),
+  ).toHaveValue("No art");
 });

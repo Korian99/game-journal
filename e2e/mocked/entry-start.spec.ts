@@ -240,6 +240,65 @@ test("editing an existing entry keeps its selected status with a future release"
   expect(saves[0]).toMatchObject({ id: existing.id, status: "paused" });
 });
 
+test("invalid cover survives a provider preview and blocks save until reset", async ({
+  page,
+}) => {
+  const providerUrl =
+    "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/620/header.jpg";
+  const existing: JournalEntry = {
+    ...emptyRecord,
+    id: "20000000-0000-4000-8000-000000000001",
+    gameId: "30000000-0000-4000-8000-000000000001",
+    title: "Existing cover game",
+    status: "wishlist",
+    cover: { provider: "steam", providerUrl },
+  };
+  const previewWithCover = {
+    ...metadata,
+    cover: {
+      provider: "nintendo" as const,
+      providerUrl: "https://assets.nintendo.com/image/upload/preview.jpg",
+    },
+  };
+  const { saves } = await fixture(page, previewWithCover, existing, "wishlist");
+  const coverInput = page.getByLabel("URL de portada", { exact: true });
+  await coverInput.fill("https://example.org/not-approved.jpg");
+  await expect(
+    page.getByText("Usá una URL HTTPS de un proveedor aprobado."),
+  ).toBeVisible();
+  await page
+    .getByRole("button", { name: "Completar desde una página", exact: true })
+    .click();
+  await page
+    .getByLabel("Página de Steam o Nintendo", { exact: true })
+    .fill(url);
+  await page.getByRole("button", { name: "Traer datos", exact: true }).click();
+  await expect(coverInput).toHaveValue("https://example.org/not-approved.jpg");
+  await expect(
+    page.getByRole("img", { name: "Sin portada de Portal 2" }),
+  ).toHaveCount(0);
+  await expect(page.locator(".cover-editor img")).toHaveCount(0);
+  await expect(
+    page.getByText("Usá una URL HTTPS de un proveedor aprobado."),
+  ).toBeVisible();
+  await page
+    .getByRole("button", { name: "Guardar entrada", exact: true })
+    .click();
+  expect(saves).toHaveLength(0);
+  await expect(coverInput).toBeFocused();
+
+  await coverInput.fill("https://assets.nintendo.com/image/upload/manual.jpg");
+  await page
+    .getByRole("button", { name: "Restablecer portada de tienda" })
+    .click();
+  await expect(coverInput).toHaveValue("");
+  await page
+    .getByRole("button", { name: "Guardar entrada", exact: true })
+    .click();
+  await expect.poll(() => saves.length).toBe(1);
+  expect(saves[0].cover).toEqual({ provider: "steam", providerUrl });
+});
+
 test("Steam lookup fills an editable draft and waits for an explicit save", async ({
   page,
 }) => {

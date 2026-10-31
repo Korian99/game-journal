@@ -1083,3 +1083,59 @@
     border-radius: 16px 16px 0 0;
   }
 }
+
+/* Game artwork: restrained notebook surfaces for mixed Steam/Nintendo ratios. */
+.game-cover {
+  display: inline-grid;
+  flex: 0 0 auto;
+  place-items: center;
+  overflow: hidden;
+  aspect-ratio: 1.35;
+  border: 1px solid color-mix(in srgb, currentColor 14%, transparent);
+  border-radius: 7px;
+  color: var(--muted, currentColor);
+  background: color-mix(in srgb, var(--bg, #222326) 88%, var(--accent, #82a8ff));
+}
+.game-cover-thumb { width: 48px; }
+.game-cover-card { width: 100%; aspect-ratio: 1.42; border-radius: 8px; }
+.game-cover-feature { width: 112px; aspect-ratio: 0.82; border-radius: 10px; }
+.game-cover img { display: block; width: 100%; height: 100%; object-fit: cover; }
+.game-cover > span { display: grid; width: 100%; height: 100%; place-items: center; }
+.library-game-cell { gap: 9px; }
+.library-game-identity { min-width: 0; }
+.notebook-entry-main > .game-cover { width: 58px; }
+.store-search-results > li > button { display: grid; grid-template-columns: 52px minmax(0, 1fr) auto; gap: 10px; align-items: center; }
+.store-search-result-title { min-width: 0; overflow-wrap: anywhere; }
+.store-search-results > li > button .game-cover { grid-row: span 2; }
+.cover-editor { display: flex; align-items: center; gap: 16px; margin: 0 0 18px; padding: 14px; border: 1px solid color-mix(in srgb, currentColor 16%, transparent); border-radius: 12px; background: color-mix(in srgb, var(--bg, #222326) 95%, var(--accent, #82a8ff)); }
+.cover-editor-fields { display: grid; flex: 1; min-width: 0; gap: 7px; }
+.cover-editor-fields > label { font-size: .84rem; font-weight: 650; }
+.cover-editor-fields input { width: 100%; min-width: 0; }
+.cover-editor-error { margin: 0; color: var(--error, #b33); font-size: .82rem; }
+.cover-editor-actions { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
+.cover-editor-actions > span { color: var(--muted, currentColor); font-size: .8rem; }
+.notebook-library-view-toggle { display: inline-flex; gap: 3px; padding: 3px; border: 1px solid color-mix(in srgb, currentColor 18%, transparent); border-radius: 9px; }
+.notebook-library-view-toggle button { min-height: 38px; padding: 0 10px; border: 0; border-radius: 6px; color: inherit; background: transparent; }
+.notebook-library-view-toggle button[aria-pressed="true"] { background: color-mix(in srgb, var(--accent, #82a8ff) 22%, var(--bg, #222326)); }
+.library-cover-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 16px; }
+.library-cover-card { min-width: 0; overflow: hidden; border: 1px solid color-mix(in srgb, currentColor 14%, transparent); border-radius: 11px; background: color-mix(in srgb, var(--bg, #222326) 93%, var(--accent, #82a8ff)); }
+.library-cover-card-copy { display: grid; gap: 6px; padding: 11px; }
+.library-cover-card h2 { margin: 0; font-size: 1rem; line-height: 1.3; overflow-wrap: anywhere; }
+.library-cover-card small { color: var(--muted, currentColor); }
+.library-cover-card > .game-cover { display: grid; }
+.library-cover-card-copy button { justify-self: start; margin-top: 4px; }
+@media (max-width: 640px) {
+  .cover-editor { align-items: flex-start; gap: 11px; padding: 11px; }
+  .game-cover-feature { width: 82px; }
+  .cover-editor-actions { align-items: flex-start; }
+  .notebook-library-view-toggle button { min-height: 44px; padding-inline: 7px; }
+  .library-cover-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+  .library-cover-card-copy { padding: 9px; }
+}
+.notebook-library-heading .notebook-library-view-toggle { margin-left: auto; }
+@media (max-width: 640px) {
+  .notebook-library-heading { display: grid; grid-template-columns: minmax(0, 1fr) auto; }
+  .notebook-library-heading > div:first-child { grid-column: 1 / -1; }
+  .notebook-library-heading .notebook-library-view-toggle { grid-column: 1; grid-row: 2; margin-left: 0; }
+  .notebook-library-heading .notebook-library-add { grid-column: 2; grid-row: 2; }
+}

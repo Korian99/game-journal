@@ -10,6 +10,7 @@ import {
 } from "@/lib/offers/store-preview-contract";
 import { coverSchema } from "@/lib/covers";
 import type { StoreSearchResult } from "@/lib/offers/store-search";
+import { GameCover } from "../game-cover";
 
 const searchSchema = z.object({
   results: z.array(
@@ -256,6 +257,11 @@ export function StoreSearch({
                   disabled={!online || previewing}
                   onClick={() => void select(result)}
                 >
+                  <GameCover
+                    cover={result.cover}
+                    title={result.title}
+                    size="thumb"
+                  />
                   <span className="store-search-result-title">
                     {result.title}
                   </span>

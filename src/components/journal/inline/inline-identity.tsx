@@ -57,7 +57,7 @@ export function InlineIdentity({
           <JournalScoreMark record={entry} />
         </InlineField>
       )}
-      <span className="library-game-identity">
+      <div className="library-game-identity">
         <InlineField entry={entry} view={view} field="title">
           <strong>{entry.title}</strong>
         </InlineField>
@@ -82,7 +82,7 @@ export function InlineIdentity({
             ).join(" · ") || "Plataforma sin confirmar"}
           </small>
         )}
-      </span>
+      </div>
       <button
         type="button"
         className="inline-details icon-button"

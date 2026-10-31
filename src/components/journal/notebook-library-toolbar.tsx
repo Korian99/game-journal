@@ -38,12 +38,16 @@ export function NotebookLibraryToolbar({
   yearOptions,
   resultsCount,
   onAdd,
+  layout,
+  onLayoutChange,
 }: {
   location: ReturnType<typeof useJournalLocation>;
   platforms: string[];
   yearOptions: string[];
   resultsCount: number;
   onAdd: () => void;
+  layout: "table" | "grid";
+  onLayoutChange: (layout: "table" | "grid") => void;
 }) {
   const {
     query,
@@ -90,6 +94,28 @@ export function NotebookLibraryToolbar({
           <span className="desktop-label">Agregar juego</span>
           <span className="mobile-label">Agregar</span>
         </button>
+        <div
+          className="notebook-library-view-toggle"
+          role="group"
+          aria-label="Vista de Biblioteca"
+        >
+          <button
+            type="button"
+            aria-label="Vista de tabla"
+            aria-pressed={layout === "table"}
+            onClick={() => onLayoutChange("table")}
+          >
+            Tabla
+          </button>
+          <button
+            type="button"
+            aria-label="Vista de portadas"
+            aria-pressed={layout === "grid"}
+            onClick={() => onLayoutChange("grid")}
+          >
+            Portadas
+          </button>
+        </div>
       </header>
 
       <div className="notebook-library-toolbar">

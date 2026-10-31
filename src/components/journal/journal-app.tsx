@@ -94,6 +94,7 @@ export function JournalApp({
   initialLocation,
 }: { initialLocation?: JournalLocation } = {}) {
   const journalLocation = useJournalLocation(initialLocation);
+  const [libraryLayout, setLibraryLayout] = useState<"table" | "grid">("table");
   const {
     view,
     query,
@@ -542,6 +543,8 @@ export function JournalApp({
               platforms={platforms}
               yearOptions={yearOptions}
               resultsCount={games.length}
+              layout={libraryLayout}
+              onLayoutChange={setLibraryLayout}
               onAdd={() =>
                 openEntry({
                   ...emptyRecord,
@@ -1001,6 +1004,7 @@ export function JournalApp({
                         }}
                         entryRowClass={entryRowClass}
                         focusedEntry={journalLocation.focusedEntry}
+                        libraryLayout={libraryLayout}
                       />
                     </InlineEditContext.Provider>
                   )}

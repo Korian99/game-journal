@@ -7,6 +7,7 @@ import {
 import { EntrySaveStatus } from "./entry-save-status";
 import { EntryStart } from "./editor/entry-start";
 import { StorePreviewCard } from "./editor/store-preview-card";
+import { CoverEditor } from "./editor/cover-editor";
 import type { StorePreview } from "@/lib/offers/store-preview-contract";
 import { MainTab } from "./editor/main-tab";
 import { PlaythroughTab } from "./editor/playthrough-tab";
@@ -27,7 +28,11 @@ import type {
 import { statuses, type Offer } from "@/lib/types";
 import { pagesSchema, releaseSchema } from "@/lib/validation";
 import { formatDate } from "@/lib/journal/view-config";
-import { mergeProviderCover } from "@/lib/covers";
+import {
+  coverImageUrlSchema,
+  coverSchema,
+  mergeProviderCover,
+} from "@/lib/covers";
 import { Check, LoaderCircle, Trash2 } from "lucide-react";
 import { useEffect, useId, useRef, useState } from "react";
 import { EntryActionsMenu } from "./entry-actions-menu";
@@ -113,7 +118,25 @@ export function EntryEditor({
             .filter(Boolean),
         ),
       ].join("; ");
-      const cover = mergeProviderCover(current.cover, preview.cover);
+      const currentIsValid = coverSchema.safeParse(current.cover).success;
+      const currentProvider = coverSchema.safeParse({
+        providerUrl: current.cover?.providerUrl,
+        provider: current.cover?.provider,
+      });
+      const coverBase = mergeProviderCover(
+        currentIsValid
+          ? current.cover
+          : currentProvider.success
+            ? currentProvider.data
+            : undefined,
+        preview.cover,
+      );
+      const rawOverride = current.cover?.overrideUrl;
+      const cover =
+        rawOverride !== undefined &&
+        !coverImageUrlSchema.safeParse(rawOverride).success
+          ? { ...(coverBase ?? {}), overrideUrl: rawOverride }
+          : coverBase;
       const next = {
         ...current,
         ...preview.fields,
@@ -402,6 +425,13 @@ export function EntryEditor({
           onSubmit={(e) => {
             e.preventDefault();
             if (busy || saving) return;
+            if (draft.cover && !coverSchema.safeParse(draft.cover).success) {
+              setActiveTab("main");
+              requestAnimationFrame(() =>
+                document.getElementById(editorId + "-cover-url")?.focus(),
+              );
+              return;
+            }
             if (!draft.title.trim()) {
               setActiveTab("main");
               requestAnimationFrame(() => {
@@ -492,6 +522,16 @@ export function EntryEditor({
             aria-labelledby={editorId + "-tab-main"}
             hidden={activeTab !== "main"}
           >
+            <div hidden={activeTab !== "main"}>
+              <CoverEditor
+                cover={draft.cover}
+                title={draft.title}
+                inputId={editorId + "-cover-url"}
+                formId={formId}
+                disabled={busy || saving}
+                onChange={(cover) => updateDraftField("cover", cover)}
+              />
+            </div>
             {activeTab === "main" && (
               <button
                 type="button"

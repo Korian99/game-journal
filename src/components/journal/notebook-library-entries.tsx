@@ -6,6 +6,7 @@ import { formatDate } from "@/lib/journal/view-config";
 import { GameComments } from "./game-comments";
 import { LibraryPlaythrough, ReviewMark } from "./library-game-details";
 import { Pencil } from "lucide-react";
+import { GameRowArtwork } from "../games/game-cover";
 
 export function NotebookLibraryEntries({
   entries,
@@ -35,6 +36,7 @@ export function NotebookLibraryEntries({
           data-entry-id={entry.id}
           tabIndex={-1}
         >
+          <GameRowArtwork cover={entry.cover} />
           <div className="notebook-entry-main">
             <div className="notebook-entry-identity">
               <h2>{entry.title}</h2>
