@@ -184,6 +184,12 @@ test("the library keeps its filters and editor in a responsive notebook layout",
 
   await page.setViewportSize({ width: 1280, height: 900 });
   await page.goto("./?tab=library&year=all");
+  await expect(
+    page.getByRole("button", { name: "Vista de tabla", exact: true }),
+  ).toHaveCount(0);
+  await expect(
+    page.getByRole("button", { name: "Vista de portadas", exact: true }),
+  ).toHaveCount(0);
   await expectDesktopToolbarAligned(page);
   await expect(page.locator(".app-shell.notebook-library")).toBeVisible();
   await expect(page.locator(".app-shell.notebook-library")).toHaveCSS(
@@ -243,35 +249,11 @@ test("the library keeps its filters and editor in a responsive notebook layout",
   await expect(
     page.locator(".library-table").getByText("Filtered out", { exact: true }),
   ).toHaveCount(0);
-  await page
-    .getByRole("button", { name: "Vista de portadas", exact: true })
-    .click();
-  await expect(page.locator(".library-cover-grid")).toHaveCount(1);
-  await expect(
-    page
-      .locator(".library-cover-grid")
-      .getByText("Filtered out", { exact: true }),
-  ).toHaveCount(0);
-  await page.screenshot({
-    path: "test-results/cover-grid-desktop.png",
-    fullPage: true,
-  });
   await expect(
     page.getByRole("img", {
       name: "Sin portada de The Last Route Through the Forgotten Kingdom",
     }),
   ).toHaveCount(0);
-  await page
-    .getByRole("button", {
-      name: "Editar The Last Route Through the Forgotten Kingdom",
-      exact: true,
-    })
-    .click();
-  await expect(page.getByRole("dialog")).toBeVisible();
-  await page.getByRole("button", { name: "Cerrar", exact: true }).click();
-  await page
-    .getByRole("button", { name: "Vista de tabla", exact: true })
-    .click();
   await filterDisclosure.click();
   await page
     .getByRole("button", {
@@ -279,7 +261,7 @@ test("the library keeps its filters and editor in a responsive notebook layout",
     })
     .click();
   await expect(page.getByRole("dialog")).toBeVisible();
-  await page.screenshot({ path: "test-results/cover-editor-desktop.png", fullPage: true });
+  await page.screenshot({ path: "test-results/notebook-library-cover-editor-desktop.png", fullPage: true });
   await page
     .getByLabel("URL de portada", { exact: true })
     .fill("https://assets.nintendo.com/image/upload/recovery.jpg");
@@ -301,6 +283,12 @@ test("the library keeps its filters and editor in a responsive notebook layout",
 
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("./?tab=library&year=all");
+  await expect(
+    page.getByRole("button", { name: "Vista de tabla", exact: true }),
+  ).toHaveCount(0);
+  await expect(
+    page.getByRole("button", { name: "Vista de portadas", exact: true }),
+  ).toHaveCount(0);
   await expectMobileToolbarAligned(page, 390);
   const mobileFilters = page.locator(".notebook-library-filters > summary");
   await mobileFilters.click();
@@ -317,17 +305,9 @@ test("the library keeps its filters and editor in a responsive notebook layout",
   await librarySearch.evaluate((input) => input.blur());
   await expect(page.locator(".notebook-entry-card")).toHaveCount(2);
   await expect(page.locator(".mobile-games")).toBeVisible();
-  await page
-    .getByRole("button", { name: "Vista de portadas", exact: true })
-    .click();
-  await expect(page.locator(".library-cover-card")).toHaveCount(2);
-  await page.screenshot({ path: "test-results/cover-grid-mobile.png", fullPage: true });
   await page.evaluate(() => document.documentElement.classList.add("light"));
-  await page.screenshot({ path: "test-results/cover-grid-mobile-light.png", fullPage: true });
+  await page.screenshot({ path: "test-results/notebook-library-mobile-light.png", fullPage: true });
   await page.evaluate(() => document.documentElement.classList.remove("light"));
-  await page
-    .getByRole("button", { name: "Vista de tabla", exact: true })
-    .click();
   await expect(
     page.locator(".notebook-entry-card .review-mark").first(),
   ).toBeVisible();

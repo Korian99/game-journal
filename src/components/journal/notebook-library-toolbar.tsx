@@ -38,8 +38,6 @@ export function NotebookLibraryToolbar({
   yearOptions,
   resultsCount,
   onAdd,
-  layout,
-  onLayoutChange,
   headerActions,
 }: {
   location: ReturnType<typeof useJournalLocation>;
@@ -47,8 +45,6 @@ export function NotebookLibraryToolbar({
   yearOptions: string[];
   resultsCount: number;
   onAdd: () => void;
-  layout: "table" | "grid";
-  onLayoutChange: (layout: "table" | "grid") => void;
   headerActions?: React.ReactNode;
 }) {
   const {
@@ -97,28 +93,6 @@ export function NotebookLibraryToolbar({
           <span className="mobile-label">Agregar</span>
         </button>
         {headerActions}
-        <div
-          className="notebook-library-view-toggle"
-          role="group"
-          aria-label="Vista de Biblioteca"
-        >
-          <button
-            type="button"
-            aria-label="Vista de tabla"
-            aria-pressed={layout === "table"}
-            onClick={() => onLayoutChange("table")}
-          >
-            Tabla
-          </button>
-          <button
-            type="button"
-            aria-label="Vista de portadas"
-            aria-pressed={layout === "grid"}
-            onClick={() => onLayoutChange("grid")}
-          >
-            Portadas
-          </button>
-        </div>
       </header>
 
       <div className="notebook-library-toolbar">

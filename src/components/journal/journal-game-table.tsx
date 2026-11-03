@@ -15,7 +15,6 @@ import { OwnershipBadge } from "../games/ownership-badge";
 import { PriorityMark } from "../games/priority-mark";
 import { WishlistPrice } from "../offers/wishlist-price";
 import { NotebookLibraryEntries } from "./notebook-library-entries";
-import { LibraryCoverGrid } from "./library-cover-grid";
 import { GameRowArtwork } from "../games/game-cover";
 
 export function JournalGameTable({
@@ -26,7 +25,6 @@ export function JournalGameTable({
   onQuickEdit,
   entryRowClass,
   focusedEntry = "",
-  libraryLayout = "table",
 }: {
   table: Table<JournalEntry>;
   view: JournalView;
@@ -35,7 +33,6 @@ export function JournalGameTable({
   onQuickEdit: (entry: JournalEntry) => void;
   entryRowClass: (entry: JournalEntry) => string | undefined;
   focusedEntry?: string;
-  libraryLayout?: "table" | "grid";
 }) {
   const hasTarget = table
     .getRowModel()
@@ -53,9 +50,7 @@ export function JournalGameTable({
       if (!target) return;
       const button = target.matches("button, .mobile-game")
         ? target
-        : target.querySelector<HTMLButtonElement>(
-            ".game-cell, .library-cover-edit",
-          );
+        : target.querySelector<HTMLButtonElement>(".game-cell");
       button?.focus({ preventScroll: true });
       target.scrollIntoView({
         block: "center",
@@ -67,15 +62,6 @@ export function JournalGameTable({
     return () => window.clearTimeout(timer);
   }, [focusedEntry, hasTarget, view]);
   const commentsBelow = view === "library" || view === "journal";
-  if (view === "library" && libraryLayout === "grid")
-    return (
-      <LibraryCoverGrid
-        entries={table.getRowModel().rows.map(({ original }) => original)}
-        onQuickEdit={onQuickEdit}
-        focusedEntry={focusedEntry}
-        entryRowClass={entryRowClass}
-      />
-    );
   return (
     <>
       <div className="mobile-games">
