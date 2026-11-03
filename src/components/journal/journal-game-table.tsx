@@ -1,5 +1,5 @@
 "use client";
-import { Fragment, useEffect } from "react";
+import { useEffect } from "react";
 import { GameComments } from "./game-comments";
 import type { JournalView } from "@/lib/journal/journal-location";
 import type { JournalEntry } from "@/lib/journal/journal-types";
@@ -226,46 +226,51 @@ export function JournalGameTable({
               </tr>
             ))}
           </thead>
-          <tbody>
-            {table.getRowModel().rows.map((r) => {
-              const hasComments = commentsBelow && !!r.original.notes.trim();
-              return (
-                <Fragment key={r.original.id ?? r.id}>
-                  <tr
-                    data-entry-id={r.original.id}
-                    className={[
-                      "game-data-row",
-                      hasComments ? "has-comments" : "",
-                      entryRowClass(r.original),
-                      r.original.id === focusedEntry
-                        ? "notification-highlight"
-                        : "",
-                    ]
-                      .filter(Boolean)
-                      .join(" ")}
-                  >
-                    {r.getVisibleCells().map((c) => (
-                      <td key={c.column.id}>
-                        <div className="game-row-cell-content">
-                          {flexRender(c.column.columnDef.cell, c.getContext())}
-                        </div>
-                        {c.id === r.getVisibleCells().at(-1)?.id && (
-                          <GameRowArtwork cover={r.original.cover} wide />
-                        )}
-                      </td>
-                    ))}
+          {table.getRowModel().rows.map((r) => {
+            const hasComments = commentsBelow && !!r.original.notes.trim();
+            return (
+              <tbody
+                key={r.original.id ?? r.id}
+                className={
+                  hasComments
+                    ? "game-entry-group has-comments-art"
+                    : "game-entry-group"
+                }
+              >
+                <tr
+                  data-entry-id={r.original.id}
+                  className={[
+                    "game-data-row",
+                    hasComments ? "has-comments" : "",
+                    entryRowClass(r.original),
+                    r.original.id === focusedEntry
+                      ? "notification-highlight"
+                      : "",
+                  ]
+                    .filter(Boolean)
+                    .join(" ")}
+                >
+                  {r.getVisibleCells().map((c) => (
+                    <td key={c.column.id}>
+                      <div className="game-row-cell-content">
+                        {flexRender(c.column.columnDef.cell, c.getContext())}
+                      </div>
+                      {c.id === r.getVisibleCells().at(-1)?.id && (
+                        <GameRowArtwork cover={r.original.cover} wide />
+                      )}
+                    </td>
+                  ))}
+                </tr>
+                {hasComments && (
+                  <tr className="game-comments-row">
+                    <td colSpan={r.getVisibleCells().length}>
+                      <GameComments entry={r.original} inlineView={view} />
+                    </td>
                   </tr>
-                  {hasComments && (
-                    <tr className="game-comments-row">
-                      <td colSpan={r.getVisibleCells().length}>
-                        <GameComments entry={r.original} inlineView={view} />
-                      </td>
-                    </tr>
-                  )}
-                </Fragment>
-              );
-            })}
-          </tbody>
+                )}
+              </tbody>
+            );
+          })}
         </table>
       </div>
     </>

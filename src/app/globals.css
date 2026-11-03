@@ -2499,6 +2499,23 @@ tbody tr.wishlist-discounted td:first-child,
   padding-bottom: 18px;
   border-top: 0;
 }
+.game-entry-group.has-comments-art {
+  position: relative;
+  isolation: isolate;
+}
+.game-entry-group.has-comments-art > .game-data-row {
+  position: static;
+  isolation: auto;
+}
+.game-entry-group.has-comments-art .game-comments-row td > .game-comments {
+  position: relative;
+  z-index: 2;
+}
+
+tbody.game-entry-group + tbody.game-entry-group > tr:first-child > td {
+  border-top: 1px solid var(--row-line);
+}
+
 .game-data-row:has(+ .game-comments-row:hover),
 .game-data-row:hover + .game-comments-row {
   background: var(--raised);
