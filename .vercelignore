@@ -3,6 +3,9 @@
 node_modules/
 .next/
 .git/
+.engram/
+.codegraph/
+.atl/
 test-results/
 playwright-report/
 .bootstrap-link.txt

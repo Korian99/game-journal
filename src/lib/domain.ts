@@ -1,6 +1,7 @@
 import { load } from "cheerio";
 import { normalizeConsoleLabels } from "./journal/console-labels";
 import { emptyRecord, type JournalRecord, type Price } from "./types";
+import { parseCoverImageUrl, type Cover } from "./covers";
 export function parseStoreUrl(raw: string) {
   const u = new URL(raw);
   if (u.protocol !== "https:" || u.username || u.password || u.port)
@@ -292,6 +293,10 @@ export type ImportRecord = JournalRecord & {
 };
 export function parseWorkbook(tabs: WorkbookTab[]): ImportRecord[] {
   const result: ImportRecord[] = [];
+  const sheetCover = (value: unknown): Cover | undefined => {
+    const providerUrl = parseCoverImageUrl(value);
+    return providerUrl ? { providerUrl } : undefined;
+  };
   for (const tab of tabs) {
     if (
       !["Tablas", "2025", "2026", "<2025"].includes(tab.name) ||
@@ -341,6 +346,13 @@ export function parseWorkbook(tabs: WorkbookTab[]): ImportRecord[] {
             return index < 0 ? "" : (row[index] ?? "");
           };
           const title = cleanTitle(row[start]);
+          const coverHeader = norm(
+            mode === "wishlist"
+              ? "Cover Art URL (Nombre)"
+              : "Cover Art URL (Próximos)",
+          );
+          const coverIndex = headers.indexOf(coverHeader);
+          const cover = sheetCover(coverIndex < 0 ? "" : row[coverIndex]);
           const url = String(
             get("URL", "Link", "Enlace") ||
               row.slice(start + 1, end).find((value) => {
@@ -364,6 +376,7 @@ export function parseWorkbook(tabs: WorkbookTab[]): ImportRecord[] {
             ...emptyRecord,
             title,
             status: mode,
+            ...(cover ? { cover } : {}),
             ownership: String(get("Comprado")),
             priority:
               num(get("Prioridad")) ??
@@ -379,6 +392,7 @@ export function parseWorkbook(tabs: WorkbookTab[]): ImportRecord[] {
       }
       const title = cleanTitle(get("Juego"));
       if (!title) continue;
+      const cover = sheetCover(get("Cover Art URL"));
       const base = tab.name + ":" + norm(title);
       const occurrence = counts.get(base) ?? 0;
       counts.set(base, occurrence + 1);
@@ -399,6 +413,7 @@ export function parseWorkbook(tabs: WorkbookTab[]): ImportRecord[] {
       result.push({
         ...emptyRecord,
         title,
+        ...(cover ? { cover } : {}),
         year: num(get("Salio en")),
         platforms: normalizeConsoleLabels(String(get("Consolas donde salio"))),
         device: normalizeConsoleLabels(String(get("Consola"))),
@@ -459,12 +474,24 @@ const fields = [
 export function makeImportPlan(
   incoming: ImportRecord[],
   existing: (Partial<JournalRecord> & {
+    gameId?: string;
     source_key?: string;
     source_snapshot?: Record<string, unknown>;
     deleted_at?: string | null;
   })[],
 ): ImportPlan[] {
-  return incoming.map((row) => {
+  const coverUrlsByGame = new Map<string, Set<string>>();
+  for (const row of incoming) {
+    if (!row.cover?.providerUrl) continue;
+    const match = existing.find(
+      (entry) => (entry.sourceKey ?? entry.source_key) === row.sourceKey,
+    );
+    if (!match?.gameId) continue;
+    const urls = coverUrlsByGame.get(match.gameId) ?? new Set<string>();
+    urls.add(row.cover.providerUrl);
+    coverUrlsByGame.set(match.gameId, urls);
+  }
+  const plans: ImportPlan[] = incoming.map((row) => {
     const matches = existing.filter(
       (r) => (r.sourceKey ?? r.source_key) === row.sourceKey,
     );
@@ -488,6 +515,37 @@ export function makeImportPlan(
         conflicts: ["trash"],
       };
     const baseline = old.sourceSnapshot ?? old.source_snapshot ?? {};
+    const coverUrl = (value: unknown) =>
+      value && typeof value === "object" && "providerUrl" in value
+        ? (value as { providerUrl?: unknown }).providerUrl
+        : undefined;
+    const incomingCoverUrl = row.cover?.providerUrl;
+    if (incomingCoverUrl) {
+      const currentCover =
+        old.cover && typeof old.cover === "object"
+          ? (old.cover as Cover)
+          : undefined;
+      const mergedCoverUrl = mergeField(
+        coverUrl(baseline.cover),
+        coverUrl(currentCover),
+        incomingCoverUrl,
+      );
+      const ambiguousGameArtwork =
+        !!old.gameId && (coverUrlsByGame.get(old.gameId)?.size ?? 0) > 1;
+      if (mergedCoverUrl.conflict || ambiguousGameArtwork)
+        conflicts.push("cover");
+      else if (
+        typeof mergedCoverUrl.value === "string" &&
+        mergedCoverUrl.value !== coverUrl(currentCover)
+      ) {
+        changes.cover = {
+          ...(currentCover?.overrideUrl
+            ? { overrideUrl: currentCover.overrideUrl }
+            : {}),
+          providerUrl: mergedCoverUrl.value,
+        };
+      }
+    }
     const newLinks = (row.links ?? []).filter(
       (link) =>
         !(Array.isArray(baseline.links) ? baseline.links : []).includes(link),
@@ -524,4 +582,24 @@ export function makeImportPlan(
       conflicts,
     };
   });
+  const plannedArtworkByGame = new Map<string, string>();
+  for (const plan of plans) {
+    const changedCover = plan.changes.cover as Cover | undefined;
+    if (plan.conflicts.includes("cover") || !changedCover?.providerUrl) continue;
+    const match = existing.find(
+      (entry) =>
+        (entry.sourceKey ?? entry.source_key) === plan.incoming.sourceKey,
+    );
+    if (!match?.gameId) continue;
+    const url = changedCover.providerUrl;
+    const alreadyPlanned = plannedArtworkByGame.get(match.gameId);
+    if (alreadyPlanned === url) {
+      delete plan.changes.cover;
+      if (!plan.conflicts.length && !Object.keys(plan.changes).length)
+        plan.kind = "unchanged";
+    } else {
+      plannedArtworkByGame.set(match.gameId, url);
+    }
+  }
+  return plans;
 }

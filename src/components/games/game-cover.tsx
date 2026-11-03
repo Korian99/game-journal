@@ -24,6 +24,7 @@ export function GameRowArtwork({
         alt=""
         loading="lazy"
         decoding="async"
+        referrerPolicy="no-referrer"
         onError={() => setFailedUrl(url)}
       />
     </span>
@@ -50,6 +51,7 @@ export function GameCover({
         alt={`Portada de ${title}`}
         loading="lazy"
         decoding="async"
+        referrerPolicy="no-referrer"
         onError={() => setFailedUrl(url)}
       />
     </span>

@@ -602,6 +602,14 @@ test("row artwork appears in every collection view and missing or failed art sta
       .locator(".journal-desktop-table tr.game-data-row")
       .filter({ hasText: title });
     await expect(row.locator(".game-row-art img")).toBeVisible();
+    await expect(row.locator(".game-row-art img")).toHaveAttribute(
+      "referrerpolicy",
+      "no-referrer",
+    );
+    await expect(row.locator(".game-row-art img")).toHaveAttribute(
+      "referrerpolicy",
+      "no-referrer",
+    );
     const rowBounds = await row.boundingBox();
     const artBounds = await row.locator(".game-row-art-wide").boundingBox();
     expect(rowBounds).not.toBeNull();

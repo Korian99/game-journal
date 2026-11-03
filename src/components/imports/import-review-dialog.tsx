@@ -1,7 +1,11 @@
 "use client";
 
 import { apiRequest } from "@/lib/api-client";
-import type { ImportBatch } from "@/lib/imports/contracts";
+import {
+  importConflictLabel,
+  importConflictValue,
+  type ImportBatch,
+} from "@/lib/imports/contracts";
 export type { ImportBatch } from "@/lib/imports/contracts";
 import type { PerformJournalAction } from "@/lib/journal/journal-types";
 import { Modal } from "../ui/dialog";
@@ -59,12 +63,13 @@ export function ImportReviewDialog({
                   Campos:{" "}
                   {Object.keys(p.changes)
                     .filter((k) => !["raw", "links"].includes(k))
+                    .map(importConflictLabel)
                     .join(", ")}
                 </p>
               )}
               {p.conflicts.map((field) => (
                 <label key={field}>
-                  {field}
+                  {importConflictLabel(field)}
                   <select
                     value={resolutions[p.incoming.sourceKey]?.[field] ?? ""}
                     onChange={(e) =>
@@ -87,11 +92,7 @@ export function ImportReviewDialog({
                         </option>
                         <option value="sheet">
                           Usar planilla:{" "}
-                          {String(
-                            (p.incoming as unknown as Record<string, unknown>)[
-                              field
-                            ] ?? "vacío",
-                          )}
+                          {importConflictValue(p.incoming, field)}
                         </option>
                       </>
                     )}

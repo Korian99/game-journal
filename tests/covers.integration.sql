@@ -117,4 +117,92 @@ begin
 end;
 $checks$;
 select 'PASS: shared game cover, legacy edit, replay isolation, validation, sharing projection and revocation' as result;
+
+do $import_cover$
+declare
+  saved jsonb;
+  batch_id uuid;
+  record_id uuid;
+  current_cover jsonb;
+  source_key text := '2026:cover-import-fixture';
+  source_url text := 'https://images.artandgungame.com/imported.jpg';
+  manual_url text := 'https://assets.nintendo.com/image/upload/manual.jpg';
+begin
+  if private.cover_image_url(source_url) is distinct from source_url then
+    raise exception 'Source-observed host failed SQL allowlist';
+  end if;
+  if private.cover_image_url('https://images.artandgungame.com.evil.test/x.jpg') is not null
+     or private.cover_image_url('https://images.artandgungame.com:444/x.jpg') is not null
+     or private.cover_image_url('https://user@images.artandgungame.com/x.jpg') is not null then
+    raise exception 'SQL image helper accepted an unsafe URL';
+  end if;
+
+  saved := public.save_record_result(jsonb_build_object(
+    'title','Import cover fixture','status','playing','sourceKey',source_key,
+    'cover',jsonb_build_object(
+      'provider','steam',
+      'providerUrl','https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/620/header.jpg',
+      'overrideUrl',manual_url
+    )
+  ));
+  record_id := (saved->>'id')::uuid;
+  insert into public.imports(owner_id,source,plan)
+  values(auth.uid(),'[]',jsonb_build_array(jsonb_build_object(
+    'kind','conflict',
+    'incoming',jsonb_build_object(
+      'title','Import cover fixture','status','playing','sourceKey',source_key,
+      'cover',jsonb_build_object('providerUrl',source_url),'links','[]'::jsonb
+    ),
+    'id',record_id,
+    'expectedUpdatedAt',saved->>'revision',
+    'changes','{}'::jsonb,
+    'conflicts','["cover"]'::jsonb
+  ))) returning id into batch_id;
+  perform public.apply_import(
+    batch_id,
+    jsonb_build_object(source_key,jsonb_build_object('cover','sheet'))
+  );
+  select data->'cover' into current_cover
+  from public.games where id=(saved->>'gameId')::uuid;
+  if current_cover->>'providerUrl' is distinct from source_url
+     or current_cover->>'overrideUrl' is distinct from manual_url
+     or current_cover ? 'provider' then
+    raise exception 'Sheet conflict overwrote the manual cover or fabricated provider provenance';
+  end if;
+end;
+$import_cover$;
+
+select 'PASS: source artwork URL allowlist and reviewed cover conflict preserve overrides without invented provider' as result;
+
+do $import_trash_guards$
+declare saved jsonb; batch_id uuid; record_id uuid; source_key text := '2026:cover-trash-guard'; rejected boolean;
+begin
+  saved := public.save_record_result(jsonb_build_object('title','Import trash guard','status','playing','sourceKey',source_key));
+  record_id := (saved->>'id')::uuid;
+  perform public.trash_record(record_id, saved->>'revision');
+  insert into public.imports(owner_id,source,plan)
+  values(auth.uid(),'[]',jsonb_build_array(jsonb_build_object(
+    'kind','conflict','incoming',jsonb_build_object('title','Import trash guard','status','playing','sourceKey',source_key),
+    'id',record_id,'conflicts','["trash"]'::jsonb,'changes','{}'::jsonb
+  ))) returning id into batch_id;
+  if public.apply_import(batch_id,jsonb_build_object(source_key,jsonb_build_object('trash','skip')))<>0 then
+    raise exception 'Resolved trash skip applied a record';
+  end if;
+
+  insert into public.imports(owner_id,source,plan)
+  values(auth.uid(),'[]',jsonb_build_array(jsonb_build_object(
+    'kind','update','incoming',jsonb_build_object('title','Import trash guard','status','playing','sourceKey',source_key),
+    'id',record_id,'changes',jsonb_build_object('title','Changed'),'conflicts','[]'::jsonb
+  ))) returning id into batch_id;
+  rejected := false;
+  begin
+    perform public.apply_import(batch_id,'{}'::jsonb);
+  exception when others then
+    rejected := true;
+    if sqlerrm<>'GONE' then raise;end if;
+  end;
+  if not rejected then raise exception 'Recently trashed import target was accepted';end if;
+end;
+$import_trash_guards$;
+select 'PASS: import trash skip and recently trashed target guards' as result;
 rollback;

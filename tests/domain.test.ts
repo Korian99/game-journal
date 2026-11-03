@@ -8,6 +8,10 @@ import {
   parseWorkbook,
   makeImportPlan,
 } from "../src/lib/domain";
+import {
+  importConflictLabel,
+  importConflictValue,
+} from "../src/lib/imports/contracts";
 describe("store URLs", () => {
   it("keeps Nintendo regional offers separate", () => {
     expect(
@@ -129,6 +133,18 @@ describe("prices", () => {
   });
 });
 describe("reviewed imports", () => {
+  it("renders cover conflicts as a label and image URL instead of an object string", () => {
+    const incoming = {
+      title: "Game",
+      cover: { providerUrl: "https://images.artandgungame.com/cover.jpg" },
+    };
+    expect(importConflictLabel("cover")).toBe("Portada");
+    expect(importConflictValue(incoming, "cover")).toBe(
+      incoming.cover.providerUrl,
+    );
+    expect(importConflictValue(incoming, "notes")).toBe("vacío");
+  });
+
   it("requires a decision when both sides change", () =>
     expect(mergeField("old", "app", "sheet")).toEqual({
       value: "app",
@@ -174,6 +190,279 @@ describe("reviewed imports", () => {
     expect(
       makeImportPlan(incoming, existing).every((p) => p.kind === "unchanged"),
     ).toBe(true);
+  });
+
+  it("reads artwork from all four source tabs without confusing the two Tablas columns", () => {
+    const rows = parseWorkbook([
+      {
+        name: "<2025",
+        values: [
+          ["Juego", "Cover Art URL"],
+          ["Old Game", "https://images.artandgungame.com/old.jpg"],
+        ],
+      },
+      {
+        name: "2025",
+        values: [
+          ["Juego", "Cover Art URL"],
+          ["Wishlist Game", "https://images.inkl.com/wishlist.jpg"],
+        ],
+      },
+      {
+        name: "2026",
+        values: [
+          ["Juego", "Cover Art URL"],
+          ["New Game", "https://cdn.cloudflare.steamstatic.com/new.jpg"],
+        ],
+      },
+      {
+        name: "Tablas",
+        values: [
+          [
+            "URL",
+            "Nombre",
+            "Comprado",
+            "Prioridad",
+            "URL",
+            "Proximos",
+            "Cover Art URL (Nombre)",
+            "Cover Art URL (Próximos)",
+          ],
+          [
+            "https://store.steampowered.com/app/1/",
+            "Wishlist Table",
+            "Sí",
+            1,
+            "https://store.steampowered.com/app/2/",
+            "Upcoming Table",
+            "https://images.launchbox-app.com/wishlist-table.jpg",
+            "https://www.nintendo.com/upcoming-table.jpg",
+          ],
+        ],
+      },
+    ]);
+    expect(rows.map((row) => row.cover?.providerUrl)).toEqual([
+      "https://images.artandgungame.com/old.jpg",
+      "https://images.inkl.com/wishlist.jpg",
+      "https://cdn.cloudflare.steamstatic.com/new.jpg",
+      "https://images.launchbox-app.com/wishlist-table.jpg",
+      "https://www.nintendo.com/upcoming-table.jpg",
+    ]);
+    expect(rows.every((row) => row.cover?.provider === undefined)).toBe(true);
+  });
+
+  it("keeps records with blank or unsupported artwork while omitting that artwork", () => {
+    const rows = parseWorkbook([
+      {
+        name: "2026",
+        values: [
+          ["Juego", "Cover Art URL"],
+          ["Blank Art", ""],
+          ["Unsupported Art", "https://untrusted.example/image.jpg"],
+        ],
+      },
+    ]);
+    expect(rows).toHaveLength(2);
+    expect(rows.map((row) => row.cover)).toEqual([undefined, undefined]);
+  });
+
+  it("preserves app overrides on source refresh and reviews simultaneous provider URL changes", () => {
+    const [incoming] = parseWorkbook([
+      {
+        name: "2026",
+        values: [
+          ["Juego", "Cover Art URL"],
+          ["Game", "https://images.artandgungame.com/new.jpg"],
+        ],
+      },
+    ]);
+    const baseline = {
+      providerUrl: "https://images.artandgungame.com/old.jpg",
+    };
+    const current = {
+      providerUrl: baseline.providerUrl,
+      provider: "steam" as const,
+      overrideUrl: "https://assets.nintendo.com/manual.jpg",
+    };
+    const unchangedSheet = makeImportPlan(
+      [{ ...incoming, cover: baseline }],
+      [
+        {
+          ...incoming,
+          id: "game",
+          cover: current,
+          sourceSnapshot: { ...incoming, cover: baseline },
+        },
+      ],
+    )[0];
+    expect(unchangedSheet.conflicts).not.toContain("cover");
+    expect(unchangedSheet.changes.cover).toBeUndefined();
+
+    const changedSheet = makeImportPlan(
+      [
+        {
+          ...incoming,
+          cover: { providerUrl: "https://images.artandgungame.com/new.jpg" },
+        },
+      ],
+      [
+        {
+          ...incoming,
+          id: "game",
+          cover: current,
+          sourceSnapshot: { ...incoming, cover: baseline },
+        },
+      ],
+    )[0];
+    expect(changedSheet.kind).toBe("update");
+    expect(changedSheet.conflicts).not.toContain("cover");
+    expect(changedSheet.changes.cover).toEqual({
+      overrideUrl: current.overrideUrl,
+      providerUrl: "https://images.artandgungame.com/new.jpg",
+    });
+
+    const appChanged = {
+      ...current,
+      providerUrl: "https://images.artandgungame.com/app.jpg",
+    };
+    const simultaneousChange = makeImportPlan(
+      [incoming],
+      [
+        {
+          ...incoming,
+          id: "game",
+          cover: appChanged,
+          sourceSnapshot: { ...incoming, cover: baseline },
+        },
+      ],
+    )[0];
+    expect(simultaneousChange.kind).toBe("conflict");
+    expect(simultaneousChange.conflicts).toContain("cover");
+  });
+
+  it("does not clear existing artwork when the sheet has no usable cover URL", () => {
+    const [incoming] = parseWorkbook([
+      {
+        name: "2026",
+        values: [
+          ["Juego", "Cover Art URL"],
+          ["Game", ""],
+        ],
+      },
+    ]);
+    const current = {
+      providerUrl: "https://images.artandgungame.com/current.jpg",
+    };
+    const plan = makeImportPlan(
+      [incoming],
+      [{ ...incoming, id: "game", cover: current, sourceSnapshot: incoming }],
+    )[0];
+    expect(plan.changes.cover).toBeUndefined();
+  });
+
+  it("flags conflicting artwork across source rows for the same game identity", () => {
+    const rows = parseWorkbook([
+      {
+        name: "<2025",
+        values: [
+          ["Juego", "Cover Art URL"],
+          ["Same Game", "https://images.artandgungame.com/old.jpg"],
+        ],
+      },
+      {
+        name: "2026",
+        values: [
+          ["Juego", "Cover Art URL"],
+          ["Same Game", "https://images.inkl.com/new.jpg"],
+        ],
+      },
+    ]);
+    const existing = rows.map((row, index) => ({
+      ...row,
+      id: `record-${index}`,
+      gameId: "same-game-identity",
+      source_key: row.sourceKey,
+      cover: { providerUrl: "https://images.artandgungame.com/old.jpg" },
+      sourceSnapshot: {
+        ...row,
+        cover: { providerUrl: "https://images.artandgungame.com/old.jpg" },
+      },
+    }));
+    expect(
+      makeImportPlan(rows, existing).map((item) => item.conflicts),
+    ).toEqual([["cover"], ["cover"]]);
+  });
+
+  it("plans one game-level artwork update for same-URL playthrough rows", () => {
+    const rows = parseWorkbook([
+      {
+        name: "<2025",
+        values: [
+          ["Juego", "Cover Art URL"],
+          ["Same Game", "https://images.artandgungame.com/new.jpg"],
+        ],
+      },
+      {
+        name: "2026",
+        values: [
+          ["Juego", "Cover Art URL"],
+          ["Same Game", "https://images.artandgungame.com/new.jpg"],
+        ],
+      },
+    ]);
+    const previous = {
+      providerUrl: "https://images.artandgungame.com/old.jpg",
+    };
+    const existing = rows.map((row, index) => ({
+      ...row,
+      id: `record-${index}`,
+      gameId: "same-game-identity",
+      source_key: row.sourceKey,
+      cover: previous,
+      sourceSnapshot: { ...row, cover: previous },
+    }));
+    const plans = makeImportPlan(rows, existing);
+    expect(plans[0].changes.cover).toEqual(rows[0].cover);
+    expect(plans[1].changes.cover).toBeUndefined();
+    expect(plans[1].kind).toBe("unchanged");
+  });
+
+  it("keeps the artwork update when an earlier row already matches its baseline", () => {
+    const rows = parseWorkbook([
+      {
+        name: "<2025",
+        values: [
+          ["Juego", "Cover Art URL"],
+          ["Same Game", "https://images.artandgungame.com/new.jpg"],
+        ],
+      },
+      {
+        name: "2026",
+        values: [
+          ["Juego", "Cover Art URL"],
+          ["Same Game", "https://images.artandgungame.com/new.jpg"],
+        ],
+      },
+    ]);
+    const existing = rows.map((row, index) => ({
+      ...row,
+      id: `record-${index}`,
+      gameId: "same-game-identity",
+      source_key: row.sourceKey,
+      cover: { providerUrl: "https://images.artandgungame.com/old.jpg" },
+      sourceSnapshot: {
+        ...row,
+        cover: {
+          providerUrl:
+            index === 0
+              ? row.cover?.providerUrl
+              : "https://images.artandgungame.com/old.jpg",
+        },
+      },
+    }));
+    const plans = makeImportPlan(rows, existing);
+    expect(plans[0].changes.cover).toBeUndefined();
+    expect(plans[1].changes.cover).toEqual(rows[1].cover);
   });
 });
 
