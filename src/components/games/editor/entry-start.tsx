@@ -15,15 +15,22 @@ export function EntryStart({
   setUrl,
   onManual,
   onLoaded,
+  initialQuery = "",
+  initialUrl,
   editing = false,
 }: {
-  step: "choose" | "page";
+  step: "choose" | "page" | "search";
+  initialQuery?: string;
+  initialUrl?: string;
   editing?: boolean;
   online: boolean;
   url: string;
   setUrl: (url: string) => void;
   onManual: () => void;
-  onLoaded: (preview: StorePreview) => void;
+  onLoaded: (
+    preview: StorePreview,
+    options?: { replaceProviderCover?: boolean },
+  ) => void;
 }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -77,6 +84,15 @@ export function EntryStart({
             </button>
           </div>
         </>
+      ) : step === "search" ? (
+        <StoreSearch
+          online={online}
+          onLoaded={onLoaded}
+          initialQuery={initialQuery}
+          initialUrl={initialUrl}
+          editing
+          onBack={onManual}
+        />
       ) : (
         <form
           className="entry-start-form"

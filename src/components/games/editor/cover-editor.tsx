@@ -11,6 +11,10 @@ export function CoverEditor({
   formId,
   disabled,
   onChange,
+  onRestore,
+  restoring = false,
+  restoreError = "",
+  restoreStatus = "",
 }: {
   cover?: Cover;
   title: string;
@@ -18,6 +22,10 @@ export function CoverEditor({
   formId: string;
   disabled: boolean;
   onChange: (cover: Cover) => void;
+  onRestore: () => void;
+  restoring?: boolean;
+  restoreError?: string;
+  restoreStatus?: string;
 }) {
   const value = cover?.overrideUrl ?? "";
   const invalid =
@@ -35,7 +43,7 @@ export function CoverEditor({
           autoComplete="url"
           maxLength={2400}
           value={value}
-          disabled={disabled}
+          disabled={disabled || restoring}
           aria-invalid={invalid}
           aria-describedby={invalid ? inputId + "-error" : undefined}
           placeholder="https://assets.nintendo.com/…"
@@ -64,18 +72,18 @@ export function CoverEditor({
           <button
             type="button"
             className="text-button"
-            disabled={disabled || !cover?.overrideUrl}
-            onClick={() =>
-              onChange({
-                ...(cover?.providerUrl
-                  ? { providerUrl: cover.providerUrl }
-                  : {}),
-                ...(cover?.provider ? { provider: cover.provider } : {}),
-              })
-            }
+            disabled={disabled || restoring}
+            aria-busy={restoring}
+            onClick={onRestore}
           >
-            Restablecer portada de tienda
+            {restoring ? "Buscando portada…" : "Restablecer portada de tienda"}
           </button>
+          {restoreError && (
+            <span className="cover-editor-restore-error" role="alert">
+              {restoreError}
+            </span>
+          )}
+          {restoreStatus && <span role="status">{restoreStatus}</span>}
         </div>
       </div>
     </section>
