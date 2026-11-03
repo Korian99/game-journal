@@ -455,7 +455,11 @@ export function EntryEditor({
           onManual={() => setStep("editor")}
           onLoaded={applyStorePreview}
           initialQuery={draft.title}
-          initialUrl={storeCoverSourcePages(draft.pages ?? [])[0]}
+          initialUrl={
+            draft.pages?.find((url) =>
+              url.toLowerCase().includes("nintendo"),
+            ) ?? draft.pages?.[0]
+          }
         />
       </Modal>
     );

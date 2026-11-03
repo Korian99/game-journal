@@ -710,8 +710,14 @@ for (const source of [
     page: "https://www.nintendo.com/us/store/products/pragmata-switch/",
     result: "Pragmata",
   },
+  {
+    store: "nintendo",
+    title: "Pragmata",
+    page: "https://www.nintendo.com/es-ar/games/pragmata/",
+    result: "Pragmata",
+  },
 ]) {
-  test(`saved ${source.store} ${source.page ? "page" : "title only"} opens completed title search without selecting`, async ({
+  test(`saved ${source.store} ${source.page ?? "title only"} opens completed title search without selecting`, async ({
     page,
   }) => {
     const existing: JournalEntry = {
@@ -721,7 +727,7 @@ for (const source of [
       title: source.title,
       status: "playing",
       started: "2026-10-01",
-      pages: source.page ? [source.page] : [],
+      pages: source.page ? [url, source.page] : [],
     };
     const { saves, lookups, searches } = await fixture(
       page,

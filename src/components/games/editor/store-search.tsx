@@ -25,17 +25,8 @@ const searchSchema = z.object({
   ),
 });
 
-function storeForSavedUrl(value?: string): "steam" | "nintendo" | null {
-  if (!value) return null;
-  try {
-    const hostname = new URL(value).hostname;
-    if (hostname === "store.steampowered.com") return "steam";
-    if (hostname === "nintendo.com" || hostname === "www.nintendo.com")
-      return "nintendo";
-  } catch {
-    return null;
-  }
-  return null;
+function storeForSavedUrl(value?: string): "steam" | "nintendo" {
+  return value?.toLowerCase().includes("nintendo") ? "nintendo" : "steam";
 }
 
 export function StoreSearch({
@@ -56,11 +47,9 @@ export function StoreSearch({
   editing?: boolean;
   onBack?: () => void;
 }) {
-  const initialStore = storeForSavedUrl(initialUrl) ?? "steam";
+  const initialStore = storeForSavedUrl(initialUrl);
   const [query, setQuery] = useState(initialQuery);
-  const [store, setStore] = useState<"steam" | "nintendo">(
-    initialStore ?? "steam",
-  );
+  const [store, setStore] = useState<"steam" | "nintendo">(initialStore);
   const [results, setResults] = useState<StoreSearchResult[]>([]);
   const [searching, setSearching] = useState(false);
   const [previewing, setPreviewing] = useState(false);
