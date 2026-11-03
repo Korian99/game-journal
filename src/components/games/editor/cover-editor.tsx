@@ -45,7 +45,9 @@ export function CoverEditor({
           value={value}
           disabled={disabled || restoring}
           aria-invalid={invalid}
-          aria-describedby={invalid ? inputId + "-error" : undefined}
+          aria-describedby={
+            inputId + "-help" + (invalid ? " " + inputId + "-error" : "")
+          }
           placeholder="https://assets.nintendo.com/…"
           onChange={(event) => {
             const overrideUrl = event.target.value;
@@ -56,6 +58,17 @@ export function CoverEditor({
             });
           }}
         />
+        <details className="cover-editor-help" id={inputId + "-help"}>
+          <summary>Portadas de otras consolas</summary>
+          <p>
+            Usá el enlace HTTPS directo de una imagen, no la página del juego.
+            Abrí la imagen en otra pestaña y copiá su dirección.
+          </p>
+          <p>
+            También se aceptan imágenes de MobyGames (cdn.mobygames.com),
+            LaunchBox (images.launchbox-app.com) y eBay (i.ebayimg.com).
+          </p>
+        </details>
         {invalid && (
           <p
             className="cover-editor-error"

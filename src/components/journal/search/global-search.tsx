@@ -7,6 +7,8 @@ import type { JournalEntry } from "@/lib/journal/journal-types";
 import type { ResourceState } from "@/lib/resource";
 import { statuses, type Offer } from "@/lib/types";
 import { formatDate } from "@/lib/journal/view-config";
+import { GameCover } from "@/components/games/game-cover";
+import { effectiveCoverUrl } from "@/lib/covers";
 
 export type SearchDecision = "save" | "discard";
 export function GlobalSearch({
@@ -298,7 +300,17 @@ export function GlobalSearch({
               >
                 {visible.map((group) => (
                   <section className="global-search-group" key={group.key}>
-                    <h3>{group.title}</h3>
+                    <div className="global-search-group-heading">
+                      <GameCover
+                        cover={
+                          group.entries.find((entry) =>
+                            effectiveCoverUrl(entry.cover),
+                          )?.cover
+                        }
+                        title={group.title}
+                      />
+                      <h3>{group.title}</h3>
+                    </div>
                     {group.entries.map((entry) => (
                       <button
                         key={entry.id}

@@ -679,6 +679,9 @@ test("store search can be opened from a manual new-game draft", async ({
   await expect(page.getByLabel("Buscar por título en Steam")).toHaveValue(
     "Portal 2",
   );
+  await expect(
+    page.getByRole("list", { name: "Resultados de tienda" }),
+  ).toBeVisible();
   await page
     .getByRole("button", { name: "Volver a la edición", exact: true })
     .click();
@@ -692,6 +695,12 @@ for (const source of [
   {
     store: "steam",
     title: "Portal 2",
+    page: undefined,
+    result: "Portal 2",
+  },
+  {
+    store: "steam",
+    title: "Portal 2",
     page: url,
     result: "Portal 2",
   },
@@ -702,7 +711,7 @@ for (const source of [
     result: "Pragmata",
   },
 ]) {
-  test(`saved ${source.store} page opens completed title search without selecting`, async ({
+  test(`saved ${source.store} ${source.page ? "page" : "title only"} opens completed title search without selecting`, async ({
     page,
   }) => {
     const existing: JournalEntry = {
@@ -712,7 +721,7 @@ for (const source of [
       title: source.title,
       status: "playing",
       started: "2026-10-01",
-      pages: [source.page],
+      pages: source.page ? [source.page] : [],
     };
     const { saves, lookups, searches } = await fixture(
       page,
@@ -769,7 +778,7 @@ test("selecting a visible search cover replaces stale provider art", async ({
       return route.fulfill({
         status: 200,
         contentType: "image/svg+xml",
-        body: '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20"><rect width="20" height="20" fill="#247"/></svg>',
+        body: '<svg xmlns="http://www.w3.org/2000/svg" width="400" height="100"><rect width="400" height="100" fill="#64777a"/><rect width="50" height="100" fill="#c4a254"/><rect x="350" width="50" height="100" fill="#c4a254"/></svg>',
       });
     return route.fulfill({ status: 404, body: "missing" });
   });
@@ -840,6 +849,18 @@ test("selecting a visible search cover replaces stale provider art", async ({
     .toBeGreaterThan(0);
   await page.screenshot({
     path: "test-results/store-cover-search-selected-mobile.png",
+    fullPage: true,
+  });
+  await page.getByText("Portadas de otras consolas", { exact: true }).click();
+  await expect(page.getByText(/MobyGames \(cdn.mobygames.com\)/)).toBeVisible();
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await page.screenshot({
+    path: "test-results/cover-editor-uncropped-desktop.png",
+    fullPage: true,
+  });
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.screenshot({
+    path: "test-results/cover-editor-uncropped-mobile.png",
     fullPage: true,
   });
   await page

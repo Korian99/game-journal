@@ -38,6 +38,10 @@ const records = [
     started: "2026-01-01",
     period: "2026",
     updated_at: "2026-01-01T12:00:00Z",
+    cover: {
+      provider: "nintendo",
+      providerUrl: "https://assets.nintendo.com/image/upload/search-cover.jpg",
+    },
   },
   {
     ...emptyRecord,
@@ -149,6 +153,54 @@ const search = (page: Page) =>
     name: "Buscar en todos mis juegos",
     exact: true,
   });
+
+test("global search shows one game cover across replays on desktop and mobile", async ({
+  page,
+}) => {
+  await page.route("https://assets.nintendo.com/**", (route) =>
+    route.fulfill({
+      contentType: "image/svg+xml",
+      body: '<svg xmlns="http://www.w3.org/2000/svg" width="200" height="100"><rect width="200" height="100" fill="#64777a"/><circle cx="100" cy="50" r="30" fill="#c4a254"/></svg>',
+    }),
+  );
+  await setup(page);
+  await page.goto("./?tab=library&year=all");
+  await page
+    .getByRole("button", { name: "Buscar en todos mis juegos", exact: true })
+    .click();
+  await search(page).fill("Final Fantasy");
+  const dialog = page.getByRole("dialog", {
+    name: "Buscar en todos mis juegos",
+  });
+  await expect(dialog.locator("img")).toHaveCount(1);
+  await expect(dialog.locator("img")).toHaveAttribute(
+    "src",
+    /search-cover.jpg/,
+  );
+  await expect
+    .poll(() =>
+      dialog
+        .locator("img")
+        .evaluate((img) => (img as HTMLImageElement).naturalWidth),
+    )
+    .toBeGreaterThan(0);
+  await expect(dialog.locator("[data-search-result]")).toHaveCount(2);
+  for (const [name, width, height] of [
+    ["desktop", 1280, 900],
+    ["mobile", 390, 844],
+  ] as const) {
+    await page.setViewportSize({ width, height });
+    await page.screenshot({
+      path: `test-results/global-search-cover-${name}.png`,
+      fullPage: true,
+    });
+  }
+  await search(page).fill("Pokémon");
+  await expect(dialog.locator("img")).toHaveCount(0);
+  await expect(
+    dialog.getByRole("heading", { name: "Pokémon Platinum" }),
+  ).toBeVisible();
+});
 test("global search groups replays and opens the exact entry across hidden filters and history", async ({
   page,
 }) => {

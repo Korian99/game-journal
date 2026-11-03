@@ -1111,6 +1111,10 @@
 .cover-editor-fields { display: grid; flex: 1; min-width: 0; gap: 7px; }
 .cover-editor-fields > label { font-size: .84rem; font-weight: 650; }
 .cover-editor-fields input { width: 100%; min-width: 0; }
+.cover-editor .game-cover-feature img { object-fit: contain; }
+.cover-editor-help { font-size: .8rem; color: var(--muted); line-height: 1.5; }
+.cover-editor-help summary { cursor: pointer; }
+.cover-editor-help p { margin: .5rem 0; overflow-wrap: anywhere; }
 .cover-editor-error { margin: 0; color: var(--error, #b33); font-size: .82rem; }
 .cover-editor-actions { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
 .cover-editor-actions > span { color: var(--muted, currentColor); font-size: .8rem; }

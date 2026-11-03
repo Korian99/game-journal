@@ -2929,6 +2929,14 @@ tbody.game-entry-group + tbody.game-entry-group > tr:first-child > td {
   font-size: 14px;
   font-weight: 500;
 }
+.global-search-group-heading {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+.global-search-group-heading h3 { margin: 0; }
+.global-search-group-heading .game-cover { flex: none; height: 54px; }
 .global-search-result {
   display: flex;
   width: 100%;

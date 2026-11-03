@@ -56,7 +56,7 @@ export function StoreSearch({
   editing?: boolean;
   onBack?: () => void;
 }) {
-  const initialStore = storeForSavedUrl(initialUrl);
+  const initialStore = storeForSavedUrl(initialUrl) ?? "steam";
   const [query, setQuery] = useState(initialQuery);
   const [store, setStore] = useState<"steam" | "nintendo">(
     initialStore ?? "steam",
