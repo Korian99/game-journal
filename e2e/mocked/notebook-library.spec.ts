@@ -335,7 +335,7 @@ test("the library keeps its filters and editor in a responsive notebook layout",
     page
       .locator(".notebook-entry-card")
       .nth(1)
-      .getByText("Leer reflexión y notas"),
+      .getByText("Leer comentarios"),
   ).toBeVisible();
   await expect(
     page
@@ -399,7 +399,7 @@ test("the library keeps its filters and editor in a responsive notebook layout",
     path: mobileContentScreenshot,
     animations: "disabled",
   });
-  await detailedCard.getByText("Leer reflexión y notas").click();
+  await detailedCard.getByText("Leer comentarios").click();
   await expect(
     detailedCard.getByText("The ending made the long journey worth it."),
   ).toBeVisible();
@@ -412,7 +412,7 @@ test("the library keeps its filters and editor in a responsive notebook layout",
     window.scrollBy(0, top - 150);
   });
   await page.screenshot({ path: expandedScreenshot, animations: "disabled" });
-  await detailedCard.getByText("Ocultar reflexión y notas").click();
+  await detailedCard.getByText("Ocultar comentarios").click();
   await expect(
     detailedCard.getByText("The ending made the long journey worth it."),
   ).not.toBeVisible();

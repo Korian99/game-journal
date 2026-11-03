@@ -75,10 +75,10 @@ export function NotebookLibraryEntries({
             <details className="notebook-entry-reflections">
               <summary>
                 <span className="notebook-reflection-closed">
-                  Leer reflexión y notas
+                  Leer comentarios
                 </span>
                 <span className="notebook-reflection-open">
-                  Ocultar reflexión y notas
+                  Ocultar comentarios
                 </span>
               </summary>
               <div className="notebook-entry-reflection-content">
