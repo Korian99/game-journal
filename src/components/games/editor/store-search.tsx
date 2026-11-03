@@ -25,15 +25,42 @@ const searchSchema = z.object({
   ),
 });
 
+function storeForSavedUrl(value?: string): "steam" | "nintendo" | null {
+  if (!value) return null;
+  try {
+    const hostname = new URL(value).hostname;
+    if (hostname === "store.steampowered.com") return "steam";
+    if (hostname === "nintendo.com" || hostname === "www.nintendo.com")
+      return "nintendo";
+  } catch {
+    return null;
+  }
+  return null;
+}
+
 export function StoreSearch({
   online,
   onLoaded,
+  initialQuery = "",
+  initialUrl,
+  editing = false,
+  onBack,
 }: {
   online: boolean;
-  onLoaded: (preview: StorePreview) => void;
+  onLoaded: (
+    preview: StorePreview,
+    options?: { replaceProviderCover?: boolean },
+  ) => void;
+  initialQuery?: string;
+  initialUrl?: string;
+  editing?: boolean;
+  onBack?: () => void;
 }) {
-  const [query, setQuery] = useState("");
-  const [store, setStore] = useState<"steam" | "nintendo">("steam");
+  const initialStore = storeForSavedUrl(initialUrl);
+  const [query, setQuery] = useState(initialQuery);
+  const [store, setStore] = useState<"steam" | "nintendo">(
+    initialStore ?? "steam",
+  );
   const [results, setResults] = useState<StoreSearchResult[]>([]);
   const [searching, setSearching] = useState(false);
   const [previewing, setPreviewing] = useState(false);
@@ -41,6 +68,7 @@ export function StoreSearch({
   const [searched, setSearched] = useState(false);
   const activeSearch = useRef<AbortController | null>(null);
   const activePreview = useRef<AbortController | null>(null);
+  const userChangedSearch = useRef(false);
 
   useEffect(
     () => () => {
@@ -71,6 +99,7 @@ export function StoreSearch({
   }
 
   function changeStore(nextStore: "steam" | "nintendo") {
+    userChangedSearch.current = true;
     cancelRequests();
     setStore(nextStore);
     setResults([]);
@@ -78,9 +107,7 @@ export function StoreSearch({
     setSearched(false);
   }
 
-  async function submit(event: React.FormEvent) {
-    event.preventDefault();
-    const term = query.trim();
+  async function search(term: string, provider: "steam" | "nintendo") {
     if (!online || term.length < 2 || term.length > 100) return;
     cancelRequests();
     const controller = new AbortController();
@@ -91,7 +118,7 @@ export function StoreSearch({
     setSearched(true);
     try {
       const response = await apiRequest(
-        `/api/store-search?store=${store}&q=${encodeURIComponent(term)}`,
+        `/api/store-search?store=${provider}&q=${encodeURIComponent(term)}`,
         "GET",
         undefined,
         searchSchema,
@@ -100,7 +127,8 @@ export function StoreSearch({
       if (
         activeSearch.current === controller &&
         !controller.signal.aborted &&
-        query.trim() === term
+        query.trim() === term &&
+        store === provider
       )
         setResults(response.results);
     } catch (failure) {
@@ -117,6 +145,26 @@ export function StoreSearch({
       }
     }
   }
+
+  const searchRef = useRef(search);
+  searchRef.current = search;
+
+  async function submit(event: React.FormEvent) {
+    event.preventDefault();
+    await search(query.trim(), store);
+  }
+
+  useEffect(() => {
+    if (
+      online &&
+      !userChangedSearch.current &&
+      initialStore &&
+      initialQuery.trim().length >= 2 &&
+      query.trim() === initialQuery.trim() &&
+      store === initialStore
+    )
+      void searchRef.current(initialQuery.trim(), initialStore);
+  }, [initialQuery, initialStore, online, query, store]);
 
   async function select(result: StoreSearchResult) {
     if (!online) return;
@@ -136,9 +184,9 @@ export function StoreSearch({
         storePreviewSchema,
         AbortSignal.any([controller.signal, AbortSignal.timeout(15000)]),
       );
-      if (!preview.cover && result.cover) preview.cover = result.cover;
+      if (result.cover) preview.cover = result.cover;
       if (activePreview.current === controller && !controller.signal.aborted)
-        onLoaded(preview);
+        onLoaded(preview, { replaceProviderCover: Boolean(result.cover) });
     } catch (failure) {
       if (activePreview.current === controller && !controller.signal.aborted)
         setError(
@@ -197,6 +245,7 @@ export function StoreSearch({
               setSearching(false);
               setPreviewing(false);
               setQuery(event.target.value);
+              userChangedSearch.current = true;
               setResults([]);
               setError("");
               setSearched(false);
@@ -275,6 +324,11 @@ export function StoreSearch({
             ))}
           </ul>
         </div>
+      )}
+      {editing && onBack && (
+        <button type="button" className="text-button" onClick={onBack}>
+          Volver a la edición
+        </button>
       )}
     </section>
   );

@@ -1114,6 +1114,9 @@
 .cover-editor-error { margin: 0; color: var(--error, #b33); font-size: .82rem; }
 .cover-editor-actions { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
 .cover-editor-actions > span { color: var(--muted, currentColor); font-size: .8rem; }
+.cover-editor-actions .text-button:disabled { cursor: not-allowed; }
+.cover-editor-actions .text-button[aria-busy="true"] { cursor: wait; }
+.cover-editor-restore-error { color: var(--error, #b33); font-size: .82rem; }
 .notebook-library-view-toggle { display: inline-flex; gap: 3px; padding: 3px; border: 1px solid color-mix(in srgb, currentColor 18%, transparent); border-radius: 9px; }
 .notebook-library-view-toggle button { min-height: 38px; padding: 0 10px; border: 0; border-radius: 6px; color: inherit; background: transparent; }
 .notebook-library-view-toggle button[aria-pressed="true"] { background: color-mix(in srgb, var(--accent, #82a8ff) 22%, var(--bg, #222326)); }

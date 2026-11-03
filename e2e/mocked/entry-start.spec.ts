@@ -1,6 +1,7 @@
 import { test, expect, type Page } from "@playwright/test";
 import { emptyRecord } from "../../src/lib/types";
 import type { JournalEntry } from "../../src/lib/journal/journal-types";
+import type { StorePreview } from "../../src/lib/offers/store-preview-contract";
 const url = "https://store.steampowered.com/app/620/";
 const metadata = {
   url,
@@ -21,17 +22,53 @@ const metadata = {
     currency: "USD",
     discount: 80,
   },
-};
+} satisfies StorePreview;
 async function fixture(
   page: Page,
-  lookup = metadata,
+  lookup: StorePreview = metadata,
   existing?: JournalEntry,
   tab = "wishlist",
 ) {
   const saves: Record<string, unknown>[] = [];
   const lookups: unknown[] = [];
+  const searches: string[] = [];
   await page.route("**/api/**", async (route) => {
     const path = new URL(route.request().url()).pathname;
+    if (path === "/api/store-search") {
+      const requestUrl = new URL(route.request().url());
+      const store = requestUrl.searchParams.get("store") ?? "steam";
+      const term = requestUrl.searchParams.get("q") ?? "";
+      searches.push(`${store}:${term}`);
+      return route.fulfill({
+        json: {
+          results:
+            store === "nintendo"
+              ? [
+                  {
+                    store: "nintendo",
+                    title: "Pragmata",
+                    id: "pragmata-switch",
+                    url: "https://www.nintendo.com/us/store/products/pragmata-switch/",
+                    platform: "Switch",
+                  },
+                ]
+              : [
+                  {
+                    store: "steam",
+                    title: "Portal 2",
+                    id: "620",
+                    url,
+                    platform: "PC",
+                    cover: {
+                      provider: "steam",
+                      providerUrl:
+                        "https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/620/capsule.jpg",
+                    },
+                  },
+                ],
+        },
+      });
+    }
     if (path === "/api/store-preview") {
       lookups.push(route.request().postDataJSON());
       return route.fulfill({ json: lookup });
@@ -89,7 +126,7 @@ async function fixture(
     await page
       .getByRole("button", { name: "Agregar juego", exact: true })
       .click();
-  return { saves, lookups };
+  return { saves, lookups, searches };
 }
 async function openPageLookup(page: Page) {
   await page
@@ -493,7 +530,18 @@ test("a page lookup updates the existing entry and clearly identifies the edit",
     notes: "Keep my review",
     pages: ["https://example.org/old-page"],
   };
-  const { saves } = await fixture(page, metadata, existing);
+  const { saves } = await fixture(
+    page,
+    {
+      ...metadata,
+      cover: {
+        provider: "steam",
+        providerUrl:
+          "https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/620/capsule.jpg",
+      },
+    },
+    existing,
+  );
   await expect(
     page.getByRole("heading", { name: "Tu partida", exact: true }),
   ).toBeVisible();
@@ -523,6 +571,284 @@ test("a page lookup updates the existing entry and clearly identifies the edit",
     priority: 3,
     notes: "Keep my review",
     pages: ["https://example.org/old-page", url],
+    cover: {
+      provider: "steam",
+      providerUrl:
+        "https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/620/capsule.jpg",
+    },
+  });
+});
+
+test("store search completes the existing entry and carries its game cover", async ({
+  page,
+}) => {
+  const existing: JournalEntry = {
+    ...emptyRecord,
+    id: "20000000-0000-4000-8000-000000000001",
+    gameId: "30000000-0000-4000-8000-000000000001",
+    title: "Portal 2",
+    status: "playing",
+    started: "2026-10-01",
+    priority: 3,
+    notes: "Keep my review",
+    updated_at: "2026-10-22T09:00:00Z",
+    pages: ["https://example.org/old-page"],
+  };
+  const { saves } = await fixture(page, metadata, existing, "library");
+  await page
+    .getByRole("button", { name: "Completar desde el buscador", exact: true })
+    .click();
+  await expect(
+    page.getByRole("heading", { name: "Completar desde el buscador" }),
+  ).toBeVisible();
+  await expect(page.getByLabel("Buscar por título en Steam")).toHaveValue(
+    existing.title,
+  );
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await page.screenshot({
+    path: "test-results/store-completion-entry-desktop.png",
+    fullPage: true,
+  });
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.screenshot({
+    path: "test-results/store-completion-entry-mobile.png",
+    fullPage: true,
+  });
+  await page
+    .getByRole("button", { name: "Volver a la edición", exact: true })
+    .click();
+  await expect(page.getByLabel("Estado", { exact: true })).toHaveValue(
+    "playing",
+  );
+  await expect(page.getByLabel("Prioridad", { exact: true })).toHaveValue("3");
+  await page.getByRole("tab", { name: "Reseña", exact: true }).click();
+  await expect(
+    page.getByRole("textbox", {
+      name: "Comentarios adicionales · privados",
+      exact: true,
+    }),
+  ).toHaveValue("Keep my review");
+  await page.getByRole("tab", { name: "Principal", exact: true }).click();
+  await page
+    .getByRole("button", { name: "Completar desde el buscador", exact: true })
+    .click();
+  await page.getByRole("button", { name: "Buscar", exact: true }).click();
+  await page
+    .getByRole("list", { name: "Resultados de tienda" })
+    .getByRole("button")
+    .filter({ hasText: "Portal 2" })
+    .click();
+  await expect(
+    page.getByLabel("Nombre del juego", { exact: true }),
+  ).toHaveValue("Portal 2");
+  await page
+    .getByRole("button", { name: "Guardar entrada", exact: true })
+    .click();
+  await expect.poll(() => saves.length).toBe(1);
+  expect(saves[0]).toMatchObject({
+    id: existing.id,
+    gameId: existing.gameId,
+    updated_at: existing.updated_at,
+    status: "playing",
+    started: "01/10/2026",
+    priority: 3,
+    notes: existing.notes,
+    cover: {
+      provider: "steam",
+      providerUrl:
+        "https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/620/capsule.jpg",
+    },
+    pages: ["https://example.org/old-page", url],
+  });
+});
+
+test("store search can be opened from a manual new-game draft", async ({
+  page,
+}) => {
+  const { saves } = await fixture(page);
+  await page
+    .getByRole("button", { name: "Completar manualmente", exact: true })
+    .click();
+  await page.getByLabel("Nombre del juego", { exact: true }).fill("Portal 2");
+  await page
+    .getByRole("button", { name: "Completar desde el buscador", exact: true })
+    .click();
+  await expect(
+    page.getByRole("heading", { name: "Completar desde el buscador" }),
+  ).toBeVisible();
+  await expect(page.getByLabel("Buscar por título en Steam")).toHaveValue(
+    "Portal 2",
+  );
+  await page
+    .getByRole("button", { name: "Volver a la edición", exact: true })
+    .click();
+  await expect(
+    page.getByLabel("Nombre del juego", { exact: true }),
+  ).toHaveValue("Portal 2");
+  expect(saves).toHaveLength(0);
+});
+
+for (const source of [
+  {
+    store: "steam",
+    title: "Portal 2",
+    page: url,
+    result: "Portal 2",
+  },
+  {
+    store: "nintendo",
+    title: "Pragmata",
+    page: "https://www.nintendo.com/us/store/products/pragmata-switch/",
+    result: "Pragmata",
+  },
+]) {
+  test(`saved ${source.store} page opens completed title search without selecting`, async ({
+    page,
+  }) => {
+    const existing: JournalEntry = {
+      ...emptyRecord,
+      id: "20000000-0000-4000-8000-000000000001",
+      gameId: "30000000-0000-4000-8000-000000000001",
+      title: source.title,
+      status: "playing",
+      started: "2026-10-01",
+      pages: [source.page],
+    };
+    const { saves, lookups, searches } = await fixture(
+      page,
+      metadata,
+      existing,
+      "library",
+    );
+    await page
+      .getByRole("button", { name: "Completar desde el buscador", exact: true })
+      .click();
+    await expect(
+      page
+        .getByRole("list", { name: "Resultados de tienda" })
+        .getByRole("button")
+        .filter({ hasText: source.result }),
+    ).toBeVisible();
+    await expect(
+      page
+        .getByLabel("Buscar por título en Steam")
+        .or(page.getByLabel("Buscar por título en Nintendo")),
+    ).toHaveValue(source.title);
+    await expect(page.getByLabel("Tienda de búsqueda")).toHaveValue(
+      source.store,
+    );
+    expect(searches).toEqual([`${source.store}:${source.title}`]);
+    expect(lookups).toHaveLength(0);
+    expect(saves).toHaveLength(0);
+    await expect(
+      page.getByRole("button", { name: "Guardar entrada", exact: true }),
+    ).toHaveCount(0);
+  });
+}
+
+test("selecting a visible search cover replaces stale provider art", async ({
+  page,
+}) => {
+  const oldCover =
+    "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/620/old-header.jpg";
+  const selectedCover =
+    "https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/620/selected-capsule.jpg";
+  const existing: JournalEntry = {
+    ...emptyRecord,
+    id: "20000000-0000-4000-8000-000000000001",
+    gameId: "30000000-0000-4000-8000-000000000001",
+    title: "Portal 2",
+    status: "playing",
+    started: "2026-10-01",
+    pages: [url],
+    cover: { provider: "steam", providerUrl: oldCover },
+  };
+  await page.route("**/store_item_assets/**", async (route) => {
+    const imageUrl = route.request().url();
+    if (imageUrl === selectedCover)
+      return route.fulfill({
+        status: 200,
+        contentType: "image/svg+xml",
+        body: '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20"><rect width="20" height="20" fill="#247"/></svg>',
+      });
+    return route.fulfill({ status: 404, body: "missing" });
+  });
+  const { saves } = await fixture(
+    page,
+    {
+      ...metadata,
+      cover: {
+        provider: "steam",
+        providerUrl:
+          "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/620/preview-header.jpg",
+      },
+    },
+    existing,
+    "library",
+  );
+  await page.route("**/api/store-search?**", (route) => {
+    return route.fulfill({
+      json: {
+        results: [
+          {
+            store: "steam",
+            title: "Portal 2",
+            id: "620",
+            url,
+            platform: "PC",
+            cover: { provider: "steam", providerUrl: selectedCover },
+          },
+        ],
+      },
+    });
+  });
+  await page
+    .getByRole("button", { name: "Completar desde el buscador", exact: true })
+    .click();
+  const result = page
+    .getByRole("list", { name: "Resultados de tienda" })
+    .getByRole("button")
+    .filter({ hasText: "Portal 2" });
+  await expect(result.locator("img")).toHaveAttribute("src", selectedCover);
+  await expect
+    .poll(() =>
+      result
+        .locator("img")
+        .evaluate((img) => (img as HTMLImageElement).naturalWidth),
+    )
+    .toBeGreaterThan(0);
+  await page.screenshot({
+    path: "test-results/store-cover-search-desktop.png",
+    fullPage: true,
+  });
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.screenshot({
+    path: "test-results/store-cover-search-mobile.png",
+    fullPage: true,
+  });
+  await result.click();
+  await expect(page.locator(".cover-editor img")).toHaveAttribute(
+    "src",
+    selectedCover,
+  );
+  await expect
+    .poll(() =>
+      page
+        .locator(".cover-editor img")
+        .evaluate((img) => (img as HTMLImageElement).naturalWidth),
+    )
+    .toBeGreaterThan(0);
+  await page.screenshot({
+    path: "test-results/store-cover-search-selected-mobile.png",
+    fullPage: true,
+  });
+  await page
+    .getByRole("button", { name: "Guardar entrada", exact: true })
+    .click();
+  await expect.poll(() => saves.length).toBe(1);
+  expect(saves[0].cover).toEqual({
+    provider: "steam",
+    providerUrl: selectedCover,
   });
 });
 

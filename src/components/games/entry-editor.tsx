@@ -8,7 +8,15 @@ import { EntrySaveStatus } from "./entry-save-status";
 import { EntryStart } from "./editor/entry-start";
 import { StorePreviewCard } from "./editor/store-preview-card";
 import { CoverEditor } from "./editor/cover-editor";
-import type { StorePreview } from "@/lib/offers/store-preview-contract";
+import {
+  storePreviewSchema,
+  type StorePreview,
+} from "@/lib/offers/store-preview-contract";
+import { apiRequest } from "@/lib/api-client";
+import {
+  restoreStoreCover,
+  storeCoverSourcePages,
+} from "@/lib/offers/restore-store-cover";
 import { MainTab } from "./editor/main-tab";
 import { PlaythroughTab } from "./editor/playthrough-tab";
 import { ReviewTab } from "./editor/review-tab";
@@ -88,7 +96,7 @@ export function EntryEditor({
     setTargetError("");
   };
   async function saveDraft(candidate: JournalEntry) {
-    if (busy || saving) return;
+    if (busy || saving || coverRestoreBusy) return;
     if (targetChanges.invalidOfferId) {
       setTargetError(
         "Revisá el Objetivo: usá un precio igual o mayor que cero.",
@@ -104,11 +112,63 @@ export function EntryEditor({
     setTargetError("");
     await onSave(candidate, targetChanges.updates);
   }
-  const [step, setStep] = useState<"choose" | "page" | "editor">(
+  const [step, setStep] = useState<"choose" | "page" | "search" | "editor">(
     entry.id || entry.gameId ? "editor" : "choose",
   );
   const [storePreview, setStorePreview] = useState<StorePreview | null>(null);
-  function applyStorePreview(preview: StorePreview) {
+  const [coverRestoreBusy, setCoverRestoreBusy] = useState(false);
+  const [coverRestoreError, setCoverRestoreError] = useState("");
+  const [coverRestoreStatus, setCoverRestoreStatus] = useState("");
+  async function resetCover() {
+    setCoverRestoreError("");
+    setCoverRestoreStatus("");
+    const current = draft.cover;
+    if (current?.overrideUrl && current.providerUrl) {
+      updateDraftField("cover", {
+        providerUrl: current.providerUrl,
+        ...(current.provider ? { provider: current.provider } : {}),
+      });
+      setCoverRestoreStatus(
+        "Portada de tienda restablecida. Guardá la entrada para conservar el cambio.",
+      );
+      return;
+    }
+    if (current?.providerUrl) {
+      setCoverRestoreStatus("La portada ya es la de la tienda.");
+      return;
+    }
+    if (!storeCoverSourcePages(draft.pages ?? []).length) {
+      setCoverRestoreError(
+        "No hay una página de tienda guardada. Agregá un enlace compatible para recuperar la portada.",
+      );
+      return;
+    }
+    setCoverRestoreBusy(true);
+    try {
+      const restored = await restoreStoreCover(
+        current,
+        draft.pages ?? [],
+        (url) =>
+          apiRequest("/api/store-preview", "POST", { url }, storePreviewSchema),
+      );
+      if (restored?.providerUrl && restored !== current) {
+        updateDraftField("cover", restored);
+        setCoverRestoreStatus(
+          "Portada de tienda restablecida. Guardá la entrada para conservar el cambio.",
+        );
+      } else {
+        setCoverRestoreError(
+          "No se encontró una portada de tienda en las páginas guardadas. Revisá el enlace o agregá otro.",
+        );
+      }
+    } finally {
+      setCoverRestoreBusy(false);
+    }
+  }
+  function applyStorePreview(
+    preview: StorePreview,
+    { replaceProviderCover = false }: { replaceProviderCover?: boolean } = {},
+  ) {
     setDraft((current) => {
       const platforms = [
         ...new Set(
@@ -124,19 +184,23 @@ export function EntryEditor({
         provider: current.cover?.provider,
       });
       const coverBase = mergeProviderCover(
-        currentIsValid
-          ? current.cover
-          : currentProvider.success
-            ? currentProvider.data
-            : undefined,
+        replaceProviderCover
+          ? undefined
+          : currentIsValid
+            ? current.cover
+            : currentProvider.success
+              ? currentProvider.data
+              : undefined,
         preview.cover,
       );
       const rawOverride = current.cover?.overrideUrl;
-      const cover =
+      const preserveOverride =
         rawOverride !== undefined &&
-        !coverImageUrlSchema.safeParse(rawOverride).success
-          ? { ...(coverBase ?? {}), overrideUrl: rawOverride }
-          : coverBase;
+        (replaceProviderCover ||
+          !coverImageUrlSchema.safeParse(rawOverride).success);
+      const cover = preserveOverride
+        ? { ...(coverBase ?? {}), overrideUrl: rawOverride }
+        : coverBase;
       const next = {
         ...current,
         ...preview.fields,
@@ -375,9 +439,11 @@ export function EntryEditor({
         title={
           step === "choose"
             ? "¿Cómo querés cargar el juego?"
-            : entry.id
-              ? "Actualizar datos de " + entry.title
-              : "Completar desde una página"
+            : step === "search"
+              ? "Completar desde el buscador"
+              : entry.id
+                ? "Actualizar datos de " + entry.title
+                : "Completar desde una página"
         }
       >
         <EntryStart
@@ -388,6 +454,8 @@ export function EntryEditor({
           setUrl={setPageUrl}
           onManual={() => setStep("editor")}
           onLoaded={applyStorePreview}
+          initialQuery={draft.title}
+          initialUrl={storeCoverSourcePages(draft.pages ?? [])[0]}
         />
       </Modal>
     );
@@ -424,7 +492,7 @@ export function EntryEditor({
           id={formId}
           onSubmit={(e) => {
             e.preventDefault();
-            if (busy || saving) return;
+            if (busy || saving || coverRestoreBusy) return;
             if (draft.cover && !coverSchema.safeParse(draft.cover).success) {
               setActiveTab("main");
               requestAnimationFrame(() =>
@@ -471,8 +539,8 @@ export function EntryEditor({
         />
         <fieldset
           className="entry-editor-fields"
-          disabled={saving}
-          aria-busy={saving}
+          disabled={saving || coverRestoreBusy}
+          aria-busy={saving || coverRestoreBusy}
         >
           <div
             className="editor-tabs"
@@ -528,8 +596,12 @@ export function EntryEditor({
                 title={draft.title}
                 inputId={editorId + "-cover-url"}
                 formId={formId}
-                disabled={busy || saving}
+                disabled={busy || saving || coverRestoreBusy}
                 onChange={(cover) => updateDraftField("cover", cover)}
+                onRestore={() => void resetCover()}
+                restoring={coverRestoreBusy}
+                restoreError={coverRestoreError}
+                restoreStatus={coverRestoreStatus}
               />
             </div>
             {activeTab === "main" && (
@@ -540,6 +612,16 @@ export function EntryEditor({
                 onClick={() => setStep("page")}
               >
                 Completar desde una página
+              </button>
+            )}
+            {activeTab === "main" && (
+              <button
+                type="button"
+                className="text-button editor-store-lookup"
+                disabled={busy || !online}
+                onClick={() => setStep("search")}
+              >
+                Completar desde el buscador
               </button>
             )}
             {activeTab === "main" &&
@@ -649,7 +731,7 @@ export function EntryEditor({
             type="submit"
             form={formId}
             className="primary"
-            disabled={busy}
+            disabled={busy || saving || coverRestoreBusy}
           >
             {saving ? "Guardando…" : "Guardar entrada"}
             {saving ? (
