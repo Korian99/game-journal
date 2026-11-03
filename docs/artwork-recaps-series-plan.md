@@ -1,6 +1,6 @@
 # Covers, recaps, and game series
 
-**State:** Artwork phase ready and complete: checkpoints 0–2 and source-sheet artwork import are deployed. Recaps and series remain pending.
+**State:** Artwork phase complete, including checkpoints 0–2 and the source-sheet artwork import. Recap calculations (checkpoint 3) are complete locally; recap presentation and series remain pending.
 **Prepared:** 2026-10-30
 
 This plan adds game cover art, private monthly and yearly recaps, and user-defined game series. The artwork phase is complete, including the separately reviewed source-sheet import. Focused checks and independent review passed, and the authorized production rollout and artwork import are complete. Git records the completed implementation history.
@@ -47,7 +47,7 @@ Checkpoint 0 verifies these defaults against the current data model, ownership a
 | [x] | 1 | Persist and ingest cover metadata |
 | [x] | 2 | Display and manually manage covers |
 | [x] | 2a | Import source-sheet artwork URLs and verify production rollout |
-| [ ] | 3 | Define recap calculations |
+| [x] | 3 | Define recap calculations |
 | [ ] | 4 | Present and export recaps |
 | [ ] | 5 | Create and edit ordered series with recovery compatibility |
 | [ ] | 6 | Show series progress and verify recovery |
@@ -87,6 +87,8 @@ Checkpoint 0 verifies these defaults against the current data model, ownership a
 - **Acceptance:** A playthrough counts as completed only when its status is `completed` and its full valid recorded finish date is within the period; a finish date on an abandoned or other non-completed playthrough does not count. Date-only starts/finishes belong to the calendar day recorded. Year-only, approximate, missing, and invalid dates are excluded from month and year counts, with the exclusion shown. Release dates and current list filters never fabricate recap activity. A separate starts metric, if included, means a full valid start date was recorded, not that activity was verified. A curated highlight is explicit; no automatic favorite ranking is claimed.
 - **Focused verification:** Pure tests for month/year boundaries, date-only values without UTC day shifts, Argentina timezone for timestamps, completed status plus finish date, recorded starts, missing/partial dates, replays, duplicate game identities, deleted/trash exclusions, and empty periods.
 - **Commit boundary:** Recap definitions and calculation module with their tests; no new persistence.
+
+- **Checkpoint 3 verification (2026-11-03):** Added pure recap calculations for explicit month/year periods and an injectable current-period clock. Full date-only values preserve their entered calendar day; strict timestamps use the Argentina calendar. Only completed entries with valid full finish dates count. Finished playthroughs and games keyed by stable gameId are separate; same-title records are never merged. Recorded starts are labeled as dates, with no activity claim. Completed records without a usable finish date are reported by missing/partial/approximate/invalid reason; trash projections are skipped. No period hours or inferred favorites. TDD RED observed (missing recap module); focused tests: 9 passed, related statistics and date tests: 2 and 13 passed (24 total); TypeScript typecheck and ESLint on the new module passed. No persistence was added.
 
 ### 4. Present and export recaps
 
