@@ -1,6 +1,6 @@
 # Covers, recaps, and game series
 
-**State:** Artwork phase and checkpoints 0–5 are complete locally. Checkpoint 6 (series progress and recovery verification) remains pending. The checkpoint 5 migration was applied to production on 2026-11-03 as version 20261103164019.
+**State:** Artwork phase and checkpoints 0–6 are complete locally. Checkpoint 6 (series progress and recovery verification) awaits deployment approval. The checkpoint 5 migration was applied to production on 2026-11-03 as version 20261103164019.
 **Prepared:** 2026-10-30
 
 This plan adds game cover art, private monthly and yearly recaps, and user-defined game series. The artwork phase is complete, including the separately reviewed source-sheet import. Focused checks and independent review passed, and the authorized production rollout and artwork import are complete. Git records the completed implementation history.
@@ -116,6 +116,7 @@ Checkpoint 0 verifies these defaults against the current data model, ownership a
 - **Acceptance:** Progress survives reload and backup/restore. Older backup formats remain readable. Missing covers do not make ordering or progress unusable.
 - **Focused verification:** Domain tests for replays, multiple playthroughs, trash/restore and permanent game removal; desktop/mobile browser flow through reorder and progress; synthetic older/newer backup round trip.
 - **Commit boundary:** Series progress UI and its focused tests. Recovery format changes belong to checkpoint 5. A production migration or rollout is a separate, explicitly approved decision.
+- **Checkpoint 6 verification (2026-11-03):** The private series view shows ordered artwork with numbered fallbacks, completed/total progress, the first incomplete member, and explicit empty/completed states. Any active completed playthrough qualifies once per member; dates and replays do not inflate progress. Missing active playthroughs leave membership and its denominator intact. Focused series and backup tests: 20 passed; TypeScript and scoped ESLint passed. The desktop/mobile browser flow verified reorder/reload, progress, broken artwork, missing/restored completions, and completion of all members. The isolated database runner verified the real version 7 JSON/Excel/manifest restore to another owner, including order gaps, unchanged progress, and the next incomplete member. Formats 3–6 remain readable. No schema or backup-format change is needed. Changes are verified locally; production rollout remains separate.
 
 ## Shared implementation gates
 

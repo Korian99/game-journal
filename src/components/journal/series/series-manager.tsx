@@ -3,12 +3,14 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { apiRequest } from "@/lib/api-client";
 import {
   reorderSeriesGames,
+  getSeriesProgress,
   seriesListSchema,
   seriesRecordSchema,
   type SeriesRecord,
 } from "@/lib/series";
 import type { JournalEntry } from "@/lib/journal/journal-types";
 import { Modal } from "@/components/ui/dialog";
+import { GameCover } from "@/components/games/game-cover";
 import styles from "./series-manager.module.css";
 
 export function SeriesManager({
@@ -54,6 +56,10 @@ export function SeriesManager({
     [games, gameQuery, draft],
   );
   const current = series.find((item) => item.id === selected);
+  const progress = useMemo(
+    () => getSeriesProgress(current?.gameIds ?? [], records),
+    [current, records],
+  );
   function hasDraftChanges() {
     return Boolean(
       draft &&
@@ -348,7 +354,56 @@ export function SeriesManager({
                 ) : current ? (
                   <>
                     <h3>{current.name}</h3>
-                    <p>{current.gameIds.length} juegos</p>
+                    <div className={styles.progressSummary}>
+                      <strong>
+                        {progress.completed} de {progress.total} juegos
+                        terminados
+                      </strong>
+                      <progress
+                        aria-label="Progreso de la serie"
+                        value={progress.completed}
+                        max={progress.total || 1}
+                      />
+                      <p>
+                        Cuenta cada juego una vez, si tiene una partida
+                        terminada fuera de la papelera.
+                      </p>
+                    </div>
+                    <p className={styles.nextGame}>
+                      {progress.next
+                        ? `Siguiente: ${progress.next.title}`
+                        : progress.total
+                          ? "Serie completada"
+                          : "Agregá juegos para empezar esta serie."}
+                    </p>
+                    <ol
+                      className={styles.progressGames}
+                      aria-label="Juegos de la serie"
+                    >
+                      {progress.games.map((game, index) => (
+                        <li key={game.gameId}>
+                          <div className={styles.art} aria-hidden="true">
+                            {index + 1}
+                            <GameCover
+                              cover={game.cover}
+                              title={game.title}
+                              size="card"
+                            />
+                          </div>
+                          <div className={styles.gameInfo}>
+                            <strong>{game.title}</strong>
+                            <small>
+                              {game.completed ? "Terminado" : "Pendiente"}
+                            </small>
+                            {!game.available && (
+                              <small>
+                                Sin partidas activas; sigue en la serie.
+                              </small>
+                            )}
+                          </div>
+                        </li>
+                      ))}
+                    </ol>
                     <button
                       className="secondary"
                       disabled={busy}

@@ -1,4 +1,5 @@
 import fs from "node:fs";
+import { getSeriesProgress } from "../src/lib/series.ts";
 import { disposableDatabase } from "./support/disposable-db.mjs";
 await disposableDatabase(async (sql) => {
   sql(fs.readFileSync("tests/series.integration.sql", "utf8"));
@@ -83,6 +84,25 @@ await disposableDatabase(async (sql) => {
   )
     throw Error(
       "V7 SQL restore readback did not preserve owner, series, ordered membership, games, and playthroughs.",
+    );
+  const restoredRecords = JSON.parse(
+    sql(
+      "select coalesce(jsonb_agg(g.data || p.data || jsonb_build_object('gameId',g.id)), '[]'::jsonb)::text from public.playthroughs p join public.games g on g.id=p.game_id and g.owner_id=p.owner_id where p.owner_id='" +
+        targetOwner +
+        "' and p.deleted_at is null",
+    ),
+  );
+  const orderedIds = rows.members.map((member) => member.game_id);
+  const before = getSeriesProgress(orderedIds, v7.records);
+  const after = getSeriesProgress(orderedIds, restoredRecords);
+  if (
+    before.completed !== 1 ||
+    after.completed !== before.completed ||
+    after.total !== 2 ||
+    after.next?.gameId !== secondGame
+  )
+    throw Error(
+      "Restoring the series changed completed-game progress or the next ordered game.",
     );
 });
 console.log(

@@ -1,4 +1,50 @@
 import { z } from "zod";
+import { effectiveCoverUrl, type Cover } from "./covers";
+import type { JournalEntry } from "./journal/journal-types";
+
+type SeriesPlaythrough = Pick<
+  JournalEntry,
+  "gameId" | "title" | "status" | "cover"
+> & {
+  deleted_at?: string | null;
+};
+export type SeriesProgressGame = {
+  gameId: string;
+  title: string;
+  cover?: Cover;
+  completed: boolean;
+  available: boolean;
+};
+
+export function getSeriesProgress(
+  gameIds: readonly string[],
+  records: readonly SeriesPlaythrough[],
+) {
+  const active = new Map<string, SeriesPlaythrough[]>();
+  for (const record of records) {
+    if (!record.gameId || record.deleted_at) continue;
+    const plays = active.get(record.gameId) ?? [];
+    plays.push(record);
+    active.set(record.gameId, plays);
+  }
+  const games: SeriesProgressGame[] = [...new Set(gameIds)].map((gameId) => {
+    const plays = active.get(gameId) ?? [];
+    return {
+      gameId,
+      title:
+        plays.find((play) => play.title.trim())?.title ?? "Juego no disponible",
+      cover: plays.find((play) => effectiveCoverUrl(play.cover))?.cover,
+      completed: plays.some((play) => play.status === "completed"),
+      available: plays.length > 0,
+    };
+  });
+  return {
+    games,
+    total: games.length,
+    completed: games.filter((game) => game.completed).length,
+    next: games.find((game) => !game.completed),
+  };
+}
 
 export const seriesNameSchema = z
   .string()

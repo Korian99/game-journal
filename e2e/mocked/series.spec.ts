@@ -10,8 +10,12 @@ test("series create, reorder, rename, reload, delete, and failed saves retain dr
       id: "20000000-0000-4000-8000-000000000001",
       gameId: "10000000-0000-4000-8000-000000000001",
       title: "Game A",
-      status: "completed",
+      status: "playing",
       finished: "2026-01-01",
+      cover: {
+        provider: "nintendo",
+        providerUrl: "https://assets.nintendo.com/image/upload/series-a.jpg",
+      },
     },
     {
       ...emptyRecord,
@@ -20,6 +24,10 @@ test("series create, reorder, rename, reload, delete, and failed saves retain dr
       title: "Game B",
       status: "completed",
       finished: "2026-01-02",
+      cover: {
+        provider: "steam",
+        providerUrl: "https://shared.fastly.steamstatic.com/broken.jpg",
+      },
     },
   ];
   const state: {
@@ -31,6 +39,15 @@ test("series create, reorder, rename, reload, delete, and failed saves retain dr
     }[];
     failSaves: number;
   } = { series: [], failSaves: 0 };
+  await page.route("https://assets.nintendo.com/**", (route) =>
+    route.fulfill({
+      contentType: "image/svg+xml",
+      body: '<svg xmlns="http://www.w3.org/2000/svg" width="120" height="160"><rect width="120" height="160" fill="#65777b"/><circle cx="60" cy="70" r="30" fill="#c4a254"/></svg>',
+    }),
+  );
+  await page.route("https://shared.fastly.steamstatic.com/**", (route) =>
+    route.fulfill({ status: 404, body: "Missing cover" }),
+  );
   await page.route("**/api/**", async (route) => {
     const request = route.request();
     const path = new URL(request.url()).pathname;
@@ -134,12 +151,26 @@ test("series create, reorder, rename, reload, delete, and failed saves retain dr
   await dialog.getByRole("button", { name: "Mover Game B arriba" }).click();
   await dialog.getByRole("button", { name: "Guardar serie" }).click();
   await expect(dialog.getByRole("heading", { name: "My saga" })).toBeVisible();
+  await expect(
+    dialog.getByRole("progressbar", { name: "Progreso de la serie" }),
+  ).toHaveAttribute("value", "1");
+  await expect(
+    dialog.getByText("1 de 2 juegos terminados", { exact: true }),
+  ).toBeVisible();
+  await expect(
+    dialog.getByText("Siguiente: Game A", { exact: true }),
+  ).toBeVisible();
+  await expect(
+    dialog
+      .getByRole("list", { name: "Juegos de la serie" })
+      .getByRole("listitem"),
+  ).toHaveText([/Game B.*Terminado/, /Game A.*Pendiente/]);
   expect(state.series[0].gameIds).toEqual([
     records[1].gameId,
     records[0].gameId,
   ]);
   await page.screenshot({
-    path: "test-results/series-desktop.png",
+    path: "test-results/series-progress-desktop.png",
     fullPage: true,
   });
   await page.reload();
@@ -154,6 +185,16 @@ test("series create, reorder, rename, reload, delete, and failed saves retain dr
   });
   await dialog.getByRole("button", { name: "Guardar serie" }).click();
   expect(state.series[0].name).toBe("Updated saga");
+  await expect(
+    dialog.getByText("1 de 2 juegos terminados", { exact: true }),
+  ).toBeVisible();
+  await expect(
+    dialog.getByRole("list", { name: "Juegos de la serie" }).locator("img"),
+  ).toHaveCount(1);
+  await page.screenshot({
+    path: "test-results/series-progress-mobile.png",
+    fullPage: true,
+  });
   state.failSaves = 1;
   await dialog.getByRole("button", { name: "Editar serie" }).click();
   await dialog.getByLabel("Nombre").fill("Draft survives");
@@ -164,6 +205,26 @@ test("series create, reorder, rename, reload, delete, and failed saves retain dr
   await expect(
     dialog.getByRole("heading", { name: "Draft survives" }),
   ).toBeVisible();
+  const completedPlay = records.splice(1, 1)[0];
+  await page.reload();
+  await page.getByRole("button", { name: "Series", exact: true }).click();
+  await expect(
+    dialog.getByText("0 de 2 juegos terminados", { exact: true }),
+  ).toBeVisible();
+  await expect(
+    dialog.getByText("Siguiente: Juego no disponible", { exact: true }),
+  ).toBeVisible();
+  expect(state.series[0].gameIds).toHaveLength(2);
+  records.push(completedPlay);
+  records[0].status = "completed";
+  await page.reload();
+  await page.getByRole("button", { name: "Series", exact: true }).click();
+  await expect(
+    dialog.getByText("2 de 2 juegos terminados", { exact: true }),
+  ).toBeVisible();
+  await expect(
+    dialog.getByText("Serie completada", { exact: true }),
+  ).toBeVisible();
   await dialog.getByRole("button", { name: "Editar serie" }).click();
   page.once("dialog", (d) => d.accept());
   await dialog.getByRole("button", { name: "Eliminar serie" }).click();
@@ -171,6 +232,10 @@ test("series create, reorder, rename, reload, delete, and failed saves retain dr
     dialog.getByText("Creá una serie y agregá juegos en el orden que quieras."),
   ).toBeVisible();
   await dialog.getByRole("button", { name: "Cerrar" }).click();
-  await expect(page.getByRole("heading", { name: "Game A", exact: true })).toBeVisible();
-  await expect(page.getByRole("heading", { name: "Game B", exact: true })).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "Game A", exact: true }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "Game B", exact: true }),
+  ).toBeVisible();
 });

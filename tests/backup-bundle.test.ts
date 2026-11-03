@@ -4,8 +4,28 @@ import { backupFixture, runId } from "./fixtures/backup";
 import { restoreSql } from "../src/lib/backups/restore";
 import {
   buildBackupBundle,
+  parseBackupSnapshot,
   verifyBackupBundle,
 } from "../src/lib/backups/bundle";
+it("keeps formats 3 through 6 readable without inventing series membership", () => {
+  for (const version of [3, 4, 5, 6]) {
+    const legacy = backupFixture();
+    const parsed = parseBackupSnapshot(
+      JSON.stringify({
+        ...legacy,
+        version,
+        sourceTables: {
+          ...legacy.sourceTables,
+          data_check_preferences: [],
+          data_check_dismissals: [],
+        },
+      }),
+    );
+    expect(parsed.records[0].status).toBe("completed");
+    expect(parsed.sourceTables.game_series).toEqual([]);
+    expect(parsed.sourceTables.game_series_members).toEqual([]);
+  }
+});
 it("uses one complete snapshot for JSON and Excel and verifies their exact bytes", async () => {
   const snapshot = backupFixture();
   const bundle = await buildBackupBundle(JSON.stringify(snapshot), runId);
