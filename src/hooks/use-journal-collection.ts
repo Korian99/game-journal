@@ -2,6 +2,8 @@
 import { useMemo } from "react";
 import type { JournalLocation } from "../lib/journal/journal-location";
 import type { JournalEntry } from "../lib/journal/journal-types";
+import type { WishlistAccessFilter } from "../lib/journal/journal-location";
+import { getOwnershipInfo } from "../lib/journal/ownership";
 import type { Offer } from "../lib/types";
 import {
   matchesViewYear,
@@ -14,9 +16,15 @@ import {
   wishlistPlatforms,
 } from "../lib/offers/wishlist-display";
 
+const accessOwnership: Record<Exclude<WishlistAccessFilter, "">, string> = {
+  owned: "Si",
+  "not-owned": "No",
+  family: "En familia",
+};
+
 type CollectionOptions = Pick<
   JournalLocation,
-  "view" | "query" | "status" | "discount" | "review" | "platform"
+  "view" | "query" | "status" | "discount" | "access" | "review" | "platform"
 > & {
   records: JournalEntry[];
   offers: Offer[];
@@ -30,6 +38,7 @@ export function useJournalCollection({
   query,
   status,
   discount,
+  access,
   review,
   platform,
   selectedYear,
@@ -80,6 +89,12 @@ export function useJournalCollection({
             ),
         )
         .filter((r) => !status || r.status === status)
+        .filter(
+          (r) =>
+            view !== "wishlist" ||
+            !access ||
+            getOwnershipInfo(r.ownership).value === accessOwnership[access],
+        )
         .filter((r) => {
           if (view !== "journal" || !review) return true;
           return review === "with" ? r.rating != null : r.rating == null;
@@ -102,7 +117,17 @@ export function useJournalCollection({
               : (r.device + ";" + r.platforms).split(";").map((p) => p.trim())
             ).includes(platform),
         ),
-    [entriesInView, query, status, discount, review, platform, view, offers],
+    [
+      entriesInView,
+      query,
+      status,
+      discount,
+      access,
+      review,
+      platform,
+      view,
+      offers,
+    ],
   );
   const summary = useMemo(
     () => summarizeGames(games, view === "library" ? selectedYear : ""),

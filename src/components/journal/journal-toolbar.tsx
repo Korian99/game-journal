@@ -3,8 +3,10 @@
 import type {
   DiscountFilter,
   ReviewFilter,
+  WishlistAccessFilter,
 } from "@/lib/journal/journal-location";
 import { statuses } from "@/lib/types";
+import { ownershipOptions } from "@/lib/journal/ownership";
 import { useJournalLocation } from "@/hooks/use-journal-location";
 import { viewStatuses } from "@/lib/journal/view-config";
 import {
@@ -14,6 +16,12 @@ import {
   Search,
   SlidersHorizontal,
 } from "lucide-react";
+
+const wishlistAccessOptions = [
+  { value: "owned", label: ownershipOptions[0].label },
+  { value: "not-owned", label: ownershipOptions[1].label },
+  { value: "family", label: ownershipOptions[2].label },
+] as const;
 
 const collectionSortOptions = {
   journal: [
@@ -66,12 +74,14 @@ export function JournalToolbar({
     query,
     status,
     discount,
+    access,
     review,
     platform,
     year: selectedYear,
     setQuery,
     setStatus,
     setDiscount,
+    setAccess,
     setReview,
     setPlatform,
     setYear,
@@ -102,6 +112,7 @@ export function JournalToolbar({
     Number(["library", "journal"].includes(view) && !!selectedYear) +
     Number(["library", "journal"].includes(view) && !!status) +
     Number(view === "wishlist" && !!discount) +
+    Number(view === "wishlist" && !!access) +
     Number(view === "journal" && !!review) +
     Number(!!platform);
   return (
@@ -146,6 +157,25 @@ export function JournalToolbar({
                   {yearOptions.map((year) => (
                     <option key={year} value={year}>
                       {year}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            )}
+            {view === "wishlist" && (
+              <label>
+                Acceso
+                <select
+                  aria-label="Filtrar acceso"
+                  value={access}
+                  onChange={(event) =>
+                    setAccess(event.target.value as WishlistAccessFilter)
+                  }
+                >
+                  <option value="">Todos los accesos</option>
+                  {wishlistAccessOptions.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
                     </option>
                   ))}
                 </select>

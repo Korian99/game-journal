@@ -24,6 +24,7 @@ it("restores a bookmarked tab, year, search, filters, and sort", () => {
     query: "Pokémon",
     status: "completed",
     discount: "",
+    access: "",
     review: "",
     platform: "Nintendo DS",
     sort: [
@@ -258,5 +259,46 @@ it("preserves notification and entry targets through sign-in and URLs", () => {
         "2026",
       ),
     ).toBe("tab=wishlist");
+  }
+});
+
+it.each(["owned", "not-owned", "family"] as const)(
+  "round trips the wishlist access filter %s and omits its default",
+  (access) => {
+    const state = location.readJournalLocation(
+      "?tab=wishlist&access=" + access,
+      "2026",
+    );
+    expect(state).toHaveProperty("access", access);
+    expect(
+      location.readJournalLocation(
+        location.writeJournalLocation(state, "", "2026"),
+        "2026",
+      ),
+    ).toEqual(state);
+  },
+);
+it("defaults unknown access to all and removes the wishlist filter from other tabs", () => {
+  expect(
+    location.readJournalLocation("?tab=wishlist&access=unknown", "2026"),
+  ).toHaveProperty("access", "");
+  expect(
+    location.writeJournalLocation(
+      location.readJournalLocation("?tab=wishlist", "2026"),
+      "?access=family",
+      "2026",
+    ),
+  ).toBe("tab=wishlist");
+  for (const view of ["library", "journal", "upcoming", "settings"]) {
+    const state = location.readJournalLocation(
+      "?tab=" + view + "&access=family",
+      "2026",
+    );
+    expect(state).toHaveProperty("access", "");
+    expect(
+      new URLSearchParams(
+        location.writeJournalLocation(state, "access=family", "2026"),
+      ).has("access"),
+    ).toBe(false);
   }
 });

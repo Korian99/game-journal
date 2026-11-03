@@ -8,6 +8,7 @@ import {
   type JournalLocation,
   type DiscountFilter,
   type ReviewFilter,
+  type WishlistAccessFilter,
   type JournalView,
 } from "../lib/journal/journal-location";
 
@@ -80,6 +81,7 @@ export function useJournalLocation(initialLocation?: JournalLocation) {
         query: "",
         status: "",
         discount: "",
+        access: "",
         review: "",
         platform: "",
         year: "",
@@ -109,6 +111,7 @@ export function useJournalLocation(initialLocation?: JournalLocation) {
     setQuery: (query: string) => update({ query }, "replace"),
     setStatus: (status: string) => update({ status }),
     setDiscount: (discount: DiscountFilter) => update({ discount }),
+    setAccess: (access: WishlistAccessFilter) => update({ access }),
     setReview: (review: ReviewFilter) => update({ review }),
     setPlatform: (platform: string) => update({ platform }),
     setYear: (year: string) => update({ year }),

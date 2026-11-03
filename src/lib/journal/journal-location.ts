@@ -20,11 +20,13 @@ export const journalViews = [
 export type JournalView = (typeof journalViews)[number];
 export type DiscountFilter = "" | "discounted" | "not-discounted";
 export type ReviewFilter = "" | "with" | "without";
+export type WishlistAccessFilter = "" | "owned" | "not-owned" | "family";
 export type JournalLocation = {
   view: JournalView;
   query: string;
   status: string;
   discount: DiscountFilter;
+  access: WishlistAccessFilter;
   review: ReviewFilter;
   platform: string;
   year: string;
@@ -67,6 +69,7 @@ const locationKeys = [
   "q",
   "status",
   "discount",
+  "access",
   "review",
   "platform",
   "year",
@@ -93,6 +96,7 @@ export function defaultJournalLocation(
     query: "",
     status: "",
     discount: "",
+    access: "",
     review: "",
     platform: "",
     year: ["library", "statistics"].includes(view)
@@ -199,6 +203,12 @@ export function readJournalLocation(
     (discount === "discounted" || discount === "not-discounted")
   )
     state.discount = discount;
+  const access = params.get("access");
+  if (
+    view === "wishlist" &&
+    ["owned", "not-owned", "family"].includes(access ?? "")
+  )
+    state.access = access as WishlistAccessFilter;
   const review = params.get("review");
   if (view === "journal" && (review === "with" || review === "without"))
     state.review = review;
@@ -274,6 +284,8 @@ export function writeJournalLocation(
       params.set("status", state.status);
     if (state.discount && state.view === "wishlist")
       params.set("discount", state.discount);
+    if (state.access && state.view === "wishlist")
+      params.set("access", state.access);
     if (state.review && state.view === "journal")
       params.set("review", state.review);
     if (state.platform) params.set("platform", state.platform);
