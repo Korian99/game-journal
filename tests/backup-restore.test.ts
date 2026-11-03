@@ -41,3 +41,94 @@ it("preserves game cover metadata through old-format backup parsing and restore"
   });
   expect(restoreSql(snapshot, target).sql).toContain(url);
 });
+
+it("round-trips ordered game series in version 7 and remaps owner on restore", () => {
+  const old = backupFixture();
+  const seriesId = "56565656-5656-4656-8656-565656565656";
+  const fixture = {
+    ...old,
+    version: 7 as const,
+    sourceTables: {
+      ...old.sourceTables,
+      data_check_preferences: [],
+      data_check_dismissals: [],
+      game_series: [
+        {
+          id: seriesId,
+          owner_id: old.ownerId,
+          name: "Saga",
+          updated_at: "2026-10-21T06:00:00Z",
+        },
+      ],
+      game_series_members: [
+        {
+          owner_id: old.ownerId,
+          series_id: seriesId,
+          game_id: old.sourceTables.games[0].id,
+          position: 0,
+        },
+      ],
+    },
+  };
+  const parsed = parseBackupSnapshot(JSON.stringify(fixture));
+  const restored = restoreSql(parsed, target);
+  expect(restored.sql).toContain("insert into public.game_series ");
+  expect(restored.sql).toContain("insert into public.game_series_members ");
+  expect(restored.sql).toContain(target);
+  expect(restored.summary.series).toBe(1);
+});
+
+it("validates unique membership positions while allowing gaps after game deletion", () => {
+  const old = backupFixture();
+  const seriesId = "56565656-5656-4656-8656-565656565656";
+  const gameId2 = "67676767-6767-4676-8676-676767676767";
+  const fixture = {
+    ...old,
+    version: 7 as const,
+    sourceTables: {
+      ...old.sourceTables,
+      data_check_preferences: [],
+      data_check_dismissals: [],
+      games: [
+        ...old.sourceTables.games,
+        {
+          id: gameId2,
+          owner_id: old.ownerId,
+          data: {},
+          created_at: "2026-10-21T06:00:00Z",
+        },
+      ],
+      game_series: [
+        {
+          id: seriesId,
+          owner_id: old.ownerId,
+          name: "Saga",
+          updated_at: "2026-10-21T06:00:00Z",
+        },
+      ],
+      game_series_members: [
+        {
+          owner_id: old.ownerId,
+          series_id: seriesId,
+          game_id: old.sourceTables.games[0].id,
+          position: 0,
+        },
+        {
+          owner_id: old.ownerId,
+          series_id: seriesId,
+          game_id: gameId2,
+          position: 2,
+        },
+      ],
+    },
+  };
+  expect(
+    parseBackupSnapshot(
+      JSON.stringify(fixture),
+    ).sourceTables.game_series_members.map((m) => m.position),
+  ).toEqual([0, 2]);
+  fixture.sourceTables.game_series_members[1].position = 0;
+  expect(() => parseBackupSnapshot(JSON.stringify(fixture))).toThrow(
+    /relaciones incompletas/,
+  );
+});

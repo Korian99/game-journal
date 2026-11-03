@@ -3,6 +3,7 @@ import { databaseError } from "@/lib/api-errors";
 import { authorized, apiError } from "@/lib/auth";
 import { csvExport, excelExport, type ExportData } from "@/lib/export";
 import { formatDateTime } from "@/lib/journal/view-config";
+import { seriesListSchema } from "@/lib/series";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 type DB = Awaited<ReturnType<typeof authorized>>["db"];
@@ -34,11 +35,15 @@ async function readAll(
 export async function GET(request: Request) {
   try {
     const { db, user } = await authorized();
+    const format = new URL(request.url).searchParams.get("format");
     const { data: records, error } = await db.rpc("list_records");
     if (error) databaseError(error);
-    const [offers, priceHistory, scoring] = await Promise.all([
+    const [offers, priceHistory, seriesResult, scoring] = await Promise.all([
       readAll(db, "offers", user.id),
       readAll(db, "price_history", user.id),
+      format !== "csv" && format !== "xlsx"
+        ? db.rpc("get_game_series")
+        : Promise.resolve({ data: [], error: null }),
       db
         .from("scoring_guide")
         .select("score_threshold, meaning")
@@ -46,6 +51,7 @@ export async function GET(request: Request) {
         .order("score_threshold", { ascending: false }),
     ]);
     if (scoring.error) databaseError(scoring.error);
+    if (seriesResult.error) databaseError(seriesResult.error);
     const scoringGuide = scoringGuideSchema.parse({
       entries: scoring.data?.length ? scoring.data : defaultScoringGuide,
     }).entries;
@@ -57,7 +63,6 @@ export async function GET(request: Request) {
       exportedAt,
       scoringGuide,
     } as ExportData;
-    const format = new URL(request.url).searchParams.get("format");
     const stamp = formatDateTime(exportedAt).replace(
       /^(\d{2})\/(\d{2})\/(\d{4}), (\d{2}):(\d{2})$/,
       "$3-$2-$1-$4$5",
@@ -83,7 +88,8 @@ export async function GET(request: Request) {
       return new Response(csvExport(data), {
         headers: { ...headers, "Content-Type": "text/csv; charset=utf-8" },
       });
-    return Response.json({ version: 2, ...data }, { headers });
+    const series = seriesListSchema.parse(seriesResult.data);
+    return Response.json({ version: 3, ...data, series }, { headers });
   } catch (e) {
     return apiError(e);
   }

@@ -1,6 +1,6 @@
 # Covers, recaps, and game series
 
-**State:** Artwork phase complete, including checkpoints 0–2 and the source-sheet artwork import. Recap calculations (checkpoint 3) are complete locally. Checkpoint 4 recap presentation/export is complete locally; series remain pending.
+**State:** Artwork phase and checkpoints 0–5 are complete locally. Checkpoint 6 (series progress and recovery verification) remains pending. The checkpoint 5 migration has not been applied to production.
 **Prepared:** 2026-10-30
 
 This plan adds game cover art, private monthly and yearly recaps, and user-defined game series. The artwork phase is complete, including the separately reviewed source-sheet import. Focused checks and independent review passed, and the authorized production rollout and artwork import are complete. Git records the completed implementation history.
@@ -49,7 +49,7 @@ Checkpoint 0 verifies these defaults against the current data model, ownership a
 | [x] | 2a | Import source-sheet artwork URLs and verify production rollout |
 | [x] | 3 | Define recap calculations |
 | [x] | 4 | Present and export recaps |
-| [ ] | 5 | Create and edit ordered series with recovery compatibility |
+| [x] | 5 | Create and edit ordered series with recovery compatibility |
 | [ ] | 6 | Show series progress and verify recovery |
 
 ### 0. Confirm decisions and map existing data
@@ -107,6 +107,7 @@ Checkpoint 0 verifies these defaults against the current data model, ownership a
 - **Acceptance:** A game can appear in multiple series; a standalone game remains unaffected. Reordering persists. Deleting a series leaves every game and playthrough intact. Within an existing series, trashing a playthrough never removes membership; progress changes only if the trashed playthrough was the last qualifying completion, and restore restores that progress. Only permanently deleting a game identity removes its membership. Shared users do not gain access to owner-private series accidentally.
 - **Focused verification:** Domain tests for ordering, duplicate membership prevention within one series, multiple-series membership, trash/restore and permanent deletion behavior, ownership, and old-format backup compatibility; browser edit/reload flow; disposable database tests for ownership and concurrent/revision-checked writes if persistence requires them.
 - **Commit boundary:** Series persistence, validation, editor, export and backup/restore compatibility with old formats, and focused tests together. Review actual migration and grants/RLS before any later request to run SQL.
+- **Checkpoint 5 verification (2026-11-03):** Manual owner-private series creation, naming, membership, ordering, editing, and deletion are complete locally. Focused domain/API tests, TypeScript, and scoped lint passed. The disposable database suite and real version 7 JSON/Excel/manifest-to-SQL restore into a different owner passed, preserving ordered membership (including position gaps), games, and playthroughs. The mocked desktop/mobile create, reorder, reload, rename, failed-save draft, and delete-preserves-games flow passed; main visual QA found both layouts readable. Independent review found no ownership or backup data-loss defect. Migration `20261103121322_game_series.sql` remains unapplied to production; checkpoint 6 is pending.
 
 ### 6. Show series progress and verify recovery
 

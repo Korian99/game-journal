@@ -76,6 +76,7 @@ import { NotebookLibraryToolbar } from "./notebook-library-toolbar";
 import { Notebook } from "./notebook";
 import { NotificationDrawer } from "../notifications/notification-drawer";
 import { StatisticsPanel } from "./statistics-panel";
+import { SeriesManager } from "./series/series-manager";
 import { NotificationSettings } from "../settings/notification-settings";
 import "./notebook-library.css";
 import "./notebook-theme.css";
@@ -547,6 +548,16 @@ export function JournalApp({
               resultsCount={games.length}
               layout={libraryLayout}
               onLayoutChange={setLibraryLayout}
+              headerActions={
+                <SeriesManager
+                  records={records}
+                  ready={
+                    resourceStates.records.checkedAt !== null &&
+                    !resourceStates.records.error
+                  }
+                  disabled={busy || inlineEditing.dirty || inlineEditing.saving}
+                />
+              }
               onAdd={() =>
                 openEntry({
                   ...emptyRecord,

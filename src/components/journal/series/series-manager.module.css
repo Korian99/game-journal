@@ -1,0 +1,73 @@
+.body {
+  color: var(--text);
+  max-height: min(72dvh, 760px);
+  overflow: auto;
+  padding: 1rem;
+}
+.layout {
+  display: grid;
+  grid-template-columns: minmax(150px, 1fr) 2fr;
+  gap: 1rem;
+}
+.layout aside,
+.editor {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+}
+.editor {
+  min-width: 0;
+}
+.editor label {
+  display: grid;
+  gap: 0.35rem;
+}
+.editor input,
+.editor select {
+  min-width: 0;
+  padding: 0.6rem;
+  border: 1px solid var(--line, #c9bba8);
+  border-radius: 8px;
+  background: var(--surface, #fff);
+  color: var(--text);
+}
+.editor ol {
+  padding-left: 1.4rem;
+}
+.editor li {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0.5rem 0;
+}
+.editor li span {
+  flex: 1;
+  overflow-wrap: anywhere;
+}
+.editor li button {
+  flex: none;
+}
+.editor > div:last-child {
+  display: flex;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+}
+@media (max-width: 600px) {
+  .body {
+    max-height: calc(100dvh - 80px);
+  }
+  .layout {
+    grid-template-columns: 1fr;
+  }
+  .layout aside {
+    flex-direction: row;
+    overflow: auto;
+  }
+  .layout aside button {
+    flex: none;
+  }
+}
+.editor li button {
+  min-width: 44px;
+  min-height: 44px;
+}

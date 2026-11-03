@@ -18,6 +18,13 @@ const historySchema = row.extend({
   discount: z.number().finite(),
   created_at: text,
 });
+const gameSeriesSchema = row.extend({ name: text, updated_at: text });
+const gameSeriesMemberSchema = z.strictObject({
+  owner_id: id,
+  series_id: id,
+  game_id: id,
+  position: z.number().int().nonnegative(),
+});
 const playthroughSchema = row.extend({
   game_id: id,
   data: z.record(text, z.unknown()),
@@ -28,7 +35,13 @@ const playthroughSchema = row.extend({
 });
 export const backupSnapshotSchema = z
   .strictObject({
-    version: z.union([z.literal(3), z.literal(4), z.literal(5), z.literal(6)]),
+    version: z.union([
+      z.literal(3),
+      z.literal(4),
+      z.literal(5),
+      z.literal(6),
+      z.literal(7),
+    ]),
     kind: z.literal("game-journal-daily"),
     ownerId: id,
     exportedAt: text,
@@ -48,6 +61,8 @@ export const backupSnapshotSchema = z
         .array(scoringEntrySchema.extend({ owner_id: id }))
         .max(101)
         .default([]),
+      game_series: z.array(gameSeriesSchema).optional(),
+      game_series_members: z.array(gameSeriesMemberSchema).optional(),
       data_check_preferences: z
         .array(dataCheckPreferencesSchema.extend({ owner_id: id }))
         .max(1)
@@ -78,7 +93,16 @@ export const backupSnapshotSchema = z
   })
   .superRefine((snapshot, ctx) => {
     if (
-      snapshot.version === 6 &&
+      snapshot.version === 7 &&
+      (!snapshot.sourceTables.game_series ||
+        !snapshot.sourceTables.game_series_members)
+    )
+      ctx.addIssue({
+        code: "custom",
+        message: "Missing version 7 series state",
+      });
+    if (
+      snapshot.version >= 6 &&
       (!snapshot.sourceTables.data_check_preferences ||
         !snapshot.sourceTables.data_check_dismissals)
     )
@@ -91,6 +115,8 @@ export const backupSnapshotSchema = z
     ...snapshot,
     sourceTables: {
       ...snapshot.sourceTables,
+      game_series: snapshot.sourceTables.game_series ?? [],
+      game_series_members: snapshot.sourceTables.game_series_members ?? [],
       data_check_preferences:
         snapshot.sourceTables.data_check_preferences ?? [],
       data_check_dismissals: snapshot.sourceTables.data_check_dismissals ?? [],
@@ -111,6 +137,8 @@ export function parseBackupSnapshot(source: string): BackupSnapshot {
     ...snapshot.sourceTables.notifications,
     ...snapshot.sourceTables.scoring_guide,
     ...snapshot.sourceTables.data_check_preferences,
+    ...snapshot.sourceTables.game_series,
+    ...snapshot.sourceTables.game_series_members,
     ...snapshot.sourceTables.data_check_dismissals,
     ...snapshot.offers,
     ...snapshot.priceHistory,
@@ -147,6 +175,24 @@ export function parseBackupSnapshot(source: string): BackupSnapshot {
     )
   )
     throw Error("El respaldo contiene entradas sin sus filas originales.");
+  const seriesIds = new Set(
+    snapshot.sourceTables.game_series.map((row) => row.id),
+  );
+  const memberKeys = snapshot.sourceTables.game_series_members.map(
+    (row) => row.series_id + ":" + row.game_id,
+  );
+  const positionKeys = snapshot.sourceTables.game_series_members.map(
+    (row) => row.series_id + ":" + row.position,
+  );
+  if (
+    seriesIds.size !== snapshot.sourceTables.game_series.length ||
+    snapshot.sourceTables.game_series_members.some(
+      (row) => !seriesIds.has(row.series_id) || !games.has(row.game_id),
+    ) ||
+    new Set(memberKeys).size !== memberKeys.length ||
+    new Set(positionKeys).size !== positionKeys.length
+  )
+    throw Error("El respaldo contiene relaciones incompletas.");
   const dismissalKeys = snapshot.sourceTables.data_check_dismissals.map(
     (row) => row.entry_id + ":" + row.kind,
   );

@@ -9,7 +9,15 @@ for (const view of ["library", "journal"]) {
     view + " shows full-width comments beneath each game on desktop and mobile",
     async ({ page }) => {
       const records = [
-        { title: "FINAL FANTASY VII", notes: longComment },
+        {
+          title: "FINAL FANTASY VII",
+          notes: longComment,
+          cover: {
+            provider: "nintendo",
+            providerUrl:
+              "https://assets.nintendo.com/image/upload/comments.jpg",
+          },
+        },
         { title: "Alfa fixture", notes: "A — Un comentario breve." },
         { title: "Sin comentarios", notes: "" },
         { title: "Solo espacios", notes: "  \n  " },
@@ -32,8 +40,42 @@ for (const view of ["library", "journal"]) {
         reason:
           "La historia y el combate me motivaron a seguir hasta el final.",
       }));
+      await page.route("https://assets.nintendo.com/**", (route) =>
+        route.fulfill({
+          status: 200,
+          contentType: "image/svg+xml",
+          body: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 480 320"><rect width="480" height="320" fill="#243b53"/><path d="M0 280 160 80l120 150 80-95 120 185H0Z" fill="#8fcfd1"/></svg>',
+        }),
+      );
+      const previewRequests: string[] = [];
       await page.route("**/api/**", async (route) => {
-        const path = new URL(route.request().url()).pathname;
+        const request = route.request();
+        const path = new URL(request.url()).pathname;
+        if (path === "/api/store-preview") {
+          previewRequests.push((request.postDataJSON() as { url: string }).url);
+          await new Promise((resolve) => setTimeout(resolve, 300));
+          return route.fulfill({
+            json: {
+              url: "https://www.nintendo.com/es-ar/store/products/pokemon-legends-z-a-switch/",
+              store: "nintendo",
+              region: "AR",
+              checkedAt: new Date().toISOString(),
+              cover: {
+                provider: "nintendo",
+                providerUrl:
+                  "https://assets.nintendo.com/image/upload/recovered.jpg",
+              },
+              fields: { title: "FINAL FANTASY VII" },
+              quote: {
+                status: "available",
+                price: null,
+                regular: null,
+                currency: null,
+                discount: 0,
+              },
+            },
+          });
+        }
         return route.fulfill({
           json:
             path === "/api/records"
@@ -71,6 +113,29 @@ for (const view of ["library", "journal"]) {
         .locator(".game-data-row")
         .filter({ hasText: "FINAL FANTASY VII" });
       const comments = main.locator("xpath=following-sibling::tr[1]");
+      const entryGroup = main.locator("xpath=ancestor::tbody[1]");
+      const art = main.locator(".game-row-art-wide");
+      await expect(entryGroup).toHaveClass(/has-comments-art/);
+      await expect(art).toHaveCount(1);
+      await expect(art.locator("img")).toHaveAttribute("src", /comments\.jpg/);
+      const groupBox = (await entryGroup.boundingBox())!;
+      const mainBox = (await main.boundingBox())!;
+      const commentsBox = (await comments.boundingBox())!;
+      const artBox = (await art.boundingBox())!;
+      expect(groupBox.y + groupBox.height).toBeCloseTo(
+        commentsBox.y + commentsBox.height,
+        0,
+      );
+      expect(artBox.y).toBeCloseTo(mainBox.y, 0);
+      expect(artBox.y + artBox.height).toBeCloseTo(
+        commentsBox.y + commentsBox.height,
+        0,
+      );
+      expect(
+        await art
+          .locator("img")
+          .evaluate((img) => (img as HTMLImageElement).naturalWidth > 0),
+      ).toBe(true);
       await expect(comments).toHaveClass(/game-comments-row/);
       expect(await comments.locator("td").getAttribute("colspan")).toBe(
         String(await table.locator("th").count()),
@@ -120,6 +185,7 @@ for (const view of ["library", "journal"]) {
           : page
               .locator(".mobile-game-wrapper")
               .filter({ hasText: "FINAL FANTASY VII" });
+      await expect(card.locator(".game-row-art img")).toHaveCount(1);
       if (view === "library") {
         await card.locator(".notebook-entry-reflections summary").click();
       }
@@ -148,7 +214,54 @@ for (const view of ["library", "journal"]) {
       await card.screenshot({
         path: "test-results/" + view + "-comments-mobile.png",
       });
+      records[1].cover = undefined;
+      records[1].pages = [];
+      await page.reload();
+      await openFullGame(page, "Alfa fixture");
+      const unavailableReset = page.getByRole("button", {
+        name: "Restablecer portada de tienda",
+      });
+      await expect(unavailableReset).toBeEnabled();
+      await unavailableReset.click();
+      await expect(page.getByRole("alert")).toContainText(
+        "No hay una página de tienda guardada",
+      );
+      await page.getByRole("button", { name: "Cerrar", exact: true }).click();
+
+      records[0].cover = undefined;
+      records[0].pages = [
+        "https://www.nintendo.com/es-ar/store/products/pokemon-legends-z-a-switch/",
+      ];
+      await page.reload();
       await openFullGame(page, "FINAL FANTASY VII");
+      const resetCover = page.getByRole("button", {
+        name: "Restablecer portada de tienda",
+      });
+      await expect(resetCover).toBeEnabled();
+      await resetCover.click();
+      await expect
+        .poll(() => previewRequests)
+        .toContain(
+          "https://www.nintendo.com/es-ar/store/products/pokemon-legends-z-a-switch/",
+        );
+      await expect(page.locator(".cover-editor img")).toHaveAttribute(
+        "src",
+        "https://assets.nintendo.com/image/upload/recovered.jpg",
+      );
+      await expect(
+        page.getByLabel("URL de portada", { exact: true }),
+      ).toHaveValue("");
+      await expect(page.getByRole("status")).toContainText(
+        "Portada de tienda restablecida",
+      );
+      await page.locator(".cover-editor").screenshot({
+        path: "test-results/" + view + "-cover-reset-feedback.png",
+      });
+      await resetCover.click();
+      await expect(page.getByRole("status")).toContainText(
+        "La portada ya es la de la tienda",
+      );
+      expect(previewRequests).toHaveLength(1);
       await page.getByRole("tab", { name: "Reseña", exact: true }).click();
       await expect(
         page.getByRole("textbox", {

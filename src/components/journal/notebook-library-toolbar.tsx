@@ -40,6 +40,7 @@ export function NotebookLibraryToolbar({
   onAdd,
   layout,
   onLayoutChange,
+  headerActions,
 }: {
   location: ReturnType<typeof useJournalLocation>;
   platforms: string[];
@@ -48,6 +49,7 @@ export function NotebookLibraryToolbar({
   onAdd: () => void;
   layout: "table" | "grid";
   onLayoutChange: (layout: "table" | "grid") => void;
+  headerActions?: React.ReactNode;
 }) {
   const {
     query,
@@ -94,6 +96,7 @@ export function NotebookLibraryToolbar({
           <span className="desktop-label">Agregar juego</span>
           <span className="mobile-label">Agregar</span>
         </button>
+        {headerActions}
         <div
           className="notebook-library-view-toggle"
           role="group"

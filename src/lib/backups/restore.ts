@@ -40,7 +40,7 @@ export function restoreSql(
     "set local standard_conforming_strings=on;",
     "select pg_advisory_xact_lock(hashtextextended('game-journal-restore',0));",
     "do $$ begin",
-    " if exists(select 1 from public.games) or exists(select 1 from public.playthroughs) or exists(select 1 from public.offers) or exists(select 1 from public.imports) or exists(select 1 from public.notifications) or exists(select 1 from public.scoring_guide) or exists(select 1 from public.data_check_preferences) or exists(select 1 from public.data_check_dismissals) then raise exception 'El proyecto de destino no está vacío';end if;",
+    " if exists(select 1 from public.games) or exists(select 1 from public.playthroughs) or exists(select 1 from public.offers) or exists(select 1 from public.imports) or exists(select 1 from public.notifications) or exists(select 1 from public.scoring_guide) or exists(select 1 from public.data_check_preferences) or exists(select 1 from public.data_check_dismissals) or exists(select 1 from public.game_series) or exists(select 1 from public.game_series_members) then raise exception 'El proyecto de destino no está vacío';end if;",
     " if not exists(select 1 from public.members where id='" +
       targetOwner +
       "'::uuid and active) then raise exception 'Creá primero la cuenta invitada de destino';end if;",
@@ -60,6 +60,9 @@ export function restoreSql(
     );
   }
   insert("games", games);
+  const series = owned(tables.game_series);
+  insert("game_series", series);
+  insert("game_series_members", owned(tables.game_series_members));
   insert("playthroughs", plays);
   insert("offers", offers);
   insert("price_history", owned(snapshot.priceHistory));
@@ -79,6 +82,8 @@ export function restoreSql(
     sql: sections.join("\n") + "\n",
     summary: {
       games: games.length,
+      series: series.length,
+      seriesMembers: tables.game_series_members.length,
       playthroughs: plays.length,
       trash: plays.filter((row) => row.deleted_at != null).length,
       offers: offers.length,
