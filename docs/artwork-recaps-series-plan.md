@@ -1,6 +1,6 @@
 # Covers, recaps, and game series
 
-**State:** Artwork phase complete, including checkpoints 0–2 and the source-sheet artwork import. Recap calculations (checkpoint 3) are complete locally; recap presentation and series remain pending.
+**State:** Artwork phase complete, including checkpoints 0–2 and the source-sheet artwork import. Recap calculations (checkpoint 3) are complete locally. Checkpoint 4 recap presentation/export is complete locally; series remain pending.
 **Prepared:** 2026-10-30
 
 This plan adds game cover art, private monthly and yearly recaps, and user-defined game series. The artwork phase is complete, including the separately reviewed source-sheet import. Focused checks and independent review passed, and the authorized production rollout and artwork import are complete. Git records the completed implementation history.
@@ -48,7 +48,7 @@ Checkpoint 0 verifies these defaults against the current data model, ownership a
 | [x] | 2 | Display and manually manage covers |
 | [x] | 2a | Import source-sheet artwork URLs and verify production rollout |
 | [x] | 3 | Define recap calculations |
-| [ ] | 4 | Present and export recaps |
+| [x] | 4 | Present and export recaps |
 | [ ] | 5 | Create and edit ordered series with recovery compatibility |
 | [ ] | 6 | Show series progress and verify recovery |
 
@@ -97,6 +97,8 @@ Checkpoint 0 verifies these defaults against the current data model, ownership a
 - **Acceptance:** Export dimensions are useful on common phones and desktop. Notes are off by default per export. Missing or cross-origin artwork cannot taint or break canvas/image generation; the fallback still exports. No public URL, automatic posting, scheduled job, or stored snapshot.
 - **Focused verification:** Browser period selection; compare displayed values with checkpoint 3 fixtures; render and inspect actual downloaded PNGs in light/dark themes with good and failed artwork.
 - **Commit boundary:** Recap UI and image export together, after calculation behavior is approved.
+
+- **Checkpoint 4 verification (2026-11-03):** The in-Estadísticas recap editor, month/year selection, explicit highlight, optional note opt-in, artwork preview, and 1080 × 1350 PNG download are complete locally. Four targeted browser scenarios passed, including existing statistics flow, initial-load failure, historical-year selection, and broken no-CORS artwork download. Main visual QA inspected light/dark/fallback PNGs and desktop/mobile layouts; helper/domain tests: 12 passed; TypeScript and focused ESLint passed. Playwright output is isolated under test-results/browser-tests. No persistence or publishing was added.
 
 ### 5. Create and edit ordered series
 

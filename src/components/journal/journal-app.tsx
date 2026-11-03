@@ -901,7 +901,12 @@ export function JournalApp({
               }}
             />
           ) : view === "statistics" ? (
-            <StatisticsPanel records={records} location={journalLocation} />
+            <StatisticsPanel
+              records={records}
+              location={journalLocation}
+              recordsReady={resourceStates.records.checkedAt !== null}
+              recordsError={!!resourceStates.records.error}
+            />
           ) : view === "shared" ? (
             <section className="panel">
               {sharing.shared.length ? (

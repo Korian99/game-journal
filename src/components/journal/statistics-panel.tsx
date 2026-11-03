@@ -1,5 +1,7 @@
 "use client";
 import type { JournalEntry } from "@/lib/journal/journal-types";
+import { useState } from "react";
+import { RecapBuilder } from "./recaps/recap-builder";
 import { statistics, estimateTargets } from "@/lib/journal/statistics";
 import { viewYears } from "@/lib/journal/view-config";
 import type { useJournalLocation } from "@/hooks/use-journal-location";
@@ -12,10 +14,24 @@ const number = (value: number | null, suffix = "") =>
 export function StatisticsPanel({
   records,
   location,
+  recordsReady = true,
+  recordsError = false,
 }: {
   records: JournalEntry[];
   location: ReturnType<typeof useJournalLocation>;
+  recordsReady?: boolean;
+  recordsError?: boolean;
 }) {
+  const [recapMode, setRecapMode] = useState(false);
+  if (recapMode)
+    return (
+      <RecapBuilder
+        records={records}
+        recordsReady={recordsReady}
+        recordsError={recordsError}
+        onBack={() => setRecapMode(false)}
+      />
+    );
   const {
     year,
     compareYear,
@@ -63,6 +79,15 @@ export function StatisticsPanel({
   ] as const;
   return (
     <section className="statistics">
+      <div className="panel" style={{ marginBottom: 14 }}>
+        <button
+          type="button"
+          className="secondary"
+          onClick={() => setRecapMode(true)}
+        >
+          Crear resumen
+        </button>
+      </div>
       <div className="stats-controls panel">
         <label>
           Año

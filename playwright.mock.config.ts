@@ -13,4 +13,5 @@ export default defineConfig({
     reuseExistingServer: !process.env.CI,
   },
   reporter: "list",
+  outputDir: "./test-results/browser-tests",
 });
