@@ -126,7 +126,10 @@ beforeEach(() => {
   auth.mockResolvedValue({
     user: { id: owner },
     db: {
-      rpc: vi.fn(async () => ({ data: records, error: null })),
+      rpc: vi.fn(async (name: string) => ({
+        data: name === "get_game_series" ? (tables.game_series ?? []) : records,
+        error: null,
+      })),
       from: builder,
     },
   });
@@ -240,7 +243,7 @@ it("keeps raw source data in JSON and reads every owned offer and history page",
   });
   const response = await GET(request("json"));
   const data = await response.json();
-  expect(data.version).toBe(2);
+  expect(data.version).toBe(3);
   expect(data.records).toEqual(records);
   expect(data.offers).toHaveLength(1203);
   expect(data.priceHistory).toHaveLength(1004);
@@ -294,4 +297,34 @@ it("labels legacy pending entries as wishlist in Excel", async () => {
   expect(cell(book.getWorksheet("Juegos")!, 2, "Estado").value).toBe(
     "Lista de deseos",
   );
+});
+
+it("exports ordered series in JSON while CSV avoids a series query", async () => {
+  tables.game_series = [
+    {
+      id: "56565656-5656-4656-8656-565656565656",
+      name: "Saga",
+      updatedAt: "2026-10-21T06:00:00Z",
+      gameIds: [
+        "10000000-0000-4000-8000-000000000001",
+        "10000000-0000-4000-8000-000000000002",
+      ],
+    },
+  ];
+  const response = await GET(request("json"));
+  const data = await response.json();
+  expect(data.series[0].gameIds).toEqual([
+    "10000000-0000-4000-8000-000000000001",
+    "10000000-0000-4000-8000-000000000002",
+  ]);
+  expect((await auth.mock.results.at(-1)?.value).db.rpc).toHaveBeenCalledWith(
+    "get_game_series",
+  );
+  const rpc = (await auth.mock.results.at(-1)?.value).db.rpc;
+  const priorCalls = rpc.mock.calls.length;
+  queries = [];
+  await GET(request("csv"));
+  expect(
+    rpc.mock.calls.slice(priorCalls).map((call: unknown[]) => call[0]),
+  ).not.toContain("get_game_series");
 });

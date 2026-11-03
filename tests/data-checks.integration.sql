@@ -46,7 +46,7 @@ reset role;
 do $$declare run uuid;snapshot jsonb;begin
  run:=private.capture_daily_backup('98989898-9898-4898-8898-989898989891');
  select payload into snapshot from private.backup_snapshots where run_id=run;
- if snapshot->>'version'<>'6' or jsonb_array_length(snapshot->'sourceTables'->'data_check_dismissals')<>1 then raise exception 'Check state missing in snapshot';end if;
+ if snapshot->>'version'<>'7' or jsonb_array_length(snapshot->'sourceTables'->'data_check_dismissals')<>1 then raise exception 'Check state missing in snapshot';end if;
  if has_table_privilege('anon','public.data_check_preferences','select') or has_function_privilege('anon','public.apply_data_check_command(jsonb)','execute') then raise exception 'Anonymous access';end if;
 end $$;
 update public.playthroughs set deleted_at=clock_timestamp() where id='98989898-2222-4222-8222-222222222222';

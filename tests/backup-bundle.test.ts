@@ -1,6 +1,7 @@
 import { expect, it, vi } from "vitest";
 import ExcelJS from "exceljs";
 import { backupFixture, runId } from "./fixtures/backup";
+import { restoreSql } from "../src/lib/backups/restore";
 import {
   buildBackupBundle,
   verifyBackupBundle,
@@ -84,4 +85,47 @@ it("creates identical artifact bytes when a delayed upload retries", async () =>
   } finally {
     vi.useRealTimers();
   }
+});
+
+it("round-trips version 7 series through JSON, Excel manifest, and owner-remapped restore", async () => {
+  const old = backupFixture();
+  const seriesId = "56565656-5656-4656-8656-565656565656";
+  const snapshot = {
+    ...old,
+    version: 7 as const,
+    sourceTables: {
+      ...old.sourceTables,
+      data_check_preferences: [],
+      data_check_dismissals: [],
+      game_series: [
+        {
+          id: seriesId,
+          owner_id: old.ownerId,
+          name: "Saga",
+          updated_at: "2026-10-21T06:00:00Z",
+        },
+      ],
+      game_series_members: [
+        {
+          owner_id: old.ownerId,
+          series_id: seriesId,
+          game_id: old.sourceTables.games[0].id,
+          position: 0,
+        },
+      ],
+    },
+  };
+  const bundle = await buildBackupBundle(JSON.stringify(snapshot), runId);
+  const restored = verifyBackupBundle(
+    bundle.json.bytes,
+    bundle.excel.bytes,
+    bundle.manifest.bytes,
+  );
+  expect(bundle.manifest.value.sourceVersion).toBe(7);
+  expect(restored.sourceTables.game_series_members[0].game_id).toBe(
+    old.sourceTables.games[0].id,
+  );
+  const recovery = restoreSql(restored, "78787878-7878-4878-8878-787878787878");
+  expect(recovery.sql).toContain("insert into public.game_series_members");
+  expect(recovery.sql).toContain("78787878-7878-4878-8878-787878787878");
 });
