@@ -132,36 +132,39 @@ test("series create, reorder, rename, reload, delete, and failed saves retain dr
   });
   await page.setViewportSize({ width: 1280, height: 900 });
   await page.goto("./?tab=library&year=all");
-  await page.getByRole("button", { name: "Series", exact: true }).click();
-  const dialog = page.getByRole("dialog", { name: "Series" });
-  await dialog.getByRole("button", { name: "Crear serie" }).click();
-  await dialog.getByLabel("Nombre").fill("My saga");
-  await dialog
+  await page.getByRole("link", { name: "Series", exact: true }).click();
+  await expect(page).toHaveURL(/tab=library&section=series/);
+  const seriesPage = page.getByRole("region", { name: "Series" });
+  await seriesPage.getByRole("button", { name: "Crear serie" }).click();
+  await seriesPage.getByLabel("Nombre").fill("My saga");
+  await seriesPage
     .getByLabel("Buscar juegos para agregar a la serie")
     .fill("Game A");
-  await dialog
+  await seriesPage
     .getByLabel("Agregar juego")
     .selectOption("10000000-0000-4000-8000-000000000001");
-  await dialog
+  await seriesPage
     .getByLabel("Buscar juegos para agregar a la serie")
     .fill("Game B");
-  await dialog
+  await seriesPage
     .getByLabel("Agregar juego")
     .selectOption("10000000-0000-4000-8000-000000000002");
-  await dialog.getByRole("button", { name: "Mover Game B arriba" }).click();
-  await dialog.getByRole("button", { name: "Guardar serie" }).click();
-  await expect(dialog.getByRole("heading", { name: "My saga" })).toBeVisible();
+  await seriesPage.getByRole("button", { name: "Mover Game B arriba" }).click();
+  await seriesPage.getByRole("button", { name: "Guardar serie" }).click();
   await expect(
-    dialog.getByRole("progressbar", { name: "Progreso de la serie" }),
+    seriesPage.getByRole("heading", { name: "My saga" }),
+  ).toBeVisible();
+  await expect(
+    seriesPage.getByRole("progressbar", { name: "Progreso de la serie" }),
   ).toHaveAttribute("value", "1");
   await expect(
-    dialog.getByText("1 de 2 juegos terminados", { exact: true }),
+    seriesPage.getByText("1 de 2 juegos terminados", { exact: true }),
   ).toBeVisible();
   await expect(
-    dialog.getByText("Siguiente: Game A", { exact: true }),
+    seriesPage.getByText("Siguiente: Game A", { exact: true }),
   ).toBeVisible();
   await expect(
-    dialog
+    seriesPage
       .getByRole("list", { name: "Juegos de la serie" })
       .getByRole("listitem"),
   ).toHaveText([/Game B.*Terminado/, /Game A.*Pendiente/]);
@@ -173,69 +176,111 @@ test("series create, reorder, rename, reload, delete, and failed saves retain dr
     path: "test-results/series-progress-desktop.png",
     fullPage: true,
   });
+  await page.getByRole("link", { name: "Biblioteca", exact: true }).click();
+  await expect(page).toHaveURL(/tab=library(?:&|$)/);
+  await page.goBack();
+  await expect(page).toHaveURL(/tab=library&section=series/);
   await page.reload();
-  await page.getByRole("button", { name: "Series", exact: true }).click();
-  await dialog.getByRole("button", { name: "Editar serie" }).click();
-  await expect(dialog.locator("ol li span")).toHaveText(["Game B", "Game A"]);
-  await dialog.getByLabel("Nombre").fill("Updated saga");
+  await expect(
+    seriesPage.getByRole("table", { name: "Tus series" }),
+  ).toBeVisible();
+  await expect(
+    seriesPage.getByRole("row", { name: /My saga.*1\/2.*Game A/ }),
+  ).toBeVisible();
+  await page.screenshot({
+    path: "test-results/series-overview-desktop.png",
+    fullPage: true,
+    animations: "disabled",
+  });
+  await page.setViewportSize({ width: 390, height: 844 });
+  const overviewRow = seriesPage.getByRole("row", { name: /My saga/ });
+  await expect(overviewRow.locator("th small")).toHaveText(
+    "1/2 terminados",
+  );
+  await expect(overviewRow.locator("th small")).toBeVisible();
+  await page.screenshot({
+    path: "test-results/series-overview-mobile.png",
+    fullPage: true,
+    animations: "disabled",
+  });
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await seriesPage.getByRole("button", { name: "Abrir My saga" }).click();
+  await expect(
+    seriesPage.getByRole("heading", { name: "My saga" }),
+  ).toBeVisible();
+  await seriesPage.getByRole("button", { name: "Editar serie" }).click();
+  await expect(seriesPage.locator("ol li span")).toHaveText([
+    "Game B",
+    "Game A",
+  ]);
+  await seriesPage.getByLabel("Nombre").fill("Updated saga");
+  await page.getByRole("link", { name: "Biblioteca", exact: true }).click();
+  await page.getByRole("link", { name: "Series", exact: true }).click();
+  await expect(seriesPage.getByLabel("Nombre")).toHaveValue("Updated saga");
   await page.setViewportSize({ width: 390, height: 844 });
   await page.screenshot({
     path: "test-results/series-mobile.png",
     fullPage: true,
   });
-  await dialog.getByRole("button", { name: "Guardar serie" }).click();
+  await seriesPage.getByRole("button", { name: "Guardar serie" }).click();
   expect(state.series[0].name).toBe("Updated saga");
   await expect(
-    dialog.getByText("1 de 2 juegos terminados", { exact: true }),
+    seriesPage.getByText("1 de 2 juegos terminados", { exact: true }),
   ).toBeVisible();
   await expect(
-    dialog.getByRole("list", { name: "Juegos de la serie" }).locator("img"),
+    seriesPage.getByRole("list", { name: "Juegos de la serie" }).locator("img"),
   ).toHaveCount(1);
   await page.screenshot({
     path: "test-results/series-progress-mobile.png",
     fullPage: true,
   });
   state.failSaves = 1;
-  await dialog.getByRole("button", { name: "Editar serie" }).click();
-  await dialog.getByLabel("Nombre").fill("Draft survives");
-  await dialog.getByRole("button", { name: "Guardar serie" }).click();
-  await expect(dialog.getByRole("alert")).toBeVisible();
-  await expect(dialog.getByLabel("Nombre")).toHaveValue("Draft survives");
-  await dialog.getByRole("button", { name: "Guardar serie" }).click();
+  await seriesPage.getByRole("button", { name: "Editar serie" }).click();
+  await seriesPage.getByLabel("Nombre").fill("Draft survives");
+  await seriesPage.getByRole("button", { name: "Guardar serie" }).click();
+  await expect(seriesPage.getByRole("alert")).toBeVisible();
+  await expect(seriesPage.getByLabel("Nombre")).toHaveValue("Draft survives");
+  await seriesPage.getByRole("button", { name: "Guardar serie" }).click();
   await expect(
-    dialog.getByRole("heading", { name: "Draft survives" }),
+    seriesPage.getByRole("heading", { name: "Draft survives" }),
   ).toBeVisible();
   const completedPlay = records.splice(1, 1)[0];
   await page.reload();
-  await page.getByRole("button", { name: "Series", exact: true }).click();
+  await seriesPage
+    .getByRole("button", { name: "Abrir Draft survives" })
+    .click();
   await expect(
-    dialog.getByText("0 de 2 juegos terminados", { exact: true }),
+    seriesPage.getByText("0 de 2 juegos terminados", { exact: true }),
   ).toBeVisible();
   await expect(
-    dialog.getByText("Siguiente: Juego no disponible", { exact: true }),
+    seriesPage.getByText("Siguiente: Juego no disponible", { exact: true }),
   ).toBeVisible();
   expect(state.series[0].gameIds).toHaveLength(2);
   records.push(completedPlay);
-  records[0].status = "completed";
+  records[0].status = "remembered";
   await page.reload();
-  await page.getByRole("button", { name: "Series", exact: true }).click();
+  await seriesPage
+    .getByRole("button", { name: "Abrir Draft survives" })
+    .click();
   await expect(
-    dialog.getByText("2 de 2 juegos terminados", { exact: true }),
+    seriesPage.getByText("2 de 2 juegos terminados", { exact: true }),
   ).toBeVisible();
   await expect(
-    dialog.getByText("Serie completada", { exact: true }),
+    seriesPage.getByText("Serie completada", { exact: true }),
   ).toBeVisible();
-  await dialog.getByRole("button", { name: "Editar serie" }).click();
+  await seriesPage.getByRole("button", { name: "Editar serie" }).click();
   page.once("dialog", (d) => d.accept());
-  await dialog.getByRole("button", { name: "Eliminar serie" }).click();
+  await seriesPage.getByRole("button", { name: "Eliminar serie" }).click();
   await expect(
-    dialog.getByText("Creá una serie y agregá juegos en el orden que quieras."),
+    seriesPage.getByText(
+      "Creá una serie y agregá juegos en el orden que quieras.",
+    ),
   ).toBeVisible();
-  await dialog.getByRole("button", { name: "Cerrar" }).click();
+  await page.goto("./?tab=journal&year=all");
   await expect(
-    page.getByRole("heading", { name: "Game A", exact: true }),
+    page.locator(".mobile-games").getByText("Game A", { exact: true }),
   ).toBeVisible();
   await expect(
-    page.getByRole("heading", { name: "Game B", exact: true }),
+    page.locator(".mobile-games").getByText("Game B", { exact: true }),
   ).toBeVisible();
 });

@@ -78,6 +78,7 @@ export function useJournalLocation(initialLocation?: JournalLocation) {
         remembered.current.get(view) ?? defaultJournalLocation(view);
       commit({
         ...destination,
+        librarySection: "games",
         query: "",
         status: "",
         discount: "",
@@ -88,6 +89,23 @@ export function useJournalLocation(initialLocation?: JournalLocation) {
         focusedEntry: entryId,
         notificationId: "",
         notificationOpen: false,
+      });
+    },
+    [commit],
+  );
+  const setLibrarySection = useCallback(
+    (librarySection: JournalLocation["librarySection"]) => {
+      const destination =
+        current.current.view === "library"
+          ? current.current
+          : (remembered.current.get("library") ??
+            defaultJournalLocation("library"));
+      commit({
+        ...destination,
+        view: "library",
+        librarySection,
+        focusedEntry: "",
+        notificationId: "",
       });
     },
     [commit],
@@ -107,6 +125,7 @@ export function useJournalLocation(initialLocation?: JournalLocation) {
     deferNotification,
     clearNotificationTarget,
     setView,
+    setLibrarySection,
     setSort,
     setQuery: (query: string) => update({ query }, "replace"),
     setStatus: (status: string) => update({ status }),

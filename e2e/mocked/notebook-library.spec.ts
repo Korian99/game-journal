@@ -207,7 +207,7 @@ test("the library keeps its filters and editor in a responsive notebook layout",
   );
   await expect(
     page.locator(".notebook-library .sidebar nav button"),
-  ).toHaveCount(8);
+  ).toHaveCount(7);
   await page.screenshot({
     path: desktopScreenshot,
     fullPage: true,
@@ -261,7 +261,10 @@ test("the library keeps its filters and editor in a responsive notebook layout",
     })
     .click();
   await expect(page.getByRole("dialog")).toBeVisible();
-  await page.screenshot({ path: "test-results/notebook-library-cover-editor-desktop.png", fullPage: true });
+  await page.screenshot({
+    path: "test-results/notebook-library-cover-editor-desktop.png",
+    fullPage: true,
+  });
   await page
     .getByLabel("URL de portada", { exact: true })
     .fill("https://assets.nintendo.com/image/upload/recovery.jpg");
@@ -271,8 +274,12 @@ test("the library keeps its filters and editor in a responsive notebook layout",
   );
   await expect(page.locator(".cover-editor img")).toBeVisible();
   await page.getByRole("button", { name: "Cerrar", exact: true }).click();
-  await expect(page.getByRole("heading", { name: "Descartar cambios" })).toBeVisible();
-  await page.getByRole("button", { name: "Descartar cambios", exact: true }).click();
+  await expect(
+    page.getByRole("heading", { name: "Descartar cambios" }),
+  ).toBeVisible();
+  await page
+    .getByRole("button", { name: "Descartar cambios", exact: true })
+    .click();
   await expect(page.getByRole("dialog")).toHaveCount(0);
 
   await page.goto("./?tab=library&year=all&sort=rating.desc%2Cimpression.asc");
@@ -306,16 +313,16 @@ test("the library keeps its filters and editor in a responsive notebook layout",
   await expect(page.locator(".notebook-entry-card")).toHaveCount(2);
   await expect(page.locator(".mobile-games")).toBeVisible();
   await page.evaluate(() => document.documentElement.classList.add("light"));
-  await page.screenshot({ path: "test-results/notebook-library-mobile-light.png", fullPage: true });
+  await page.screenshot({
+    path: "test-results/notebook-library-mobile-light.png",
+    fullPage: true,
+  });
   await page.evaluate(() => document.documentElement.classList.remove("light"));
   await expect(
     page.locator(".notebook-entry-card .review-mark").first(),
   ).toBeVisible();
   await expect(
-    page
-      .locator(".notebook-entry-card")
-      .nth(1)
-      .getByText("Leer comentarios"),
+    page.locator(".notebook-entry-card").nth(1).getByText("Leer comentarios"),
   ).toBeVisible();
   await expect(
     page
@@ -337,7 +344,7 @@ test("the library keeps its filters and editor in a responsive notebook layout",
     await expect(
       page.locator(".notebook-library .notebook-bottom-nav button"),
     ).toHaveCount(4);
-    for (const label of ["Biblioteca", "Diario", "Deseos", "Más"])
+    for (const label of ["Biblioteca", "Deseos", "Próximos", "Más"])
       await expect(
         page
           .locator(".notebook-library .notebook-bottom-nav")
@@ -403,7 +410,7 @@ test("the library keeps its filters and editor in a responsive notebook layout",
     .getByRole("button", { name: "Más" })
     .click();
   await expect(page.locator(".sidebar.open")).toBeVisible();
-  await expect(page.locator(".sidebar.open nav button")).toHaveCount(8);
+  await expect(page.locator(".sidebar.open nav button")).toHaveCount(7);
   await expect(
     page.locator(".notebook-bottom-nav").getByRole("button", { name: "Más" }),
   ).toHaveAttribute("aria-expanded", "true");

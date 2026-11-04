@@ -1,19 +1,121 @@
 .body {
   color: var(--text);
-  max-height: min(72dvh, 760px);
-  overflow: auto;
-  padding: 1rem;
 }
 .layout {
-  display: grid;
-  grid-template-columns: minmax(150px, 1fr) 2fr;
-  gap: 1rem;
+  display: block;
 }
-.layout aside,
 .editor {
   display: flex;
   flex-direction: column;
   gap: 0.65rem;
+}
+.page {
+  display: grid;
+  gap: 1rem;
+  color: var(--text);
+}
+.pageHeading,
+.detailHeading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+.pageHeading h1,
+.detailHeading h2 {
+  margin: 0;
+}
+.eyebrow {
+  margin: 0 0 0.3rem;
+  color: var(--muted);
+  font-size: 0.75rem;
+  letter-spacing: 0.08em;
+}
+.tableWrap {
+  max-width: 100%;
+  overflow-x: auto;
+}
+.seriesTable {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+}
+.seriesTable th,
+.seriesTable td {
+  padding: 0.7rem 0.85rem;
+  border-bottom: 1px solid var(--line, #555);
+  vertical-align: middle;
+}
+.seriesTable thead th {
+  color: var(--muted);
+  font-size: 0.82rem;
+  font-weight: 600;
+}
+.seriesTable tbody th {
+  min-width: 190px;
+  font-weight: 500;
+}
+.seriesTable td {
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+.mobileProgress {
+  display: none;
+}
+.seriesName {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  color: var(--text);
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+}
+.seriesName:hover,
+.seriesName:focus-visible {
+  background: color-mix(in srgb, var(--accent) 8%, transparent);
+}
+.seriesName strong {
+  font-size: 0.95rem;
+  font-style: normal;
+  font-weight: 600;
+  line-height: 1.4;
+}
+.seriesCover {
+  display: grid;
+  width: 56px;
+  height: 72px;
+  place-items: center;
+  overflow: hidden;
+  border-radius: 5px;
+  background: var(--raised);
+  color: var(--muted);
+}
+.seriesCover :global(.game-cover) {
+  width: 100%;
+  height: 100%;
+  border: 0;
+  border-radius: 0;
+}
+.seriesSummary {
+  display: grid;
+  gap: 0.3rem;
+  min-width: 0;
+}
+.seriesSummary strong {
+  overflow-wrap: anywhere;
+}
+.seriesSummary small {
+  color: var(--muted);
+  line-height: 1.4;
+}
+.detailHeading {
+  justify-content: flex-start;
+  flex-wrap: wrap;
+  margin-bottom: 0.5rem;
 }
 .editor {
   min-width: 0;
@@ -53,18 +155,19 @@
   flex-wrap: wrap;
 }
 @media (max-width: 600px) {
-  .body {
-    max-height: calc(100dvh - 80px);
+  .seriesTable th,
+  .seriesTable td {
+    padding: 0.6rem;
   }
-  .layout {
-    grid-template-columns: 1fr;
+  .seriesCover {
+    width: 48px;
+    height: 64px;
   }
-  .layout aside {
-    flex-direction: row;
-    overflow: auto;
-  }
-  .layout aside button {
-    flex: none;
+  .mobileProgress {
+    display: block;
+    margin: 0.3rem 0 0 56px;
+    color: var(--muted);
+    font-size: 0.8rem;
   }
 }
 .editor li button {

@@ -13,11 +13,13 @@ export function NotebookLibraryEntries({
   focusedEntry,
   entryRowClass,
   onQuickEdit,
+  view = "library",
 }: {
   entries: JournalEntry[];
   focusedEntry: string;
   entryRowClass: (entry: JournalEntry) => string | undefined;
   onQuickEdit: (entry: JournalEntry) => void;
+  view?: "library" | "journal";
 }) {
   return (
     <div className="notebook-entry-list">
@@ -42,6 +44,8 @@ export function NotebookLibraryEntries({
               <h2>{entry.title}</h2>
               <p>
                 {entry.device || entry.platforms || "Plataforma sin definir"}
+                {view === "journal" &&
+                  ` · Año ${entry.year || "—"} · Período ${entry.period || "—"}`}
               </p>
               <span className={"status " + entry.status}>
                 {statuses[entry.status]}

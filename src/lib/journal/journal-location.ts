@@ -23,6 +23,7 @@ export type ReviewFilter = "" | "with" | "without";
 export type WishlistAccessFilter = "" | "owned" | "not-owned" | "family";
 export type JournalLocation = {
   view: JournalView;
+  librarySection: "games" | "series";
   query: string;
   status: string;
   discount: DiscountFilter;
@@ -66,6 +67,7 @@ const columns: Record<JournalView, string[]> = {
 };
 const locationKeys = [
   "tab",
+  "section",
   "q",
   "status",
   "discount",
@@ -93,17 +95,14 @@ export function defaultJournalLocation(
 ): JournalLocation {
   return {
     view,
+    librarySection: "games",
     query: "",
     status: "",
     discount: "",
     access: "",
     review: "",
     platform: "",
-    year: ["library", "statistics"].includes(view)
-      ? present
-      : view === "journal"
-        ? "2024"
-        : "",
+    year: ["library", "statistics"].includes(view) ? present : "",
     sort: columns[view].length ? defaultViewSort(view) : [],
     compareYear: view === "statistics" ? String(Number(present) - 1) : "",
     estimateTarget: "story",
@@ -132,6 +131,8 @@ export function readJournalLocation(
     ? (tab as JournalView)
     : "library";
   const state = defaultJournalLocation(view, present);
+  if (view === "library" && params.get("section") === "series")
+    state.librarySection = "series";
   const targetId = (key: string) => {
     const value = params.get(key) ?? "";
     return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
@@ -253,6 +254,8 @@ export function writeJournalLocation(
   const params = new URLSearchParams(search);
   for (const key of locationKeys) params.delete(key);
   params.set("tab", state.view);
+  if (state.view === "library" && state.librarySection === "series")
+    params.set("section", "series");
   if (state.focusedEntry) params.set("entry", state.focusedEntry);
   if (state.notificationId) params.set("notification", state.notificationId);
   if (state.notificationOpen) params.set("notifications", "open");

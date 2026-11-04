@@ -9,7 +9,7 @@ import { wishlistPlatforms } from "@/lib/offers/wishlist-display";
 import type { Table } from "@tanstack/react-table";
 import { flexRender } from "@tanstack/react-table";
 import { ArrowUpDown, Pencil } from "lucide-react";
-import { JournalReview, JournalScoreMark } from "./journal-review";
+import { JournalReview } from "./journal-review";
 import { HypeBadge } from "../games/hype-badge";
 import { OwnershipBadge } from "../games/ownership-badge";
 import { PriorityMark } from "../games/priority-mark";
@@ -65,12 +65,13 @@ export function JournalGameTable({
   return (
     <>
       <div className="mobile-games">
-        {view === "library" ? (
+        {view === "library" || view === "journal" ? (
           <NotebookLibraryEntries
             entries={table.getRowModel().rows.map(({ original }) => original)}
             focusedEntry={focusedEntry}
             entryRowClass={entryRowClass}
             onQuickEdit={onQuickEdit}
+            view={view}
           />
         ) : (
           table.getRowModel().rows.map(({ original: r }) => (
@@ -149,7 +150,6 @@ export function JournalGameTable({
                   </small>
                 </span>
                 <span className="mobile-game-actions">
-                  {view === "journal" ? <JournalScoreMark record={r} /> : null}
                   <button
                     type="button"
                     className="mobile-edit-button"

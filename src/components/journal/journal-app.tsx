@@ -42,7 +42,6 @@ import {
   Compass,
   ChartNoAxesCombined,
   Bell,
-  BookOpen,
   CalendarDays,
   Download,
   Gamepad2,
@@ -72,7 +71,10 @@ import { useJournalColumns } from "./journal-columns";
 import { JournalGameTable } from "./journal-game-table";
 import { JournalSummary } from "./journal-summary";
 import { JournalToolbar } from "./journal-toolbar";
-import { NotebookLibraryToolbar } from "./notebook-library-toolbar";
+import {
+  NotebookCollectionHeading,
+  NotebookLibraryToolbar,
+} from "./notebook-library-toolbar";
 import { Notebook } from "./notebook";
 import { NotificationDrawer } from "../notifications/notification-drawer";
 import { StatisticsPanel } from "./statistics-panel";
@@ -83,7 +85,6 @@ import "./notebook-theme.css";
 
 const nav = [
   ["library", "Biblioteca", Library],
-  ["journal", "Diario", BookOpen],
   ["wishlist", "Lista de deseos", Heart],
   ["upcoming", "Próximos", CalendarDays],
   ["suggestions", "¿Qué juego ahora?", Compass],
@@ -108,6 +109,7 @@ export function JournalApp({
     setView,
     setSort,
   } = journalLocation;
+  const librarySection = journalLocation.librarySection;
   const {
     records,
     offers,
@@ -327,7 +329,10 @@ export function JournalApp({
     getCoreRowModel: getCoreRowModel(),
     getSortedRowModel: getSortedRowModel(),
   });
-  const title = nav.find((n) => n[0] === view)?.[1] ?? "Biblioteca";
+  const title =
+    view === "journal"
+      ? "Histórico"
+      : (nav.find((n) => n[0] === view)?.[1] ?? "Biblioteca");
   async function importSheet() {
     setBusy(true);
     try {
@@ -347,14 +352,16 @@ export function JournalApp({
     }
   }
   function switchView(v: JournalView) {
-    setView(v);
+    if (v === "library") journalLocation.setLibrarySection("games");
+    else setView(v);
     setSidebarOpen(false);
   }
+  const seriesActive = view === "library" && librarySection === "series";
   return (
     <div
       className={
         "app-shell notebook-app" +
-        (view === "library" ? " notebook-library" : "")
+        (["library", "journal"].includes(view) ? " notebook-library" : "")
       }
     >
       <aside
@@ -373,12 +380,23 @@ export function JournalApp({
         >
           <X size={20} aria-hidden="true" />
         </button>
-        <nav>
+        <nav aria-label="Navegación principal">
           {nav.map(([key, label, Icon]) => (
             <button
               key={key}
               onClick={() => switchView(key)}
-              className={view === key ? "active" : ""}
+              className={
+                (key === "library" && ["library", "journal"].includes(view)) ||
+                view === key
+                  ? "active"
+                  : ""
+              }
+              aria-current={
+                (key === "library" && ["library", "journal"].includes(view)) ||
+                view === key
+                  ? "page"
+                  : undefined
+              }
             >
               <Icon size={18} />
               {label}
@@ -425,19 +443,13 @@ export function JournalApp({
       <nav className="notebook-bottom-nav" aria-label="Navegación móvil">
         <button
           type="button"
-          aria-current={view === "library" ? "page" : undefined}
+          aria-current={
+            ["library", "journal"].includes(view) ? "page" : undefined
+          }
           onClick={() => switchView("library")}
         >
           <Library size={20} aria-hidden="true" />
           <span>Biblioteca</span>
-        </button>
-        <button
-          type="button"
-          aria-current={view === "journal" ? "page" : undefined}
-          onClick={() => switchView("journal")}
-        >
-          <BookOpen size={20} aria-hidden="true" />
-          <span>Diario</span>
         </button>
         <button
           type="button"
@@ -449,10 +461,18 @@ export function JournalApp({
         </button>
         <button
           type="button"
+          aria-current={view === "upcoming" ? "page" : undefined}
+          onClick={() => switchView("upcoming")}
+        >
+          <CalendarDays size={20} aria-hidden="true" />
+          <span>Próximos</span>
+        </button>
+        <button
+          type="button"
           aria-expanded={sidebarOpen}
           aria-controls="journal-full-navigation"
           aria-current={
-            ["library", "journal", "wishlist"].includes(view)
+            ["library", "journal", "wishlist", "upcoming"].includes(view)
               ? undefined
               : "page"
           }
@@ -539,29 +559,100 @@ export function JournalApp({
               : "")
           }
         >
+          {["library", "journal"].includes(view) && (
+            <nav
+              className="library-section-nav"
+              aria-label="Secciones de Biblioteca"
+            >
+              <a
+                href="/?tab=library"
+                aria-current={
+                  view === "library" && librarySection === "games"
+                    ? "page"
+                    : undefined
+                }
+                onClick={(event) => {
+                  if (
+                    event.metaKey ||
+                    event.ctrlKey ||
+                    event.shiftKey ||
+                    event.altKey
+                  )
+                    return;
+                  event.preventDefault();
+                  journalLocation.setLibrarySection("games");
+                }}
+              >
+                Biblioteca
+              </a>
+              <a
+                href="/?tab=library&section=series"
+                aria-current={seriesActive ? "page" : undefined}
+                onClick={(event) => {
+                  if (
+                    event.metaKey ||
+                    event.ctrlKey ||
+                    event.shiftKey ||
+                    event.altKey
+                  )
+                    return;
+                  event.preventDefault();
+                  journalLocation.setLibrarySection("series");
+                }}
+              >
+                Series
+              </a>
+              <a
+                href="/?tab=journal"
+                aria-current={view === "journal" ? "page" : undefined}
+                onClick={(event) => {
+                  if (
+                    event.metaKey ||
+                    event.ctrlKey ||
+                    event.shiftKey ||
+                    event.altKey
+                  )
+                    return;
+                  event.preventDefault();
+                  setView("journal");
+                }}
+              >
+                Histórico
+              </a>
+            </nav>
+          )}
           {view === "library" ? (
-            <NotebookLibraryToolbar
-              location={journalLocation}
-              platforms={platforms}
-              yearOptions={yearOptions}
-              resultsCount={games.length}
-              headerActions={
-                <SeriesManager
-                  records={records}
-                  ready={
-                    resourceStates.records.checkedAt !== null &&
-                    !resourceStates.records.error
-                  }
-                  disabled={busy || inlineEditing.dirty || inlineEditing.saving}
-                />
-              }
-              onAdd={() =>
-                openEntry({
-                  ...emptyRecord,
-                  status: "wishlist",
-                })
-              }
-            />
+            librarySection === "games" ? (
+              <NotebookLibraryToolbar
+                location={journalLocation}
+                platforms={platforms}
+                yearOptions={yearOptions}
+                resultsCount={games.length}
+                onAdd={() =>
+                  openEntry({
+                    ...emptyRecord,
+                    status: "wishlist",
+                  })
+                }
+              />
+            ) : null
+          ) : ["journal", "wishlist", "upcoming"].includes(view) ? (
+            <div className="notebook-library-controls">
+              <NotebookCollectionHeading
+                title={title}
+                kicker={
+                  view === "journal"
+                    ? `${selectedYear || "Todos los años"} · ${games.length} ${games.length === 1 ? "juego" : "juegos"}`
+                    : `${games.length} ${games.length === 1 ? "juego" : "juegos"}`
+                }
+                onAdd={() =>
+                  openEntry({
+                    ...emptyRecord,
+                    status: "wishlist",
+                  })
+                }
+              />
+            </div>
           ) : (
             <div className="page-heading">
               <div>
@@ -655,7 +746,18 @@ export function JournalApp({
               <DriveBackupPanel details={false} />
             </>
           )}
-          {view === "settings" ? (
+          <div className="series-page-panel" hidden={!seriesActive}>
+            <SeriesManager
+              active={seriesActive}
+              records={records}
+              ready={
+                resourceStates.records.checkedAt !== null &&
+                !resourceStates.records.error
+              }
+              disabled={busy || inlineEditing.dirty || inlineEditing.saving}
+            />
+          </div>
+          {seriesActive ? null : view === "settings" ? (
             <div className="settings-groups">
               <section
                 className="settings-group"
@@ -963,13 +1065,7 @@ export function JournalApp({
                   }
                 />
               )}
-              <div
-                className={
-                  view === "journal"
-                    ? "collection-layout with-summary"
-                    : "collection-layout"
-                }
-              >
+              <div className={"collection-layout"}>
                 <section className="table-panel">
                   <div className="table-caption">
                     <span>
@@ -1023,15 +1119,8 @@ export function JournalApp({
                     </InlineEditContext.Provider>
                   )}
                 </section>
-                {view === "journal" && (
-                  <JournalSummary
-                    summary={summary}
-                    view={view}
-                    selectedYear={selectedYear}
-                  />
-                )}
               </div>
-              {view === "library" && (
+              {["library", "journal"].includes(view) && (
                 <details className="notebook-library-summary">
                   <summary>
                     Ver resumen de {selectedYear || "todos los años"}

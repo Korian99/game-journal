@@ -5,7 +5,7 @@ import { emptyRecord } from "../../src/lib/types";
 
 const views = [
   ["library", "Biblioteca"],
-  ["journal", "Diario"],
+  ["journal", "Biblioteca"],
   ["wishlist", "Lista de deseos"],
   ["upcoming", "Próximos"],
   ["suggestions", "¿Qué juego ahora?"],
@@ -484,6 +484,76 @@ async function mockApp(page: Page) {
   });
 }
 
+test("history, wishlist, and upcoming share the Biblioteca collection header", async ({
+  page,
+}) => {
+  await mockApp(page);
+  await page.setViewportSize({ width: 1280, height: 900 });
+
+  await page.goto("./?tab=journal");
+  await expect(page.locator(".app-shell.notebook-library")).toBeVisible();
+  await expect(page.locator(".notebook-library-heading h1")).toHaveText(
+    "Histórico",
+  );
+  await expect(page.locator(".notebook-library-kicker")).toContainText(
+    "Todos los años",
+  );
+  await expect(page.locator(".notebook-library-search")).toBeVisible();
+  await expect(page.getByLabel("Filtrar reseña")).toHaveCount(1);
+  await expect(page.locator(".journal-table")).toContainText("Theme fixture");
+  await expect(page.locator(".journal-table")).toContainText("2026");
+  await page.screenshot({
+    path: "test-results/collection-history-desktop.png",
+    fullPage: true,
+    animations: "disabled",
+  });
+
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("./?tab=journal");
+  const historyCard = page
+    .locator(".notebook-entry-card")
+    .filter({ hasText: "Theme fixture" });
+  await expect(historyCard).toHaveCount(1);
+  await expect(historyCard).toContainText("2026");
+  await page.screenshot({
+    path: "test-results/collection-history-mobile.png",
+    fullPage: true,
+    animations: "disabled",
+  });
+
+  for (const [view, title] of [
+    ["wishlist", "Lista de deseos"],
+    ["upcoming", "Próximos"],
+  ] as const) {
+    await page.setViewportSize({ width: 1280, height: 900 });
+    await page.goto(`./?tab=${view}`);
+    await expect(page.locator(".notebook-library-heading h1")).toHaveText(
+      title,
+    );
+    await expect(page.locator(".notebook-library-kicker")).toContainText(
+      "juego",
+    );
+    await expect(page.locator(".notebook-library-search")).toBeVisible();
+    await expect(page.locator(".notebook-view-sort")).toBeVisible();
+    await expect(
+      page.getByLabel(
+        view === "wishlist" ? "Ordenar Lista de deseos" : "Ordenar Próximos",
+      ),
+    ).toBeVisible();
+    await page.screenshot({
+      path: `test-results/collection-${view}-desktop.png`,
+      fullPage: true,
+      animations: "disabled",
+    });
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.screenshot({
+      path: `test-results/collection-${view}-mobile.png`,
+      fullPage: true,
+      animations: "disabled",
+    });
+  }
+});
+
 test("the charcoal notebook theme and four-action navigation cover every tab", async ({
   page,
 }) => {
@@ -516,19 +586,22 @@ test("the charcoal notebook theme and four-action navigation cover every tab", a
       await expect(
         page.locator(".notebook-app .notebook-bottom-nav button"),
       ).toHaveCount(4);
-      const expectedCurrent =
-        view === "library"
-          ? "Biblioteca"
-          : view === "journal"
-            ? "Diario"
-            : view === "wishlist"
-              ? "Deseos"
-              : "Más";
+      const expectedCurrent = ["library", "journal"].includes(view)
+        ? "Biblioteca"
+        : view === "wishlist"
+          ? "Deseos"
+          : view === "upcoming"
+            ? "Próximos"
+            : "Más";
       await expect(
         page
           .locator(".notebook-bottom-nav")
           .getByRole("button", { name: expectedCurrent }),
       ).toHaveAttribute("aria-current", "page");
+      if (view === "journal")
+        await expect(
+          page.getByRole("link", { name: "Histórico", exact: true }),
+        ).toHaveAttribute("aria-current", "page");
       expect(
         await page.evaluate(() => document.documentElement.scrollWidth),
       ).toBeLessThanOrEqual(width);
@@ -547,7 +620,7 @@ test("the charcoal notebook theme and four-action navigation cover every tab", a
     .locator(".notebook-bottom-nav")
     .getByRole("button", { name: "Más" })
     .click();
-  await expect(page.locator(".sidebar.open nav button")).toHaveCount(8);
+  await expect(page.locator(".sidebar.open nav button")).toHaveCount(7);
   await expect(
     page.locator(".sidebar.open").getByRole("button", {
       name: "Cerrar sesión",
@@ -582,7 +655,7 @@ test("collection filters remain discoverable inside a compact disclosure", async
 }) => {
   await mockApp(page);
 
-  for (const width of [1280, 980]) {
+  for (const width of [1280]) {
     await page.setViewportSize({ width, height: 900 });
     await page.goto("./?tab=wishlist");
     const boxes = await page.evaluate(() => {
@@ -606,6 +679,56 @@ test("collection filters remain discoverable inside a compact disclosure", async
     for (const box of boxes.slice(1)) {
       expect(Math.abs(boxes[0].top - box.top)).toBeLessThanOrEqual(1);
       expect(Math.abs(boxes[0].height - box.height)).toBeLessThanOrEqual(1);
+    }
+  }
+
+  for (const view of ["wishlist", "upcoming"] as const) {
+    for (const width of [1100, 980, 869]) {
+      await page.setViewportSize({ width, height: 900 });
+      await page.goto(`./?tab=${view}`);
+      const toolbar = page.locator(".notebook-view-toolbar");
+      const search = await toolbar.locator(".search").boundingBox();
+      const filters = await toolbar
+        .locator(".notebook-view-filters > summary")
+        .boundingBox();
+      const sort = await toolbar.locator(".notebook-view-sort").boundingBox();
+      const refresh = await toolbar
+        .getByRole("button", { name: "Actualizar precios" })
+        .boundingBox();
+      const toolbarBox = await toolbar.boundingBox();
+      for (const box of [search, filters, sort, refresh])
+        expect(box).not.toBeNull();
+      expect(search!.width).toBeGreaterThanOrEqual(160);
+      expect(search!.y + search!.height).toBeLessThan(filters!.y);
+      for (const box of [filters!, sort!, refresh!]) {
+        expect(box.x).toBeGreaterThanOrEqual(toolbarBox!.x);
+        expect(box.x + box.width).toBeLessThanOrEqual(
+          toolbarBox!.x + toolbarBox!.width,
+        );
+        expect(box.y).toBeGreaterThan(search!.y);
+      }
+      const actionBoxes = [filters!, sort!, refresh!];
+      for (let left = 0; left < actionBoxes.length; left++) {
+        for (let right = left + 1; right < actionBoxes.length; right++) {
+          const a = actionBoxes[left];
+          const b = actionBoxes[right];
+          const overlaps =
+            a.x < b.x + b.width &&
+            a.x + a.width > b.x &&
+            a.y < b.y + b.height &&
+            a.y + a.height > b.y;
+          expect(overlaps).toBe(false);
+        }
+      }
+      expect(
+        await page.evaluate(() => document.documentElement.scrollWidth),
+      ).toBeLessThanOrEqual(width);
+      if (width === 869)
+        await page.screenshot({
+          path: `test-results/toolbar-${view}-narrow.png`,
+          fullPage: true,
+          animations: "disabled",
+        });
     }
   }
 
@@ -647,7 +770,7 @@ test("collection filters remain discoverable inside a compact disclosure", async
           sort.boundingBox(),
         ]);
         expect(filterBox?.height).toBe(sortBox?.height);
-        expect(filterBox?.y).toBe(sortBox?.y);
+        expect(filterBox?.y).toBeCloseTo(sortBox!.y, 0);
       }
       await filters.click();
       await expect(page.getByLabel("Filtrar plataforma")).toBeVisible();

@@ -9,7 +9,6 @@ import {
   type SeriesRecord,
 } from "@/lib/series";
 import type { JournalEntry } from "@/lib/journal/journal-types";
-import { Modal } from "@/components/ui/dialog";
 import { GameCover } from "@/components/games/game-cover";
 import styles from "./series-manager.module.css";
 
@@ -17,12 +16,13 @@ export function SeriesManager({
   records,
   ready,
   disabled,
+  active,
 }: {
   records: JournalEntry[];
   ready: boolean;
   disabled: boolean;
+  active: boolean;
 }) {
-  const [open, setOpen] = useState(false);
   const [series, setSeries] = useState<SeriesRecord[]>([]);
   const [selected, setSelected] = useState<string | null>(null);
   const [draft, setDraft] = useState<SeriesRecord | null>(null);
@@ -39,7 +39,10 @@ export function SeriesManager({
             .filter((r): r is JournalEntry & { gameId: string } =>
               Boolean(r.gameId),
             )
-            .map((r) => [r.gameId, { id: r.gameId, title: r.title }]),
+            .map((r) => [
+              r.gameId,
+              { id: r.gameId, title: r.title, cover: r.cover },
+            ]),
         ).values(),
       ].sort((a, b) => a.title.localeCompare(b.title)),
     [records],
@@ -59,6 +62,14 @@ export function SeriesManager({
   const progress = useMemo(
     () => getSeriesProgress(current?.gameIds ?? [], records),
     [current, records],
+  );
+  const seriesProgress = useMemo(
+    () =>
+      series.map((item) => ({
+        item,
+        progress: getSeriesProgress(item.gameIds, records),
+      })),
+    [series, records],
   );
   function hasDraftChanges() {
     return Boolean(
@@ -86,8 +97,6 @@ export function SeriesManager({
         seriesListSchema,
       );
       setSeries(list);
-      setSelected(list[0]?.id ?? null);
-      setDraft(null);
       setLoaded(true);
     } catch (e) {
       setError(
@@ -98,8 +107,8 @@ export function SeriesManager({
     }
   }
   useEffect(() => {
-    if (open) void load();
-  }, [open]);
+    if (active && ready && !loaded) void load();
+  }, [active, ready, loaded]);
   function startNew() {
     if (!discardIfConfirmed()) return;
     setSelected(null);
@@ -176,56 +185,119 @@ export function SeriesManager({
       setBusy(false);
     }
   }
-  function close() {
-    if (busy || !discardIfConfirmed()) return;
-    setOpen(false);
-    setDraft(null);
-  }
   return (
-    <>
-      <button
-        className="secondary"
-        disabled={disabled || !ready}
-        onClick={() => setOpen(true)}
-      >
-        Series
-      </button>
-      <Modal open={open} onClose={close} title="Series" closeDisabled={busy}>
-        <div className={styles.body}>
-          {!ready ? (
-            <p>Esperando los juegos completos…</p>
-          ) : !loaded && busy ? (
-            <p role="status">Cargando tus series…</p>
-          ) : !loaded ? (
-            <div>
-              <p role="alert">{error || "No se pudieron cargar las series."}</p>
-              <button className="secondary" onClick={() => void load()}>
-                Reintentar carga
-              </button>
-            </div>
-          ) : (
-            <div className={styles.layout}>
-              <aside aria-label="Tus series">
-                <button
-                  className="secondary"
-                  disabled={busy}
-                  onClick={startNew}
-                >
-                  Crear serie
-                </button>
-                {series.map((item) => (
-                  <button
-                    className={selected === item.id ? "primary" : "secondary"}
-                    key={item.id}
-                    disabled={busy}
-                    onClick={() => switchDraft(item.id)}
-                  >
-                    {item.name}
-                  </button>
-                ))}
-              </aside>
+    <section className={styles.page} aria-labelledby="series-heading">
+      <header className={styles.pageHeading}>
+        <div>
+          <h1 id="series-heading">Series</h1>
+        </div>
+        {!draft && !current && loaded && (
+          <button
+            className="primary"
+            disabled={disabled || busy}
+            onClick={startNew}
+          >
+            Crear serie
+          </button>
+        )}
+      </header>
+      <div className={styles.body}>
+        {!ready ? (
+          <p>Esperando los juegos completos…</p>
+        ) : !loaded && busy ? (
+          <p role="status">Cargando tus series…</p>
+        ) : !loaded ? (
+          <div>
+            <p role="alert">{error || "No se pudieron cargar las series."}</p>
+            <button className="secondary" onClick={() => void load()}>
+              Reintentar carga
+            </button>
+          </div>
+        ) : (
+          <div className={styles.layout}>
+            {error && <p role="alert">{error}</p>}
+            {!draft && !current ? (
+              series.length ? (
+                <div className={styles.tableWrap}>
+                  <table className={styles.seriesTable} aria-label="Tus series">
+                    <thead>
+                      <tr>
+                        <th scope="col">Serie</th>
+                        <th scope="col">Progreso</th>
+                        <th scope="col">Siguiente</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {seriesProgress.map(
+                        ({ item, progress: itemProgress }) => {
+                          const firstGame = item.gameIds[0]
+                            ? games.find((game) => game.id === item.gameIds[0])
+                            : undefined;
+                          return (
+                            <tr key={item.id}>
+                              <th scope="row">
+                                <button
+                                  className={styles.seriesName}
+                                  disabled={busy || disabled}
+                                  onClick={() => switchDraft(item.id)}
+                                  aria-label={`Abrir ${item.name}`}
+                                >
+                                  <span className={styles.seriesCover}>
+                                    {firstGame ? (
+                                      <GameCover
+                                        cover={firstGame.cover}
+                                        title={firstGame.title}
+                                        size="thumb"
+                                      />
+                                    ) : (
+                                      <span aria-hidden="true">—</span>
+                                    )}
+                                  </span>
+                                  <span>{item.name}</span>
+                                </button>
+                                <small className={styles.mobileProgress}>
+                                  {itemProgress.completed}/{itemProgress.total} terminados
+                                </small>
+                              </th>
+                              <td>
+                                {itemProgress.completed}/{itemProgress.total}{" "}
+                                juegos terminados
+                              </td>
+                              <td>
+                                {itemProgress.next
+                                  ? itemProgress.next.title
+                                  : itemProgress.total
+                                    ? "Serie completada"
+                                    : "Sin juegos todavía"}
+                              </td>
+                            </tr>
+                          );
+                        },
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              ) : (
+                <p>Creá una serie y agregá juegos en el orden que quieras.</p>
+              )
+            ) : (
               <div className={styles.editor}>
-                {error && <p role="alert">{error}</p>}
+                <div className={styles.detailHeading}>
+                  <button
+                    className="secondary"
+                    disabled={busy}
+                    onClick={() => switchDraft(null)}
+                  >
+                    Volver a Series
+                  </button>
+                  <h2>
+                    {draft
+                      ? current
+                        ? current.name
+                        : "Nueva serie"
+                      : current?.name}
+                  </h2>
+                </div>
                 {draft ? (
                   <>
                     <label>
@@ -353,7 +425,6 @@ export function SeriesManager({
                   </>
                 ) : current ? (
                   <>
-                    <h3>{current.name}</h3>
                     <div className={styles.progressSummary}>
                       <strong>
                         {progress.completed} de {progress.total} juegos
@@ -365,8 +436,8 @@ export function SeriesManager({
                         max={progress.total || 1}
                       />
                       <p>
-                        Cuenta cada juego una vez, si tiene una partida
-                        terminada fuera de la papelera.
+                        Cada juego cuenta una vez si tiene una partida en
+                        Terminados o Recuerdo fuera de la papelera.
                       </p>
                     </div>
                     <p className={styles.nextGame}>
@@ -412,14 +483,12 @@ export function SeriesManager({
                       Editar serie
                     </button>
                   </>
-                ) : (
-                  <p>Creá una serie y agregá juegos en el orden que quieras.</p>
-                )}
+                ) : null}
               </div>
-            </div>
-          )}
-        </div>
-      </Modal>
-    </>
+            )}
+          </div>
+        )}
+      </div>
+    </section>
   );
 }

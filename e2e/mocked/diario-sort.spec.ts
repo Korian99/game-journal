@@ -101,7 +101,7 @@ test("Diario breaks period ties by start, finish, and name on desktop and mobile
   await page.reload();
   await expect(titles).toHaveText(ascending);
   await page.setViewportSize({ width: 390, height: 844 });
-  await expect(page.locator(".mobile-games .mobile-game strong")).toHaveText(
-    ascending,
-  );
+  await expect(
+    page.locator(".mobile-games .notebook-entry-identity h2"),
+  ).toHaveText(ascending);
 });

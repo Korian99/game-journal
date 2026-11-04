@@ -177,18 +177,11 @@ for (const view of ["library", "journal"]) {
         path: "test-results/" + view + "-comments-narrow.png",
       });
       await page.setViewportSize({ width: 390, height: 844 });
-      const card =
-        view === "library"
-          ? page
-              .locator(".notebook-entry-card")
-              .filter({ hasText: "FINAL FANTASY VII" })
-          : page
-              .locator(".mobile-game-wrapper")
-              .filter({ hasText: "FINAL FANTASY VII" });
+      const card = page
+        .locator(".notebook-entry-card")
+        .filter({ hasText: "FINAL FANTASY VII" });
       await expect(card.locator(".game-row-art img")).toHaveCount(1);
-      if (view === "library") {
-        await card.locator(".notebook-entry-reflections summary").click();
-      }
+      await card.locator(".notebook-entry-reflections summary").click();
       await expect(card.locator(".game-comments")).toHaveCount(1);
       expect(await card.locator(".game-comments-text").textContent()).toBe(
         longComment,
@@ -197,10 +190,7 @@ for (const view of ["library", "journal"]) {
       const mobileComment = (await card
         .locator(".game-comments")
         .boundingBox())!;
-      const info =
-        view === "library"
-          ? card.locator(".notebook-entry-playthrough")
-          : card.locator(".mobile-game-info");
+      const info = card.locator(".notebook-entry-playthrough");
       const infoBox = (await info.boundingBox())!;
       expect(mobileComment.width).toBeGreaterThan(cardBox.width * 0.85);
       expect(mobileComment.y).toBeGreaterThanOrEqual(

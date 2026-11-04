@@ -117,7 +117,7 @@ export function JournalToolbar({
     Number(!!platform);
   return (
     <div className="notebook-view-toolbar">
-      <div className="search">
+      <div className="search notebook-library-search">
         <Search size={17} />
         <input
           maxLength={500}
@@ -236,7 +236,7 @@ export function JournalToolbar({
             <select
               aria-label={
                 view === "journal"
-                  ? "Ordenar Diario"
+                  ? "Ordenar Histórico"
                   : view === "wishlist"
                     ? "Ordenar Lista de deseos"
                     : "Ordenar Próximos"

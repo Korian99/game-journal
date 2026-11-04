@@ -4,7 +4,7 @@ import { emptyRecord } from "../../src/lib/types";
 const collectionViews = [
   {
     view: "journal",
-    label: "Ordenar Diario",
+    label: "Ordenar Histórico",
     sortIds: [
       "title.asc",
       "title.desc",
@@ -143,7 +143,9 @@ test("collection sorting is visible, usable on mobile, and keeps URL sort state"
       await mobileSort.selectOption("title.desc");
       await expect(
         page.locator(
-          ".mobile-games .mobile-game-wrapper .mobile-game-info strong",
+          view === "journal"
+            ? ".mobile-games .notebook-entry-identity h2"
+            : ".mobile-games .mobile-game-wrapper .mobile-game-info strong",
         ),
       ).toHaveText(["Zulu fixture", "Alpha fixture"]);
       expect(
@@ -167,7 +169,7 @@ test("collection sorting is visible, usable on mobile, and keeps URL sort state"
   await page.goto(
     "./?tab=journal&year=all&sort=rating.desc,period.asc,title.desc",
   );
-  const custom = page.getByLabel("Ordenar Diario", { exact: true });
+  const custom = page.getByLabel("Ordenar Histórico", { exact: true });
   await expect(custom).toHaveValue("custom");
   await page.reload();
   expect(new URL(page.url()).searchParams.get("sort")).toBe(

@@ -20,6 +20,7 @@ it("restores a bookmarked tab, year, search, filters, and sort", () => {
     notificationRead: "unread",
     notificationKind: "",
     view: "library",
+    librarySection: "games",
     year: "2025",
     query: "Pokémon",
     status: "completed",
@@ -33,10 +34,43 @@ it("restores a bookmarked tab, year, search, filters, and sort", () => {
     ],
   });
 });
-it("keeps Diario at 2024 and Biblioteca at the current year by default", () => {
+it("round trips the Series subsection only within Biblioteca", () => {
+  const state = location.readJournalLocation(
+    "?tab=library&section=series&year=all",
+    "2026",
+  );
+  expect(state).toMatchObject({ view: "library", librarySection: "series" });
+  expect(
+    location.readJournalLocation(
+      location.writeJournalLocation(state, "", "2026"),
+      "2026",
+    ),
+  ).toEqual(state);
+  expect(
+    location.readJournalLocation("?tab=journal&section=series", "2026"),
+  ).toMatchObject({ view: "journal", librarySection: "games" });
+  expect(
+    location.writeJournalLocation(
+      location.readJournalLocation("?tab=settings&section=series", "2026"),
+      "",
+      "2026",
+    ),
+  ).toBe("tab=settings");
+});
+it("defaults Histórico to all years and Biblioteca to the current year", () => {
   expect(location.readJournalLocation("", "2027").year).toBe("2027");
-  expect(location.readJournalLocation("?tab=journal", "2027").year).toBe(
-    "2024",
+  const history = location.readJournalLocation("?tab=journal", "2027");
+  expect(history.year).toBe("");
+  expect(location.writeJournalLocation(history, "", "2027")).toBe(
+    "tab=journal",
+  );
+  const explicitHistory = location.readJournalLocation(
+    "?tab=journal&year=2024",
+    "2027",
+  );
+  expect(explicitHistory.year).toBe("2024");
+  expect(location.writeJournalLocation(explicitHistory, "", "2027")).toBe(
+    "tab=journal&year=2024",
   );
   expect(location.readJournalLocation("?tab=upcoming", "2027")).toMatchObject({
     view: "upcoming",
@@ -116,7 +150,7 @@ it("keeps a bookmarked view through sign-in using a local return path", () => {
       "/?tab=journal&year=all&sort=none",
       "2026",
     ),
-  ).toBe("/?tab=journal&year=all&sort=none");
+  ).toBe("/?tab=journal&sort=none");
 });
 it("does not accept external or non-journal sign-in destinations", () => {
   for (const target of [

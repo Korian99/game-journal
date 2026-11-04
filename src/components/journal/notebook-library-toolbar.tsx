@@ -32,20 +32,42 @@ const librarySortOptions = [
   ["notes.desc", "Comentarios: Z → A"],
 ] as const;
 
+export function NotebookCollectionHeading({
+  title,
+  kicker,
+  onAdd,
+}: {
+  title: string;
+  kicker: string;
+  onAdd: () => void;
+}) {
+  return (
+    <header className="notebook-library-heading">
+      <div>
+        <span className="notebook-library-kicker">{kicker}</span>
+        <h1>{title}</h1>
+      </div>
+      <button className="primary notebook-library-add" onClick={onAdd}>
+        <Plus size={17} aria-hidden="true" />
+        <span className="desktop-label">Agregar juego</span>
+        <span className="mobile-label">Agregar</span>
+      </button>
+    </header>
+  );
+}
+
 export function NotebookLibraryToolbar({
   location,
   platforms,
   yearOptions,
   resultsCount,
   onAdd,
-  headerActions,
 }: {
   location: ReturnType<typeof useJournalLocation>;
   platforms: string[];
   yearOptions: string[];
   resultsCount: number;
   onAdd: () => void;
-  headerActions?: React.ReactNode;
 }) {
   const {
     query,
@@ -79,21 +101,11 @@ export function NotebookLibraryToolbar({
 
   return (
     <div className="notebook-library-controls">
-      <header className="notebook-library-heading">
-        <div>
-          <span className="notebook-library-kicker">
-            {year || "Todos los años"} · {resultsCount}{" "}
-            {resultsCount === 1 ? "juego" : "juegos"}
-          </span>
-          <h1>Biblioteca</h1>
-        </div>
-        <button className="primary notebook-library-add" onClick={onAdd}>
-          <Plus size={17} aria-hidden="true" />
-          <span className="desktop-label">Agregar juego</span>
-          <span className="mobile-label">Agregar</span>
-        </button>
-        {headerActions}
-      </header>
+      <NotebookCollectionHeading
+        title="Biblioteca"
+        kicker={`${year || "Todos los años"} · ${resultsCount} ${resultsCount === 1 ? "juego" : "juegos"}`}
+        onAdd={onAdd}
+      />
 
       <div className="notebook-library-toolbar">
         <label className="notebook-library-search">

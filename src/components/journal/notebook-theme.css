@@ -360,6 +360,33 @@
   display: none;
 }
 
+@media (min-width: 641px) and (max-width: 1100px) {
+  .notebook-view-toolbar {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .notebook-view-toolbar-actions {
+    display: grid;
+    width: 100%;
+    grid-template-columns: max-content minmax(0, 1fr) auto;
+  }
+
+  .notebook-view-sort {
+    width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+  }
+
+  .notebook-view-sort select {
+    width: 100%;
+    max-width: none;
+  }
+
+  .notebook-view-toolbar-actions > .secondary {
+    white-space: nowrap;
+  }
+}
+
 .notebook-view-filters > summary:focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
