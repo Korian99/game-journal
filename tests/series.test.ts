@@ -46,12 +46,11 @@ it("counts each member once when any active replay is completed, retaining manua
   expect(progress.next?.gameId).toBe(games[1]);
 });
 
-it("only completed status qualifies, independently of completion dates", () => {
+it("completed or remembered qualifies, independently of completion dates", () => {
   for (const status of [
     "playing",
     "paused",
     "abandoned",
-    "remembered",
     "wishlist",
     "upcoming",
   ] as const)
@@ -63,6 +62,9 @@ it("only completed status qualifies, independently of completion dates", () => {
     ).toBe(0);
   expect(
     getSeriesProgress([games[0]], [play(games[0], "completed")]).completed,
+  ).toBe(1);
+  expect(
+    getSeriesProgress([games[0]], [play(games[0], "remembered")]).completed,
   ).toBe(1);
 });
 

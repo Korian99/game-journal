@@ -34,7 +34,9 @@ export function getSeriesProgress(
       title:
         plays.find((play) => play.title.trim())?.title ?? "Juego no disponible",
       cover: plays.find((play) => effectiveCoverUrl(play.cover))?.cover,
-      completed: plays.some((play) => play.status === "completed"),
+      completed: plays.some(
+        (play) => play.status === "completed" || play.status === "remembered",
+      ),
       available: plays.length > 0,
     };
   });

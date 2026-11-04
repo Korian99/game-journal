@@ -24,7 +24,7 @@ Only the three feature areas are accepted at this level. The defaults below are 
 | Recap highlights | Offer an explicit curated highlight and optional note. Notes are excluded from exported images unless the user opts in for that export. Do not infer favorites from rating alone in V1. |
 | Recap privacy | Recompute from current private owner data; do not publish links, schedule posts, or store historical recap snapshots in V1. |
 | Series membership | Create series manually and order membership explicitly. A game may belong to multiple series. Do not infer a franchise or pull in remakes, spinoffs, or related titles automatically. |
-| Series progress | Count a game once when it has a Completed, non-trashed playthrough. Replays do not raise the denominator or completion count. Trashing changes progress only when it removes the last qualifying completion; restoring that playthrough restores progress. |
+| Series progress | Count a game once when it has a Completed or Remembered, non-trashed playthrough. Replays do not raise the denominator or completion count. Trashing changes progress only when it removes the last qualifying completion; restoring that playthrough restores progress. |
 | Deletion behavior | Deleting a series removes that series and preserves its games and playthroughs. Within an existing series, trashing a playthrough never removes membership; restore preserves it. Only permanently deleting a game identity removes its membership. |
 
 Checkpoint 0 verifies these defaults against the current data model, ownership and restore behavior. Record any changed decision here so this remains the single source of pending work.
@@ -112,7 +112,7 @@ Checkpoint 0 verifies these defaults against the current data model, ownership a
 ### 6. Show series progress and verify recovery
 
 - **Outcome:** Series pages show ordered covers, next incomplete games, and transparent progress.
-- **Scope:** Progress counts unique member games, with a member complete if any eligible, non-trashed playthrough has Completed status. Replays do not increase progress. Wishlist/upcoming are incomplete; paused/abandoned remain incomplete. Trashing/restoring a playthrough changes progress when it is the last qualifying completion but never changes membership. Permanent game deletion removes membership. Verify the compatibility shipped in checkpoint 5 end to end.
+- **Scope:** Progress counts unique member games, with a member complete if any eligible, non-trashed playthrough has Completed or Remembered status. Replays do not increase progress. Wishlist/upcoming are incomplete; paused/abandoned remain incomplete. Trashing/restoring a playthrough changes progress when it is the last qualifying completion but never changes membership. Permanent game deletion removes membership. Verify the compatibility shipped in checkpoint 5 end to end.
 - **Acceptance:** Progress survives reload and backup/restore. Older backup formats remain readable. Missing covers do not make ordering or progress unusable.
 - **Focused verification:** Domain tests for replays, multiple playthroughs, trash/restore and permanent game removal; desktop/mobile browser flow through reorder and progress; synthetic older/newer backup round trip.
 - **Commit boundary:** Series progress UI and its focused tests. Recovery format changes belong to checkpoint 5. A production migration or rollout is a separate, explicitly approved decision.
