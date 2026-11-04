@@ -77,6 +77,7 @@ export function JournalToolbar({
     access,
     review,
     platform,
+    scale,
     year: selectedYear,
     setQuery,
     setStatus,
@@ -84,6 +85,7 @@ export function JournalToolbar({
     setAccess,
     setReview,
     setPlatform,
+    setScale,
     setYear,
     sort,
     setSort,
@@ -114,7 +116,8 @@ export function JournalToolbar({
     Number(view === "wishlist" && !!discount) +
     Number(view === "wishlist" && !!access) +
     Number(view === "journal" && !!review) +
-    Number(!!platform);
+    Number(!!platform) +
+    Number(!!scale);
   return (
     <div className="notebook-view-toolbar">
       <div className="search notebook-library-search">
@@ -182,51 +185,72 @@ export function JournalToolbar({
               </label>
             )}
             {view === "wishlist" && (
-              <select
-                aria-label="Filtrar descuentos"
-                value={discount}
-                onChange={(e) => setDiscount(e.target.value as DiscountFilter)}
-              >
-                <option value="">Descuentos: todos</option>
-                <option value="discounted">Con descuento</option>
-                <option value="not-discounted">Sin descuento</option>
-              </select>
+              <label>
+                Descuentos
+                <select
+                  aria-label="Filtrar descuentos"
+                  value={discount}
+                  onChange={(e) => setDiscount(e.target.value as DiscountFilter)}
+                >
+                  <option value="">Todos</option>
+                  <option value="discounted">Con descuento</option>
+                  <option value="not-discounted">Sin descuento</option>
+                </select>
+              </label>
             )}
             {["library", "journal"].includes(view) && (
-              <select
-                aria-label="Filtrar estado"
-                value={status}
-                onChange={(e) => setStatus(e.target.value)}
-              >
-                <option value="">Todos los estados</option>
-                {(viewStatuses[view] ?? []).map((key) => (
-                  <option key={key} value={key}>
-                    {statuses[key]}
-                  </option>
-                ))}
-              </select>
+              <label>
+                Estado
+                <select
+                  aria-label="Filtrar estado"
+                  value={status}
+                  onChange={(e) => setStatus(e.target.value)}
+                >
+                  <option value="">Todos</option>
+                  {(viewStatuses[view] ?? []).map((key) => (
+                    <option key={key} value={key}>
+                      {statuses[key]}
+                    </option>
+                  ))}
+                </select>
+              </label>
             )}
             {view === "journal" && (
-              <select
-                aria-label="Filtrar reseña"
-                value={review}
-                onChange={(e) => setReview(e.target.value as ReviewFilter)}
-              >
-                <option value="">Reseña: todas</option>
-                <option value="with">Con reseña</option>
-                <option value="without">Sin reseña</option>
-              </select>
+              <label>
+                Reseña
+                <select
+                  aria-label="Filtrar reseña"
+                  value={review}
+                  onChange={(e) => setReview(e.target.value as ReviewFilter)}
+                >
+                  <option value="">Todas</option>
+                  <option value="with">Con reseña</option>
+                  <option value="without">Sin reseña</option>
+                </select>
+              </label>
             )}
-            <select
-              aria-label="Filtrar plataforma"
-              value={platform}
-              onChange={(e) => setPlatform(e.target.value)}
-            >
-              <option value="">Todas las plataformas</option>
-              {platforms.map((p) => (
-                <option key={p}>{p}</option>
-              ))}
-            </select>
+            <label>
+              Plataforma
+              <select
+                aria-label="Filtrar plataforma"
+                value={platform}
+                onChange={(e) => setPlatform(e.target.value)}
+              >
+                <option value="">Todas las plataformas</option>
+                {platforms.map((p) => (
+                  <option key={p}>{p}</option>
+                ))}
+              </select>
+            </label>
+            <label>
+              Escala
+              <select aria-label="Filtrar escala" value={scale} onChange={(event) => setScale(event.target.value as typeof scale)}>
+                <option value="">Todas</option>
+                <option value="indie">Indie</option>
+                <option value="aa">AA</option>
+                <option value="aaa">AAA</option>
+              </select>
+            </label>
           </div>
         </details>
         {sortOptions && (

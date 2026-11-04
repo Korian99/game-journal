@@ -24,7 +24,7 @@ const accessOwnership: Record<Exclude<WishlistAccessFilter, "">, string> = {
 
 type CollectionOptions = Pick<
   JournalLocation,
-  "view" | "query" | "status" | "discount" | "access" | "review" | "platform"
+  "view" | "query" | "status" | "discount" | "access" | "review" | "platform" | "scale"
 > & {
   records: JournalEntry[];
   offers: Offer[];
@@ -41,6 +41,7 @@ export function useJournalCollection({
   access,
   review,
   platform,
+  scale,
   selectedYear,
 }: CollectionOptions) {
   const yearOptions = useMemo(
@@ -89,6 +90,7 @@ export function useJournalCollection({
             ),
         )
         .filter((r) => !status || r.status === status)
+        .filter((r) => !scale || r.scale === scale)
         .filter(
           (r) =>
             view !== "wishlist" ||
@@ -125,6 +127,7 @@ export function useJournalCollection({
       access,
       review,
       platform,
+      scale,
       view,
       offers,
     ],

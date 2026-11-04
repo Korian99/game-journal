@@ -73,15 +73,17 @@ export function NotebookLibraryToolbar({
     query,
     status,
     platform,
+    scale,
     year,
     sort,
     setQuery,
     setStatus,
     setPlatform,
+    setScale,
     setYear,
     setSort,
   } = location;
-  const activeFilters = Number(!!year) + Number(!!status) + Number(!!platform);
+  const activeFilters = Number(!!year) + Number(!!status) + Number(!!platform) + Number(!!scale);
   const sortValue = sort[0]
     ? sort[0].id + "." + (sort[0].desc ? "desc" : "asc")
     : "";
@@ -176,6 +178,15 @@ export function NotebookLibraryToolbar({
                       {option}
                     </option>
                   ))}
+                </select>
+              </label>
+              <label>
+                Escala
+                <select aria-label="Filtrar escala" value={scale} onChange={(event) => setScale(event.target.value as typeof scale)}>
+                  <option value="">Todas las escalas</option>
+                  <option value="indie">Indie</option>
+                  <option value="aa">AA</option>
+                  <option value="aaa">AAA</option>
                 </select>
               </label>
             </div>

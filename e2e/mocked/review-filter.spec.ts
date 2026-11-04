@@ -86,12 +86,11 @@ test("Diario filters actual reviews, includes zero, and restores its URL state",
   expect(new URL(page.url()).searchParams.has("review")).toBe(false);
   await page.setViewportSize({ width: 390, height: 844 });
   await filter.selectOption("without");
-  await expect(page.locator(".mobile-games .mobile-game-wrapper")).toHaveCount(
-    1,
-  );
   await expect(
-    page
-      .locator(".mobile-games")
+    page.locator(".notebook-entry-list .notebook-entry-card"),
+  ).toHaveCount(1);
+  await expect(
+    page.locator(".notebook-entry-list")
       .getByText("Impressions only game", { exact: true }),
   ).toBeVisible();
 });

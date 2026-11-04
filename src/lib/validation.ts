@@ -42,6 +42,7 @@ export const pagesSchema = z
 export const recordSchema = z
   .object({
     cover: coverSchema.optional(),
+    scale: z.enum(["indie", "aa", "aaa"]).nullable().optional(),
     id: z.uuid().optional(),
     gameId: z.uuid().optional(),
     title: z.string().trim().min(1).max(300),

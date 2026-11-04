@@ -19,6 +19,7 @@ export const journalEntrySchema = z
     id: text.optional(),
     gameId: text.optional(),
     cover: coverSchema.optional(),
+    scale: z.enum(["indie", "aa", "aaa"]).nullable().optional(),
     title: text,
     year: nullableNumber.optional(),
     release: text.optional(),

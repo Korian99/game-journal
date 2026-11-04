@@ -299,6 +299,7 @@
 }
 
 .notebook-view-toolbar-actions {
+  position: relative;
   display: flex;
   align-items: center;
   gap: 8px;
@@ -309,7 +310,7 @@
 }
 
 .notebook-view-filters {
-  position: relative;
+  position: static;
 }
 
 .notebook-view-sort {
@@ -341,6 +342,11 @@
   font-size: 14px;
 }
 
+.notebook-view-sort select option {
+  background-color: var(--surface);
+  color: var(--text);
+}
+
 .notebook-view-filters > summary {
   display: flex;
   min-height: 46px;
@@ -369,6 +375,10 @@
     display: grid;
     width: 100%;
     grid-template-columns: max-content minmax(0, 1fr) auto;
+  }
+
+  .notebook-view-toolbar-actions .notebook-view-filter-panel {
+    width: min(560px, 100%);
   }
 
   .notebook-view-sort {
@@ -416,7 +426,7 @@
   z-index: 20;
   display: grid;
   width: min(560px, calc(100vw - 40px));
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 12px;
   padding: 14px;
   border: 1px solid var(--line);
@@ -427,21 +437,26 @@
 
 .notebook-view-filter-panel label {
   display: grid;
+  min-width: 0;
   gap: 6px;
   margin: 0;
   color: var(--muted);
   font-size: 13px;
+  line-height: 1.3;
 }
 
 .notebook-view-filter-panel select {
   width: 100%;
   min-width: 0;
   min-height: 44px;
+  box-sizing: border-box;
+  padding: 0 10px;
   border-color: var(--line);
   border-radius: 4px;
   background: var(--raised);
   color: var(--text);
   font-size: 14px;
+  text-overflow: ellipsis;
 }
 
 .notebook-bottom-nav,
@@ -848,6 +863,11 @@ body:has(.notebook-app) .notebook-saved {
   .notebook-view-filter-panel select {
     min-height: 44px;
     font-size: 16px;
+  }
+
+  .notebook-view-filter-panel .year-filter select {
+    width: 100%;
+    max-width: none;
   }
 
   .notebook-app:not(.notebook-library) .settings-grid,

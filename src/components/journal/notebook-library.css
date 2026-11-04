@@ -89,6 +89,7 @@
 }
 
 .notebook-library-toolbar {
+  position: relative;
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
@@ -148,7 +149,7 @@
 }
 
 .notebook-library-filters {
-  position: relative;
+  position: static;
 }
 
 .notebook-library-filters summary,
@@ -204,8 +205,8 @@
   right: 0;
   z-index: 20;
   display: grid;
-  width: min(520px, calc(100vw - 40px));
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  width: min(520px, 100%);
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 12px;
   padding: 14px;
   border: 1px solid var(--line);
@@ -229,13 +230,16 @@
 .notebook-library-sort select {
   width: 100%;
   min-width: 0;
-  min-height: 40px;
   padding: 8px 10px;
   border: 1px solid var(--line);
   border-radius: 4px;
   color: var(--text);
   background: var(--raised);
   font-size: 14px;
+}
+
+.notebook-filter-panel select {
+  min-height: 44px;
 }
 
 .notebook-library-sort {
@@ -249,6 +253,7 @@
 .notebook-library-sort select {
   width: auto;
   max-width: 190px;
+  min-height: 40px;
   border: 0;
   background: transparent;
   font-size: 13px;

@@ -8,7 +8,9 @@ export type Status =
   | "remembered"
   | "wishlist"
   | "upcoming";
+export type ProductionScale = "indie" | "aa" | "aaa";
 export type JournalRecord = {
+  scale?: ProductionScale | null;
   cover?: Cover;
   id?: string;
   title: string;

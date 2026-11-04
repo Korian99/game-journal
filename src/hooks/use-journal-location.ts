@@ -85,6 +85,7 @@ export function useJournalLocation(initialLocation?: JournalLocation) {
         access: "",
         review: "",
         platform: "",
+        scale: "",
         year: "",
         focusedEntry: entryId,
         notificationId: "",
@@ -133,6 +134,7 @@ export function useJournalLocation(initialLocation?: JournalLocation) {
     setAccess: (access: WishlistAccessFilter) => update({ access }),
     setReview: (review: ReviewFilter) => update({ review }),
     setPlatform: (platform: string) => update({ platform }),
+    setScale: (scale: JournalLocation["scale"]) => update({ scale }),
     setYear: (year: string) => update({ year }),
     setSuggestionHours: (suggestionHours: string) =>
       update({ suggestionHours }, "replace"),

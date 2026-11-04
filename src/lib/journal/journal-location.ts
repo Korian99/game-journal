@@ -30,6 +30,7 @@ export type JournalLocation = {
   access: WishlistAccessFilter;
   review: ReviewFilter;
   platform: string;
+  scale: "" | "indie" | "aa" | "aaa";
   year: string;
   sort: SortingState;
   suggestionHours: string;
@@ -74,6 +75,7 @@ const locationKeys = [
   "access",
   "review",
   "platform",
+  "scale",
   "year",
   "sort",
   "compareYear",
@@ -102,6 +104,7 @@ export function defaultJournalLocation(
     access: "",
     review: "",
     platform: "",
+    scale: "",
     year: ["library", "statistics"].includes(view) ? present : "",
     sort: columns[view].length ? defaultViewSort(view) : [],
     compareYear: view === "statistics" ? String(Number(present) - 1) : "",
@@ -192,6 +195,8 @@ export function readJournalLocation(
   if (!columns[view].length) return state;
   state.query = bounded(params.get("q"), 500);
   state.platform = normalizeConsoleLabels(bounded(params.get("platform"), 200));
+  const scale = params.get("scale");
+  if (scale === "indie" || scale === "aa" || scale === "aaa") state.scale = scale;
   const status = params.get("status");
   if (
     ["library", "journal"].includes(view) &&
@@ -291,6 +296,7 @@ export function writeJournalLocation(
       params.set("access", state.access);
     if (state.review && state.view === "journal")
       params.set("review", state.review);
+    if (state.scale) params.set("scale", state.scale);
     if (state.platform) params.set("platform", state.platform);
     const defaults = defaultJournalLocation(state.view, present);
     if (

@@ -32,6 +32,7 @@ const gameFields = [
   "title",
   "year",
   "release",
+  "scale",
   "platforms",
   "ownership",
   "priority",

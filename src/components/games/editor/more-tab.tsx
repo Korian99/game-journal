@@ -58,6 +58,22 @@ export function MoreTab({
       {activeTab === "more" && (
         <>
           <div className="form-grid">
+            <label>
+              Escala de producción
+              <select
+                form={formId}
+                aria-label="Escala de producción"
+                value={draft.scale ?? ""}
+                onChange={(event) =>
+                  updateDraftField("scale", event.target.value || null)
+                }
+              >
+                <option value="">Sin especificar</option>
+                <option value="indie">Indie</option>
+                <option value="aa">AA</option>
+                <option value="aaa">AAA</option>
+              </select>
+            </label>
             {renderField("period", "Año o período jugado")}
             {renderField("memorability", "Memorabilidad / 10", "number")}
             {renderField("replay", "¿Lo rejugarías?")}

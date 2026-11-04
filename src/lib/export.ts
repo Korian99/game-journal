@@ -46,6 +46,7 @@ const gameHeaders = [
   "Hype",
   "Comprado / Acceso familiar",
   "Lanzamiento",
+  "Escala",
   "Año de lanzamiento",
   "Páginas",
   "ID entrada",
@@ -90,6 +91,7 @@ function gameTable(data: ExportData): Table {
         r.hype,
         r.ownership,
         releaseLabel(r),
+        r.scale ?? "",
         r.year,
         [
           ...new Set([

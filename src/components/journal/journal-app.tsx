@@ -283,6 +283,7 @@ export function JournalApp({
     access,
     review,
     platform,
+    scale: journalLocation.scale,
     selectedYear,
   });
   function entryRowClass(record: JournalEntry): string | undefined {

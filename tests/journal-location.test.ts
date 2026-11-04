@@ -28,6 +28,7 @@ it("restores a bookmarked tab, year, search, filters, and sort", () => {
     access: "",
     review: "",
     platform: "Nintendo DS",
+    scale: "",
     sort: [
       { id: "rating", desc: true },
       { id: "title", desc: false },
