@@ -90,10 +90,9 @@ export const recordSchema = z
     updated_at: z.string().optional(),
   })
   .transform((record) => {
-    if (record.release === "") record.year = null;
-    if (record.release) {
+    if (record.release !== undefined) {
       const release = parseRelease(record.release);
-      if (release.kind !== "unknown") record.year = release.year;
+      record.year = "year" in release ? release.year : null;
     }
     return record;
   });

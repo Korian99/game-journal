@@ -86,7 +86,7 @@ export function gameSuggestions(
     if (
       release.kind === "date"
         ? !releaseHasArrived(entry, now)
-        : release.kind !== "unknown" && release.year > year
+        : "year" in release && release.year > year
     )
       continue;
     const key = entry.gameId ?? entry.id ?? entry.sourceKey;
@@ -131,7 +131,7 @@ export function gameSuggestions(
         platforms,
         estimatedHours: estimateHours(entry.estimated, options.target),
         releaseUncertain:
-          release.kind === "unknown" ||
+          !("year" in release) ||
           (release.kind !== "date" && release.year >= year),
       };
     });

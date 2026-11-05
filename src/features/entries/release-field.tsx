@@ -1,9 +1,14 @@
 "use client";
 import { useState } from "react";
-import { recordRelease, releaseSeasons } from "@/lib/releases";
+import {
+  recordRelease,
+  releaseSeasons,
+  unknownReleaseDate,
+  type ReleaseInfo,
+} from "@/lib/releases";
 import type { JournalRecord } from "@/lib/types";
 
-type Kind = "date" | "season" | "year" | "unknown";
+type Kind = ReleaseInfo["kind"];
 export function ReleaseField({
   record,
   onChange,
@@ -18,7 +23,7 @@ export function ReleaseField({
   const initial = recordRelease(record);
   const [kind, setKind] = useState<Kind>(initial.kind);
   const [year, setYear] = useState(
-    initial.kind === "unknown" ? "" : String(initial.year),
+    "year" in initial ? String(initial.year) : "",
   );
   const [date, setDate] = useState(
     initial.kind === "date" ? initial.value : "",
@@ -27,6 +32,10 @@ export function ReleaseField({
     initial.kind === "season" ? initial.season : "spring",
   );
   function update(mode: Kind, y = year, d = date, s = season) {
+    if (mode === "unknown-date") {
+      onChange(unknownReleaseDate);
+      return;
+    }
     onChange(
       mode === "unknown"
         ? ""
@@ -53,6 +62,7 @@ export function ReleaseField({
             }}
           >
             <option value="unknown">Sin fecha</option>
+            <option value="unknown-date">Fecha desconocida</option>
             <option value="date">Fecha exacta</option>
             <option value="season">Temporada</option>
             <option value="year">Año</option>

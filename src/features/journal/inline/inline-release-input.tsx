@@ -1,6 +1,6 @@
 "use client";
 import { useState } from "react";
-import { parseRelease, releaseSeasons } from "@/lib/releases";
+import { parseRelease, releaseSeasons, unknownReleaseDate } from "@/lib/releases";
 import { currentYear } from "@/lib/journal/view-config";
 export function InlineReleaseInput({
   value,
@@ -14,7 +14,7 @@ export function InlineReleaseInput({
   const release = parseRelease(value);
   const [kind, setKind] = useState(release.kind);
   const [year, setYear] = useState(
-    release.kind === "unknown" ? currentYear() : String(release.year),
+    "year" in release ? String(release.year) : currentYear(),
   );
   const [season, setSeason] = useState(
     release.kind === "season" ? release.season : "spring",
@@ -29,6 +29,10 @@ export function InlineReleaseInput({
         onChange={(event) => {
           const mode = event.target.value as typeof kind;
           setKind(mode);
+          if (mode === "unknown-date") {
+            onChange(unknownReleaseDate);
+            return;
+          }
           onChange(
             mode === "unknown" || mode === "date"
               ? ""
@@ -37,6 +41,7 @@ export function InlineReleaseInput({
         }}
       >
         <option value="unknown">Sin fecha</option>
+        <option value="unknown-date">Fecha desconocida</option>
         <option value="date">Fecha exacta</option>
         <option value="season">Temporada</option>
         <option value="year">Año</option>

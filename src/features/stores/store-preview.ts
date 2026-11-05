@@ -64,9 +64,7 @@ function releaseFields(
         day.padStart(2, "0");
   }
   const parsed = parseRelease(normalized);
-  return parsed.kind === "unknown"
-    ? {}
-    : { release: parsed.value, year: parsed.year };
+  return "year" in parsed ? { release: parsed.value, year: parsed.year } : {};
 }
 
 async function fetchText(url: string, signal: AbortSignal): Promise<string> {

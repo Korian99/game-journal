@@ -224,3 +224,19 @@ it("accepts zero priority, No access, nonblank required fields, and recognized l
     "completion",
   );
 });
+
+it("warns about explicitly unknown release dates only outside Próximo", () => {
+  const unknownRelease = entry({ release: "unknown", year: null });
+  const completion = (record: JournalEntry) =>
+    dataChecks([record]).find((finding) => finding.kind === "completion");
+
+  expect(completion(unknownRelease)?.message).toContain(
+    "Fecha de lanzamiento desconocida",
+  );
+  expect(
+    completion({ ...unknownRelease, status: "upcoming", hype: "Alto" }),
+  ).toBeUndefined();
+  expect(completion({ ...unknownRelease, release: "" })?.message).toContain(
+    "Lanzamiento",
+  );
+});

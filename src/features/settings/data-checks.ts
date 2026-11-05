@@ -117,7 +117,10 @@ export function dataChecks(records: JournalEntry[]): DataFinding[] {
       });
     const missing: string[] = [];
     if (!entry.title.trim()) missing.push("Nombre del juego");
-    if (recordRelease(entry).kind === "unknown") missing.push("Lanzamiento");
+    const release = recordRelease(entry);
+    if (release.kind === "unknown") missing.push("Lanzamiento");
+    if (release.kind === "unknown-date" && entry.status !== "upcoming")
+      missing.push("Fecha de lanzamiento desconocida");
     if (entry.status === "upcoming" && !entry.hype.trim())
       missing.push("Hype");
     if (entry.status === "wishlist") {

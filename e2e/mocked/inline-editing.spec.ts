@@ -254,7 +254,7 @@ test("Diario edits scores, impressions, and comments with one active editor", as
     fullPage: true,
   });
 });
-test("Próximos supports seasons, exact dates, and Hype inline", async ({
+test("Próximos supports seasons, unknown dates, and Hype inline", async ({
   page,
 }) => {
   const f = await setup(page, "upcoming");
@@ -299,6 +299,26 @@ test("Próximos supports seasons, exact dates, and Hype inline", async ({
   await expect.poll(() => f.pending.length).toBe(2);
   await f.succeed(1);
   await expect(page.locator("table")).toContainText("Hyper");
+
+  await page
+    .getByRole("button", {
+      name: "Editar Lanzamiento de Inline fixture",
+      exact: true,
+    })
+    .click();
+  await page
+    .getByRole("combobox", { name: "Tipo de lanzamiento", exact: true })
+    .selectOption({ label: "Fecha desconocida" });
+  await page
+    .getByRole("button", { name: "Guardar celda", exact: true })
+    .click();
+  await expect.poll(() => f.pending.length).toBe(3);
+  expect(f.pending[2].request().postDataJSON()).toMatchObject({
+    release: "unknown",
+    year: null,
+  });
+  await f.succeed(2);
+  await expect(page.locator("table")).toContainText("Fecha desconocida");
 });
 test("Ctrl+Z undoes saved edits in order without replacing native text undo", async ({
   page,

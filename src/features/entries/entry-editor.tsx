@@ -299,7 +299,7 @@ export function EntryEditor({
         next.period = periodAfterDateEdits(next, current);
       if (key === "release") {
         const parsed = parseRelease(String(value ?? ""));
-        next.year = parsed.kind === "unknown" ? null : parsed.year;
+        next.year = "year" in parsed ? parsed.year : null;
         if (!statusExplicitlyChosen.current && !next.id && !next.gameId)
           next.status = defaultNewEntryStatus(
             next,

@@ -124,7 +124,7 @@ it("keeps precision groups and unknowns in place when reversing within groups", 
   }
 });
 
-it("clears the legacy release year when explicitly set to unknown", () => {
+it("clears the legacy release year when the release is removed", () => {
   expect(
     recordSchema.parse({
       ...emptyRecord,
@@ -133,6 +133,21 @@ it("clears the legacy release year when explicitly set to unknown", () => {
       release: "",
     }).year,
   ).toBeNull();
+});
+
+it("preserves an explicitly unknown date separately from a blank release", () => {
+  const record = recordSchema.parse({
+    ...emptyRecord,
+    title: "Game",
+    release: "unknown",
+    year: 2027,
+  });
+  expect(record.release).toBe("unknown");
+  expect(record.year).toBeNull();
+  expect(releases.releaseLabel(record)).toBe("Fecha desconocida");
+  expect(releases.releaseLabel({ ...record, release: "" })).toBe("Sin fecha");
+  expect(releases.releaseHasArrived(record)).toBe(false);
+  expect(releases.releaseOrder(record)).toBeUndefined();
 });
 
 it("uses imported release cells when older entries have no explicit release value", () => {

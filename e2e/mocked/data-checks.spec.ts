@@ -55,12 +55,12 @@ async function setup(page: Page) {
   await page.route("**/api/**", (route) => {
     const path = new URL(route.request().url()).pathname;
     if (path === "/api/records" && route.request().method() === "POST") {
-      const saved = route.request().postDataJSON();
+      const saved: JournalEntry = route.request().postDataJSON();
       records = records.map((record) =>
-        record.id === id(5) ? { ...record, ...saved } : record,
+        record.id === saved.id ? { ...record, ...saved } : record,
       );
       return route.fulfill({
-        json: { id: id(5), gameId: id(15), record: saved },
+        json: { id: saved.id, gameId: saved.gameId, record: saved },
       });
     }
     if (path === "/api/records")
@@ -202,6 +202,30 @@ test("completion findings are default visible, URL filterable and open the edita
   await expect(dialog).toHaveCount(0);
   await expect(panel.locator(".data-check-finding")).toHaveCount(1);
   await expect(panel).not.toContainText("Needs hype");
+});
+test("saving an explicitly unknown release date shows its own warning on mobile", async ({
+  page,
+}) => {
+  const fixture = await setup(page);
+  fixture.change({ release: "", year: null, started: "01/01/2025" });
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("./?tab=settings&checkCategory=completion");
+
+  const finding = page.locator(".data-check-finding");
+  await expect(finding).toContainText("Lanzamiento.");
+  await finding.getByRole("button", { name: "Editar Bad date" }).click();
+  const dialog = page.getByRole("dialog", { name: "Tu partida" });
+  await dialog.getByRole("tab", { name: "Más", exact: true }).click();
+  const precision = dialog.getByRole("combobox", {
+    name: "Precisión del lanzamiento",
+  });
+  await expect(precision).toHaveValue("unknown");
+  await precision.selectOption({ label: "Fecha desconocida" });
+  await dialog.getByRole("button", { name: "Guardar entrada" }).click();
+
+  await expect(finding).toContainText("Fecha de lanzamiento desconocida");
+  await page.reload();
+  await expect(finding).toContainText("Fecha de lanzamiento desconocida");
 });
 test("hiding persists across unrelated edits, restores explicitly and returns for changed facts", async ({
   page,

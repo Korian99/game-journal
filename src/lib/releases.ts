@@ -6,10 +6,12 @@ export const releaseSeasons = [
   { value: "autumn", label: "Otoño" },
   { value: "winter", label: "Invierno" },
 ] as const;
+export const unknownReleaseDate = "unknown";
 export type ReleaseInfo =
   | { kind: "date"; year: number; value: string }
   | { kind: "season"; year: number; value: string; season: string }
   | { kind: "year"; year: number; value: string }
+  | { kind: "unknown-date"; value: typeof unknownReleaseDate }
   | { kind: "unknown" };
 type ReleasedRecord = Pick<
   JournalRecord,
@@ -18,6 +20,7 @@ type ReleasedRecord = Pick<
 
 export function parseRelease(value: string): ReleaseInfo {
   const text = value.trim();
+  if (text === unknownReleaseDate) return { kind: "unknown-date", value: text };
   const match =
     /^(\d{4})(?:-(\d{2})-(\d{2})|-(spring|summer|autumn|winter))?$/.exec(text);
   if (!match) return { kind: "unknown" };
@@ -73,7 +76,7 @@ export function recordRelease(record: ReleasedRecord): ReleaseInfo {
         : text;
     }
     const release = parseRelease(imported);
-    if (release.kind !== "unknown") return release;
+    if ("year" in release) return release;
   }
   return parseRelease(String(record.year ?? ""));
 }
@@ -102,7 +105,8 @@ export function releaseLabel(record: ReleasedRecord): string {
       " " +
       release.year
     );
-  return release.kind === "year" ? String(release.year) : "Sin fecha";
+  if (release.kind === "year") return String(release.year);
+  return release.kind === "unknown-date" ? "Fecha desconocida" : "Sin fecha";
 }
 
 export function compareReleases(
