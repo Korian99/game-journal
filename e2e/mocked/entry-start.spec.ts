@@ -1,7 +1,7 @@
 import { test, expect, type Page } from "@playwright/test";
 import { emptyRecord } from "../../src/lib/types";
 import type { JournalEntry } from "../../src/lib/journal/journal-types";
-import type { StorePreview } from "../../src/lib/offers/store-preview-contract";
+import type { StorePreview } from "../../src/features/stores/store-preview-contract";
 const url = "https://store.steampowered.com/app/620/";
 const metadata = {
   url,

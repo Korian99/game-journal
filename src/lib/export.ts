@@ -1,6 +1,6 @@
 import ExcelJS from "exceljs";
 import { normalizeConsoleLabels } from "./journal/console-labels";
-import type { ScoringEntry } from "./scoring-guide";
+import type { ScoringEntry } from "../features/settings/scoring-guide";
 import { emptyRecord, statuses, type JournalRecord, type Offer } from "./types";
 import { statusSchema } from "./journal/status-schema";
 import { formatDate, formatDateTime } from "./journal/view-config";

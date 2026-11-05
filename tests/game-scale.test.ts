@@ -1,7 +1,7 @@
 import { expect, it } from "vitest";
 import { recordSchema } from "../src/lib/validation";
 import { readJournalLocation, writeJournalLocation } from "../src/lib/journal/journal-location";
-import { mergeSavedEntry } from "../src/lib/journal/inline-editing";
+import { mergeSavedEntry } from "../src/features/journal/inline-editing";
 import { emptyRecord } from "../src/lib/types";
 
 it("accepts only the supported production scales and keeps legacy scale unspecified", () => {

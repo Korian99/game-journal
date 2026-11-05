@@ -6,7 +6,7 @@ import {
   dataCheckCommandSchema,
   dataCheckStateSchema,
   dataChecks,
-} from "@/lib/journal/data-checks";
+} from "@/features/settings/data-checks";
 export const dynamic = "force-dynamic";
 const headers = { "Cache-Control": "private, no-store" };
 function canonicalState(value: unknown) {

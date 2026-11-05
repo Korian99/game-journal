@@ -1,4 +1,4 @@
-import { InlineField } from "@/components/journal/inline/inline-field";
+import { InlineField } from "@/features/journal/inline/inline-field";
 import type { JournalEntry } from "@/lib/journal/journal-types";
 import type { JournalRecord } from "@/lib/types";
 import { journalReviewOrder } from "@/lib/journal/view-config";

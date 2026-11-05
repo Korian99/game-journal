@@ -1,4 +1,4 @@
-import { defaultScoringGuide, scoringGuideSchema } from "@/lib/scoring-guide";
+import { defaultScoringGuide, scoringGuideSchema } from "@/features/settings/scoring-guide";
 import { databaseError } from "@/lib/api-errors";
 import { authorized, apiError } from "@/lib/auth";
 import { csvExport, excelExport, type ExportData } from "@/lib/export";

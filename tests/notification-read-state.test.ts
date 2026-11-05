@@ -2,7 +2,7 @@ import { expect, it } from "vitest";
 import {
   optimisticNotificationRead,
   createNotificationReadGate,
-} from "../src/lib/notifications/read-state";
+} from "../src/features/notifications/read-state";
 const item = (
   id: string,
   created_at = "2026-10-21T10:00:00Z",

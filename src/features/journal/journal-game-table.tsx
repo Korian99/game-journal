@@ -1,0 +1,251 @@
+"use client";
+import { useEffect } from "react";
+import { GameComments } from "./game-comments";
+import type { JournalView } from "@/lib/journal/journal-location";
+import type { JournalEntry } from "@/lib/journal/journal-types";
+import { statuses, type Offer } from "@/lib/types";
+import { wishlistPlatforms } from "@/features/wishlist/wishlist-display";
+import type { Table } from "@tanstack/react-table";
+import { flexRender } from "@tanstack/react-table";
+import { ArrowUpDown, Pencil } from "lucide-react";
+import { JournalReview } from "@/features/library/history/journal-review";
+import { UpcomingMobileDetails } from "@/features/upcoming/upcoming-mobile-details";
+import { OwnershipBadge } from "@/features/entries/ownership-badge";
+import { PriorityMark } from "@/features/entries/priority-mark";
+import { WishlistPrice } from "@/features/wishlist/wishlist-price";
+import { NotebookLibraryEntries } from "@/features/library/notebook-library-entries";
+import { GameRowArtwork } from "@/features/entries/game-cover";
+
+export function JournalGameTable({
+  table,
+  view,
+  offers,
+  releaseNow,
+  onQuickEdit,
+  entryRowClass,
+  focusedEntry = "",
+}: {
+  table: Table<JournalEntry>;
+  view: JournalView;
+  offers: Offer[];
+  releaseNow: Date;
+  onQuickEdit: (entry: JournalEntry) => void;
+  entryRowClass: (entry: JournalEntry) => string | undefined;
+  focusedEntry?: string;
+}) {
+  const hasTarget = table
+    .getRowModel()
+    .rows.some((row) => row.original.id === focusedEntry);
+  useEffect(() => {
+    if (!focusedEntry || !hasTarget) return;
+    const timer = window.setTimeout(() => {
+      const target = Array.from(
+        document.querySelectorAll<HTMLElement>("[data-entry-id]"),
+      ).find(
+        (node) =>
+          node.dataset.entryId === focusedEntry &&
+          node.getClientRects().length > 0,
+      );
+      if (!target) return;
+      const button = target.matches("button, .mobile-game")
+        ? target
+        : target.querySelector<HTMLButtonElement>(".game-cell");
+      button?.focus({ preventScroll: true });
+      target.scrollIntoView({
+        block: "center",
+        behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches
+          ? "instant"
+          : "smooth",
+      });
+    }, 0);
+    return () => window.clearTimeout(timer);
+  }, [focusedEntry, hasTarget, view]);
+  const commentsBelow = view === "library" || view === "journal";
+  return (
+    <>
+      <div className="mobile-games">
+        {view === "library" || view === "journal" ? (
+          <NotebookLibraryEntries
+            entries={table.getRowModel().rows.map(({ original }) => original)}
+            focusedEntry={focusedEntry}
+            entryRowClass={entryRowClass}
+            onQuickEdit={onQuickEdit}
+            view={view}
+          />
+        ) : (
+          table.getRowModel().rows.map(({ original: r }) => (
+            <article className="mobile-game-wrapper" key={r.id}>
+              <div
+                className={[
+                  "mobile-game",
+                  commentsBelow ? "mobile-game-played" : "",
+                  entryRowClass(r),
+                  r.id === focusedEntry ? "notification-highlight" : "",
+                ]
+                  .filter(Boolean)
+                  .join(" ")}
+                key={r.id}
+                data-entry-id={r.id}
+                tabIndex={-1}
+              >
+                <GameRowArtwork cover={r.cover} />
+                {!commentsBelow &&
+                  (view === "wishlist" ? (
+                    <PriorityMark value={r.priority} />
+                  ) : (
+                    <span className="game-mark">
+                      {r.title.slice(0, 2).toUpperCase()}
+                    </span>
+                  ))}
+                <span className="mobile-game-info">
+                  <strong>{r.title}</strong>
+                  {view === "upcoming" ? (
+                    <UpcomingMobileDetails
+                      entry={r}
+                      offers={offers}
+                      releaseNow={releaseNow}
+                    />
+                  ) : view === "wishlist" ? (
+                    <>
+                      <small>
+                        {wishlistPlatforms(
+                          r,
+                          offers.filter((o) => o.game_id === r.gameId),
+                        ).join(" · ") || "Plataforma sin confirmar"}
+                      </small>
+                      <small className="wishlist-mobile-meta">
+                        <OwnershipBadge value={r.ownership} />
+                      </small>
+                      <small>Hs. estimadas: {r.estimated || "—"}</small>
+                      <WishlistPrice
+                        offers={offers.filter((o) => o.game_id === r.gameId)}
+                      />
+                    </>
+                  ) : (
+                    <>
+                      <small>
+                        {r.device || r.platforms || "Plataforma sin definir"}
+                        {r.period ? " · " + r.period : ""}
+                      </small>
+                      <span className={"status " + r.status}>
+                        {statuses[r.status]}
+                      </span>
+                    </>
+                  )}
+                  <small className="mobile-game-hours">
+                    Hs. jugadas: {r.hours == null ? "—" : r.hours + " h"}
+                  </small>
+                </span>
+                <span className="mobile-game-actions">
+                  <button
+                    type="button"
+                    className="mobile-edit-button"
+                    data-quick-edit-id={r.id}
+                    aria-label={"Editar rápidamente " + r.title}
+                    title="Editar"
+                    onClick={() => onQuickEdit(r)}
+                  >
+                    <Pencil size={17} aria-hidden="true" />
+                  </button>
+                </span>
+                {commentsBelow && (
+                  <div className="mobile-game-reflections">
+                    <JournalReview record={r} />
+                  </div>
+                )}
+                {commentsBelow && r.notes.trim() && <GameComments entry={r} />}
+              </div>
+            </article>
+          ))
+        )}
+      </div>
+      <div className="table-scroll journal-desktop-table">
+        <table
+          className={
+            view === "upcoming"
+              ? "upcoming-table"
+              : view === "library"
+                ? "library-table"
+                : view === "journal"
+                  ? "journal-table"
+                  : view === "wishlist"
+                    ? "wishlist-table"
+                    : undefined
+          }
+        >
+          <thead>
+            {table.getHeaderGroups().map((g) => (
+              <tr key={g.id}>
+                {g.headers.map((h) => (
+                  <th
+                    key={h.id}
+                    aria-sort={
+                      h.column.getIsSorted() === "asc"
+                        ? "ascending"
+                        : h.column.getIsSorted() === "desc"
+                          ? "descending"
+                          : "none"
+                    }
+                  >
+                    <button
+                      disabled={!h.column.getCanSort()}
+                      onClick={h.column.getToggleSortingHandler()}
+                    >
+                      {flexRender(h.column.columnDef.header, h.getContext())}
+                      {h.column.getCanSort() && <ArrowUpDown size={12} />}
+                    </button>
+                  </th>
+                ))}
+              </tr>
+            ))}
+          </thead>
+          {table.getRowModel().rows.map((r) => {
+            const hasComments = commentsBelow && !!r.original.notes.trim();
+            return (
+              <tbody
+                key={r.original.id ?? r.id}
+                className={
+                  hasComments
+                    ? "game-entry-group has-comments-art"
+                    : "game-entry-group"
+                }
+              >
+                <tr
+                  data-entry-id={r.original.id}
+                  className={[
+                    "game-data-row",
+                    hasComments ? "has-comments" : "",
+                    entryRowClass(r.original),
+                    r.original.id === focusedEntry
+                      ? "notification-highlight"
+                      : "",
+                  ]
+                    .filter(Boolean)
+                    .join(" ")}
+                >
+                  {r.getVisibleCells().map((c) => (
+                    <td key={c.column.id}>
+                      <div className="game-row-cell-content">
+                        {flexRender(c.column.columnDef.cell, c.getContext())}
+                      </div>
+                      {c.id === r.getVisibleCells().at(-1)?.id && (
+                        <GameRowArtwork cover={r.original.cover} wide />
+                      )}
+                    </td>
+                  ))}
+                </tr>
+                {hasComments && (
+                  <tr className="game-comments-row">
+                    <td colSpan={r.getVisibleCells().length}>
+                      <GameComments entry={r.original} inlineView={view} />
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            );
+          })}
+        </table>
+      </div>
+    </>
+  );
+}

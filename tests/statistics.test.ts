@@ -1,6 +1,6 @@
 import { it, expect } from "vitest";
 import { emptyRecord } from "../src/lib/types";
-import { estimateHours, statistics } from "../src/lib/journal/statistics";
+import { estimateHours, statistics } from "../src/features/statistics/statistics";
 it("accepts clear triples or story-only numbers, skipping ambiguous estimates", () => {
   expect(estimateHours("10 - 15 - 30", "extras")).toBe(15);
   expect(estimateHours("10,5 / 20 / 35 h", "completionist")).toBe(35);

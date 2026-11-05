@@ -1,5 +1,5 @@
 import { expect, it } from "vitest";
-import { offerTargetChanges } from "../src/lib/offers/target-draft";
+import { offerTargetChanges } from "../src/features/stores/target-draft";
 const offers = [
   { id: "steam", target_price: 10 },
   { id: "nintendo", target_price: null },

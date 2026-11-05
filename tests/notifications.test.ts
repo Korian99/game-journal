@@ -4,7 +4,7 @@ import {
   deliverPush,
   type Delivery,
 } from "../supabase/functions/notification-worker/delivery";
-import { enablePush } from "../src/lib/push-client";
+import { enablePush } from "../src/features/notifications/push-client";
 const item: Delivery = {
   event_id: "event",
   subscription_id: "device",

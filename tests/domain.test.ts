@@ -11,7 +11,7 @@ import {
 import {
   importConflictLabel,
   importConflictValue,
-} from "../src/lib/imports/contracts";
+} from "../src/features/imports/contracts";
 describe("store URLs", () => {
   it("keeps Nintendo regional offers separate", () => {
     expect(

@@ -1,7 +1,7 @@
 import { openFullGame } from "./open-full-game";
 import { test, expect } from "@playwright/test";
 import { emptyRecord } from "../../src/lib/types";
-import { defaultScoringGuide } from "../../src/lib/scoring-guide";
+import { defaultScoringGuide } from "../../src/features/settings/scoring-guide";
 
 test("personal scoring guide is editable, persists, and opens from a review on mobile", async ({
   page,

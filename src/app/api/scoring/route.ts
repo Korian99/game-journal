@@ -1,7 +1,7 @@
 import { authorized, apiError } from "@/lib/auth";
 import { databaseError } from "@/lib/api-errors";
 import { bodyJson } from "@/lib/validation";
-import { defaultScoringGuide, scoringGuideSchema } from "@/lib/scoring-guide";
+import { defaultScoringGuide, scoringGuideSchema } from "@/features/settings/scoring-guide";
 
 export const dynamic = "force-dynamic";
 const headers = { "Cache-Control": "private, no-store" };

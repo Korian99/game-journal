@@ -2,7 +2,7 @@ import {
   findingKinds,
   type FindingKind,
   type FindingCategory,
-} from "./data-checks";
+} from "../../features/settings/data-checks";
 import { normalizeConsoleLabels } from "./console-labels";
 import type { SortingState } from "@tanstack/react-table";
 import { currentYear, defaultViewSort, viewStatuses } from "./view-config";

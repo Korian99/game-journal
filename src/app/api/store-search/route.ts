@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { authorized, apiError } from "@/lib/auth";
-import { searchNintendoTitles } from "@/lib/offers/nintendo-search";
-import { searchSteamTitles } from "@/lib/offers/store-search";
+import { searchNintendoTitles } from "@/features/stores/nintendo-search";
+import { searchSteamTitles } from "@/features/stores/store-search";
 
 export const runtime = "nodejs";
 

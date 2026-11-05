@@ -1,9 +1,9 @@
 import {
   dataCheckPreferencesSchema,
   dismissalSchema,
-} from "../journal/data-checks";
+} from "../../features/settings/data-checks";
 import JSZip from "jszip";
-import { scoringEntrySchema } from "../scoring-guide";
+import { scoringEntrySchema } from "../../features/settings/scoring-guide";
 import { createHash } from "node:crypto";
 import { z } from "zod";
 import { excelExport, type ExportData } from "../export";

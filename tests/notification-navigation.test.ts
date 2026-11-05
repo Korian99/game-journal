@@ -2,7 +2,7 @@ import { expect, it } from "vitest";
 import {
   notificationDestination,
   notificationHref,
-} from "../src/lib/notifications/navigation";
+} from "../src/features/notifications/navigation";
 import { emptyRecord } from "../src/lib/types";
 const gameId = "30000000-0000-4000-8000-000000000001";
 const event = {

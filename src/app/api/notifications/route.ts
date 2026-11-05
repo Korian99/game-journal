@@ -3,7 +3,7 @@ import { databaseError } from "@/lib/api-errors";
 import {
   notificationQuery,
   notificationPage,
-} from "@/lib/notifications/history";
+} from "@/features/notifications/history";
 import { bodyJson } from "@/lib/validation";
 import { z } from "zod";
 export async function GET(request: Request) {

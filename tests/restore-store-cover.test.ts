@@ -1,5 +1,5 @@
 import { expect, it, vi } from "vitest";
-import { restoreStoreCover } from "../src/lib/offers/restore-store-cover";
+import { restoreStoreCover } from "../src/features/stores/restore-store-cover";
 
 const steam = "https://store.steampowered.com/app/620/Portal_2/";
 const cover = {

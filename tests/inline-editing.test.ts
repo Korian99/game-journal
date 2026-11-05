@@ -5,7 +5,7 @@ import {
   inlineChange,
   undoCandidate,
   mergeSavedEntry,
-} from "../src/lib/journal/inline-editing";
+} from "../src/features/journal/inline-editing";
 import { emptyRecord } from "../src/lib/types";
 const entry = {
   ...emptyRecord,

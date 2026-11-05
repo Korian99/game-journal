@@ -2,7 +2,7 @@ import { expect, it } from "vitest";
 import {
   recapMonthName,
   recapTextLines,
-} from "../src/lib/journal/recap-export";
+} from "../src/features/statistics/recap-export";
 
 it("wraps long recap copy into a bounded number of canvas-safe lines", () => {
   const measure = (text: string) => text.length * 10;

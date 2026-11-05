@@ -1,7 +1,7 @@
 import { expect, it } from "vitest";
 import { emptyRecord } from "../src/lib/types";
 import type { JournalEntry } from "../src/lib/journal/journal-types";
-import { calculateRecap } from "../src/lib/journal/recaps";
+import { calculateRecap } from "../src/features/statistics/recaps";
 
 const entry = (
   values: Partial<JournalEntry> & Pick<JournalEntry, "id">,

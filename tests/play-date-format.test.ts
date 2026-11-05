@@ -5,7 +5,7 @@ import { emptyRecord } from "../src/lib/types";
 import {
   inlineCandidate,
   inlineUnchanged,
-} from "../src/lib/journal/inline-editing";
+} from "../src/features/journal/inline-editing";
 import { periodAfterDateEdits } from "../src/lib/journal/entry-period";
 import { statusAfterDateEdits } from "../src/lib/journal/entry-status";
 

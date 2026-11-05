@@ -9,7 +9,7 @@ import {
   type SeriesRecord,
 } from "./series";
 import type { JournalEntry } from "@/lib/journal/journal-types";
-import { GameCover } from "@/components/games/game-cover";
+import { GameCover } from "@/features/entries/game-cover";
 import styles from "./series-manager.module.css";
 
 export function SeriesManager({

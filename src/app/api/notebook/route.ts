@@ -1,7 +1,7 @@
 import { authorized, apiError } from "@/lib/auth";
 import { HttpError, databaseError } from "@/lib/api-errors";
 import { bodyJson } from "@/lib/validation";
-import { notebookSchema } from "@/lib/notebook";
+import { notebookSchema } from "@/features/notebook/notebook";
 
 export const dynamic = "force-dynamic";
 

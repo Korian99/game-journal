@@ -3,10 +3,10 @@
 import { statuses } from "@/lib/types";
 import type { JournalEntry } from "@/lib/journal/journal-types";
 import { formatDate } from "@/lib/journal/view-config";
-import { GameComments } from "@/components/journal/game-comments";
+import { GameComments } from "@/features/journal/game-comments";
 import { LibraryPlaythrough, ReviewMark } from "./library-game-details";
 import { Pencil } from "lucide-react";
-import { GameRowArtwork } from "@/components/games/game-cover";
+import { GameRowArtwork } from "@/features/entries/game-cover";
 
 export function NotebookLibraryEntries({
   entries,

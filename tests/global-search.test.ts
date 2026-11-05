@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { emptyRecord } from "../src/lib/types";
-import { searchJournal } from "../src/lib/journal/search";
+import { searchJournal } from "../src/features/search/search";
 import { entryDestination } from "../src/lib/journal/entry-destination";
 
 const record = (id: string, title: string, gameId = id) => ({

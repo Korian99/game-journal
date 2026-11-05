@@ -4,7 +4,7 @@ import {
   readJournalLocation,
   writeJournalLocation,
 } from "@/lib/journal/journal-location";
-import { JournalApp } from "@/components/journal/journal-app";
+import { JournalApp } from "@/features/journal/journal-app";
 export const dynamic = "force-dynamic";
 export default async function Home({
   searchParams,

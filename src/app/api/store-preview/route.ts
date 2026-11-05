@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { authorized, apiError } from "@/lib/auth";
 import { bodyJson } from "@/lib/validation";
-import { loadStorePreview } from "@/lib/offers/store-preview";
+import { loadStorePreview } from "@/features/stores/store-preview";
 export const runtime = "nodejs";
 export async function POST(request: Request) {
   try {

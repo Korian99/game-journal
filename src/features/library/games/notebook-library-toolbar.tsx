@@ -2,7 +2,7 @@
 
 import { statuses } from "@/lib/types";
 import { viewStatuses } from "@/lib/journal/view-config";
-import { useJournalLocation } from "@/hooks/use-journal-location";
+import { useJournalLocation } from "@/features/journal/use-journal-location";
 import {
   ArrowDownUp,
   ChevronDown,

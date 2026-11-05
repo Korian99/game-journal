@@ -6,7 +6,7 @@ import {
   findingValues,
   dataCheckDefaults,
   dataCheckStateSchema,
-} from "../src/lib/journal/data-checks";
+} from "../src/features/settings/data-checks";
 const entry = (patch: Partial<JournalEntry> = {}): JournalEntry => ({
   ...emptyRecord,
   id: "20000000-0000-4000-8000-000000000001",

@@ -1,7 +1,7 @@
 import { expect, it } from "vitest";
 import type { JournalEntry } from "../src/lib/journal/journal-types";
 import { emptyRecord, type Status } from "../src/lib/types";
-import { gameSuggestions } from "../src/lib/journal/suggestions";
+import { gameSuggestions } from "../src/features/suggestions/suggestions";
 import {
   readJournalLocation,
   writeJournalLocation,

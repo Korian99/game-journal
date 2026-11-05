@@ -2,7 +2,7 @@ import { it, expect } from "vitest";
 import {
   notificationQuery,
   notificationPage,
-} from "../src/lib/notifications/history";
+} from "../src/features/notifications/history";
 it("paginates ties using timestamp and ID and validates cursor before query interpolation", () => {
   const rows = Array.from({ length: 26 }, (_, i) => ({
     id: "10000000-0000-4000-8000-" + String(100000000000 + i),
