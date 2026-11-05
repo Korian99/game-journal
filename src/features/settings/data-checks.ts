@@ -1,6 +1,8 @@
 import { z } from "zod";
 import { dateOrder } from "@/lib/journal/view-config";
 import type { JournalEntry } from "@/lib/journal/journal-types";
+import { recordRelease } from "@/lib/releases";
+import { statuses } from "@/lib/types";
 export const findingKinds = [
   "invalid-start",
   "invalid-finish",
@@ -13,7 +15,13 @@ export const findingKinds = [
   "missing-hours",
 ] as const;
 export type FindingKind = (typeof findingKinds)[number];
-export type FindingCategory = "inconsistency" | "suggestion" | "reminder";
+export const findingFilterKinds = [...findingKinds, "completion"] as const;
+export type FindingFilterKind = (typeof findingFilterKinds)[number];
+export type FindingCategory =
+  | "inconsistency"
+  | "suggestion"
+  | "reminder"
+  | "completion";
 export const dataCheckDefaults = {
   review: false,
   console: false,
@@ -40,12 +48,12 @@ export type DataCheckState = z.infer<typeof dataCheckStateSchema>;
 export type DataFinding = {
   id: string;
   entry: JournalEntry;
-  kind: FindingKind;
+  kind: FindingFilterKind;
   category: FindingCategory;
   message: string;
   values: z.infer<typeof findingValuesSchema>;
 };
-export const findingLabels: Record<FindingKind, string> = {
+export const findingLabels: Record<FindingFilterKind, string> = {
   "invalid-start": "Fecha de inicio no interpretable",
   "invalid-finish": "Fecha de finalización no interpretable",
   "date-order": "Finalización anterior al inicio",
@@ -55,6 +63,7 @@ export const findingLabels: Record<FindingKind, string> = {
   "missing-review": "Terminado sin reseña",
   "missing-console": "Partida sin consola",
   "missing-hours": "Partida sin horas",
+  completion: "Datos faltantes",
 };
 export const preferenceLabels = {
   review: "Terminados sin reseña",
@@ -62,6 +71,7 @@ export const preferenceLabels = {
   hours: "Partidas sin horas",
 };
 export const categoryLabels = {
+  completion: "Datos faltantes",
   inconsistency: "Inconsistencias",
   suggestion: "Sugerencias",
   reminder: "Recordatorios",
@@ -105,6 +115,34 @@ export function dataChecks(records: JournalEntry[]): DataFinding[] {
         message,
         values: findingValues(kind, entry),
       });
+    const missing: string[] = [];
+    if (!entry.title.trim()) missing.push("Nombre del juego");
+    if (recordRelease(entry).kind === "unknown") missing.push("Lanzamiento");
+    if (entry.status === "upcoming" && !entry.hype.trim())
+      missing.push("Hype");
+    if (entry.status === "wishlist") {
+      if (entry.priority === null || (typeof entry.priority === "string" && !entry.priority.trim()))
+        missing.push("Prioridad");
+      if (!entry.ownership.trim()) missing.push("Acceso al juego");
+      if (!entry.estimated.trim()) missing.push("Horas estimadas");
+    }
+    if (["playing", "completed", "paused"].includes(entry.status)) {
+      if (!entry.started.trim()) missing.push("Empecé");
+      if (!entry.device.trim()) missing.push("Consola donde jugué");
+    }
+    if (entry.status === "remembered" && !entry.period.trim())
+      missing.push("Período jugado");
+    if (missing.length) {
+      findings.push({
+        id: entry.id + ":completion",
+        entry,
+        kind: "completion",
+        category: "completion",
+        message:
+          "Faltan datos para " + statuses[entry.status] + ": " + missing.join(", ") + ".",
+        values: [],
+      });
+    }
     const started = dateOrder(entry.started),
       finished = dateOrder(entry.finished);
     // Approximate memory text is valid; impossible exact calendar dates still need review.
@@ -166,7 +204,10 @@ export function dataChecks(records: JournalEntry[]): DataFinding[] {
         entry.status,
       )
     ) {
-      if (!entry.device.trim())
+      if (
+        ["abandoned", "remembered"].includes(entry.status) &&
+        !entry.device.trim()
+      )
         add(
           "missing-console",
           "reminder",
@@ -199,6 +240,7 @@ export function findingHidden(
   finding: DataFinding,
   dismissals: DataCheckState["dismissals"],
 ) {
+  if (finding.kind === "completion") return false;
   return dismissals.some(
     (row) =>
       row.entry_id === finding.entry.id &&

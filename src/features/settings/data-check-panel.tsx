@@ -9,10 +9,10 @@ import {
   findingEnabled,
   findingHidden,
   findingLabels,
-  findingKinds,
+  findingFilterKinds,
   categoryLabels,
   preferenceLabels,
-  type FindingKind,
+  type FindingFilterKind,
   type FindingCategory,
 } from "./data-checks";
 export function DataCheckPanel({
@@ -173,11 +173,11 @@ export function DataCheckPanel({
             aria-label="Tipo de aviso"
             value={checkKind}
             onChange={(e) =>
-              location.setCheckKind(e.target.value as FindingKind | "")
+              location.setCheckKind(e.target.value as FindingFilterKind | "")
             }
           >
             <option value="">Todos</option>
-            {findingKinds.map((kind) => (
+            {findingFilterKinds.map((kind) => (
               <option key={kind} value={kind}>
                 {findingLabels[kind]}
               </option>
@@ -206,6 +206,8 @@ export function DataCheckPanel({
         <div className="data-check-list">
           {filtered.slice(0, count).map((finding) => {
             const isHidden = hidden(finding);
+            const { kind } = finding;
+            const title = finding.entry.title.trim() || "Juego sin nombre";
             return (
               <section
                 className={
@@ -218,7 +220,7 @@ export function DataCheckPanel({
                     {categoryLabels[finding.category]}
                     {isHidden ? " · Oculto" : ""}
                   </span>
-                  <h3>{finding.entry.title}</h3>
+                  <h3>{title}</h3>
                   <strong>{findingLabels[finding.kind]}</strong>
                   <p>{finding.message}</p>
                 </div>
@@ -226,7 +228,7 @@ export function DataCheckPanel({
                   <button
                     className="secondary"
                     disabled={blocked || !!settings.command}
-                    aria-label={"Ver juego " + finding.entry.title}
+                    aria-label={"Ver juego " + title}
                     onClick={() => onView(finding.entry)}
                   >
                     Ver juego
@@ -234,29 +236,31 @@ export function DataCheckPanel({
                   <button
                     className="secondary"
                     disabled={blocked || !!settings.command}
-                    aria-label={"Editar " + finding.entry.title}
+                    aria-label={"Editar " + title}
                     onClick={() => onEdit(finding.entry)}
                   >
                     Editar
                   </button>
-                  <button
-                    className="text-button"
-                    disabled={disabled}
-                    aria-label={
-                      (isHidden ? "Mostrar aviso de " : "Ocultar aviso de ") +
-                      finding.entry.title
-                    }
-                    onClick={() =>
-                      void settings.update({
-                        action: isHidden ? "restore" : "dismiss",
-                        entryId: finding.entry.id!,
-                        kind: finding.kind,
-                        values: finding.values,
-                      })
-                    }
-                  >
-                    {isHidden ? "Volver a mostrar" : "Ocultar"}
-                  </button>
+                  {kind !== "completion" && (
+                    <button
+                      className="text-button"
+                      disabled={disabled}
+                      aria-label={
+                        (isHidden ? "Mostrar aviso de " : "Ocultar aviso de ") +
+                        title
+                      }
+                      onClick={() =>
+                        void settings.update({
+                          action: isHidden ? "restore" : "dismiss",
+                          entryId: finding.entry.id!,
+                          kind,
+                          values: finding.values,
+                        })
+                      }
+                    >
+                      {isHidden ? "Volver a mostrar" : "Ocultar"}
+                    </button>
+                  )}
                 </div>
               </section>
             );

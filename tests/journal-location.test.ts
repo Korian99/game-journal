@@ -140,6 +140,22 @@ it("rejects unknown tabs and sorts, invalid years, and mismatched status filters
     ).sort,
   ).toEqual(location.readJournalLocation("", "2026").sort);
 });
+it("round trips the derived completion category and kind without changing persisted finding kinds", () => {
+  const state = location.readJournalLocation(
+    "?tab=settings&checkCategory=completion&checkKind=completion",
+    "2026",
+  );
+  expect(state).toMatchObject({
+    checkCategory: "completion",
+    checkKind: "completion",
+  });
+  expect(
+    location.readJournalLocation(
+      location.writeJournalLocation(state, "", "2026"),
+      "2026",
+    ),
+  ).toMatchObject({ checkCategory: "completion", checkKind: "completion" });
+});
 it("writes compact URLs, omits default filters, and clears inactive-view parameters", () => {
   const defaults = location.readJournalLocation("?tab=journal", "2026");
   expect(location.writeJournalLocation(defaults, "", "2026")).toBe(

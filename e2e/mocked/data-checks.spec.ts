@@ -11,6 +11,7 @@ async function setup(page: Page) {
       gameId: id(11),
       title: "Bad date",
       status: "completed",
+      year: 2025,
       started: "32/01/2025",
       finished: "",
       hours: 0,
@@ -24,9 +25,11 @@ async function setup(page: Page) {
       gameId: id(12),
       title: "Missing optional",
       status: "completed",
+      year: 2025,
+      started: "01/01/2025",
       hours: null,
       rating: null,
-      device: "",
+      device: "PC",
       updated_at: "2026-10-26T12:00:00Z",
     },
     {
@@ -35,6 +38,7 @@ async function setup(page: Page) {
       gameId: id(13),
       title: "Approximate memory",
       status: "remembered",
+      year: 2025,
       started: "Around 2010",
       period: "2008-2010",
       device: "PC",
@@ -50,6 +54,15 @@ async function setup(page: Page) {
   let failedRead = false;
   await page.route("**/api/**", (route) => {
     const path = new URL(route.request().url()).pathname;
+    if (path === "/api/records" && route.request().method() === "POST") {
+      const saved = route.request().postDataJSON();
+      records = records.map((record) =>
+        record.id === id(5) ? { ...record, ...saved } : record,
+      );
+      return route.fulfill({
+        json: { id: id(5), gameId: id(15), record: saved },
+      });
+    }
     if (path === "/api/records")
       return route.fulfill({
         json: { records, member: { display_name: "Fixture", role: "member" } },
@@ -89,6 +102,29 @@ async function setup(page: Page) {
     },
     change(patch: Partial<(typeof records)[number]>) {
       records = records.map((r) => (r.id === id(1) ? { ...r, ...patch } : r));
+    },
+    addIncomplete() {
+      records = [
+        ...records,
+        {
+          ...emptyRecord,
+          id: id(4),
+          gameId: id(14),
+          title: " ",
+          status: "upcoming",
+          release: "",
+          hype: "",
+        },
+        {
+          ...emptyRecord,
+          id: id(5),
+          gameId: id(15),
+          title: "Needs hype",
+          status: "upcoming",
+          year: 2025,
+          hype: "",
+        },
+      ];
     },
     async succeed(index: number) {
       const c = pending[index].request().postDataJSON();
@@ -138,6 +174,34 @@ test("checks all active records independently of list filters and makes reminder
   await expect(
     panel.getByRole("checkbox", { name: "Terminados sin reseña", exact: true }),
   ).toBeChecked();
+});
+test("completion findings are default visible, URL filterable and open the editable entry", async ({
+  page,
+}) => {
+  const f = await setup(page);
+  f.addIncomplete();
+  await page.goto("./?tab=settings&checkCategory=completion&checkKind=completion");
+  const panel = page.locator(".data-checks");
+  await expect(panel.getByLabel("Categoría de aviso")).toHaveValue("completion");
+  await expect(panel.getByLabel("Tipo de aviso")).toHaveValue("completion");
+  const finding = panel.locator(".data-check-finding");
+  await expect(finding).toHaveCount(2);
+  const blankName = finding.filter({ has: page.getByRole("heading", { name: "Juego sin nombre" }) });
+  await expect(blankName).toContainText("Próximo");
+  await expect(blankName).toContainText("Nombre del juego, Lanzamiento, Hype");
+  await expect(blankName.getByRole("button", { name: /Ocultar aviso/ })).toHaveCount(0);
+  await page.setViewportSize({ width: 390, height: 844 });
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  const needsHype = finding.filter({ has: page.getByRole("heading", { name: "Needs hype" }) });
+  await needsHype.getByRole("button", { name: "Editar Needs hype" }).click();
+  await expect(page.getByRole("dialog", { name: "Tu partida" })).toBeVisible();
+  const dialog = page.getByRole("dialog", { name: "Tu partida" });
+  await dialog.getByRole("tab", { name: "Más", exact: true }).click();
+  await dialog.getByRole("combobox", { name: "Hype", exact: true }).selectOption("Medio");
+  await dialog.getByRole("button", { name: "Guardar entrada", exact: true }).click();
+  await expect(dialog).toHaveCount(0);
+  await expect(panel.locator(".data-check-finding")).toHaveCount(1);
+  await expect(panel).not.toContainText("Needs hype");
 });
 test("hiding persists across unrelated edits, restores explicitly and returns for changed facts", async ({
   page,

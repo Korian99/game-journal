@@ -1,6 +1,6 @@
 import {
-  findingKinds,
-  type FindingKind,
+  findingFilterKinds,
+  type FindingFilterKind,
   type FindingCategory,
 } from "../../features/settings/data-checks";
 import { normalizeConsoleLabels } from "./console-labels";
@@ -36,7 +36,7 @@ export type JournalLocation = {
   suggestionHours: string;
   suggestionUnknownEstimates: boolean;
   checkCategory: FindingCategory | "";
-  checkKind: FindingKind | "";
+  checkKind: FindingFilterKind | "";
   checkHidden: boolean;
   compareYear: string;
   estimateTarget: "story" | "extras" | "completionist";
@@ -183,13 +183,14 @@ export function readJournalLocation(
     const category = params.get("checkCategory"),
       kind = params.get("checkKind");
     if (
+      category === "completion" ||
       category === "inconsistency" ||
       category === "suggestion" ||
       category === "reminder"
     )
       state.checkCategory = category;
-    if (findingKinds.includes(kind as FindingKind))
-      state.checkKind = kind as FindingKind;
+    if (findingFilterKinds.includes(kind as FindingFilterKind))
+      state.checkKind = kind as FindingFilterKind;
     state.checkHidden = params.get("checkHidden") === "show";
   }
   if (!columns[view].length) return state;
