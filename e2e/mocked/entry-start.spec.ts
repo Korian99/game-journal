@@ -124,7 +124,7 @@ async function fixture(
       .click();
   else
     await page
-      .getByRole("button", { name: "Agregar juego", exact: true })
+      .getByRole("button", { name: /^Agregar( juego)?$/ })
       .click();
   return { saves, lookups, searches };
 }

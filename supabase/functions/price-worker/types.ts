@@ -1,3 +1,9 @@
+export type Cover = {
+  providerUrl?: string;
+  overrideUrl?: string;
+  provider?: "steam" | "nintendo";
+};
+
 export type Status =
   | "playing"
   | "completed"
@@ -6,7 +12,10 @@ export type Status =
   | "remembered"
   | "wishlist"
   | "upcoming";
+export type ProductionScale = "indie" | "aa" | "aaa";
 export type JournalRecord = {
+  scale?: ProductionScale | null;
+  cover?: Cover;
   id?: string;
   title: string;
   year: number | null;

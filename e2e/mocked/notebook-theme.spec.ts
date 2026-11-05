@@ -185,7 +185,7 @@ test("yearly library summary stays readable across themes and viewports", async 
   }
 });
 
-test("playing row highlight is blue only in light mode", async ({ page }) => {
+test("playing row highlight uses the shared olive accent in both themes", async ({ page }) => {
   await page.addInitScript(() =>
     localStorage.setItem("journal-theme", "light"),
   );
@@ -200,7 +200,7 @@ test("playing row highlight is blue only in light mode", async ({ page }) => {
     .locator(".library-table tbody tr")
     .filter({ hasText: "Theme fixture" });
   await expect(shell).toHaveCSS("--accent", "#a46b32");
-  await expect(shell).toHaveCSS("--collection-highlight", "#326ba4");
+  await expect(shell).toHaveCSS("--collection-highlight", "#a4a432");
   await page.locator(".notebook-library-add").click();
   await expect(page.locator(".modal-content")).toHaveCSS("--accent", "#a46b32");
   await page.keyboard.press("Escape");
@@ -211,7 +211,7 @@ test("playing row highlight is blue only in light mode", async ({ page }) => {
   });
   expect(
     await rowStripe.evaluate((element) => getComputedStyle(element).boxShadow),
-  ).toContain("50, 107, 164");
+  ).toContain("164, 164, 50");
   expect(lightRowStyles.background).not.toBe(
     await shell.evaluate(
       (element) => getComputedStyle(element).backgroundColor,
@@ -221,7 +221,7 @@ test("playing row highlight is blue only in light mode", async ({ page }) => {
     (element) =>
       getComputedStyle(element.querySelector("td:first-child")!).boxShadow,
   );
-  expect(completedShadow).not.toContain("50, 107, 164");
+  expect(completedShadow).not.toContain("164, 164, 50");
   await row.screenshot({
     path: join(tmpdir(), "notebook-playing-highlight-light-row.png"),
     animations: "disabled",
@@ -238,7 +238,7 @@ test("playing row highlight is blue only in light mode", async ({ page }) => {
   await expect(mobileRow).toBeVisible();
   expect(
     await mobileRow.evaluate((element) => getComputedStyle(element).boxShadow),
-  ).toContain("50, 107, 164");
+  ).toContain("164, 164, 50");
   expect(
     await page.evaluate(() => document.documentElement.scrollWidth),
   ).toBeLessThanOrEqual(390);
@@ -256,12 +256,12 @@ test("playing row highlight is blue only in light mode", async ({ page }) => {
   const darkShadow = await rowStripe.evaluate(
     (element) => getComputedStyle(element).boxShadow,
   );
-  expect(darkShadow).toContain("128, 183, 128");
+  expect(darkShadow).toContain("164, 164, 50");
   await page.setViewportSize({ width: 390, height: 844 });
   const darkMobileShadow = await mobileRow.evaluate(
     (element) => getComputedStyle(element).boxShadow,
   );
-  expect(darkMobileShadow).not.toContain("50, 107, 164");
+  expect(darkMobileShadow).not.toContain("164, 164, 50");
 });
 
 test("discounted wishlist and released upcoming highlights follow the light theme", async ({
@@ -339,13 +339,13 @@ test("discounted wishlist and released upcoming highlights follow the light them
     await page.setViewportSize({ width: 1280, height: 900 });
     await page.goto(`./?tab=${view}`);
     await expect(shell).toHaveCSS("--accent", "#a46b32");
-    await expect(shell).toHaveCSS("--collection-highlight", "#326ba4");
+    await expect(shell).toHaveCSS("--collection-highlight", "#a4a432");
     const row = page.locator(desktopSelector).filter({ hasText: "fixture" });
     const stripe = row.locator("td:first-child");
     await expect(row).toBeVisible();
     expect(
       await stripe.evaluate((element) => getComputedStyle(element).boxShadow),
-    ).toContain("50, 107, 164");
+    ).toContain("164, 164, 50");
     const defaultBackground = await row.evaluate(
       (element) => getComputedStyle(element).backgroundColor,
     );
@@ -372,7 +372,7 @@ test("discounted wishlist and released upcoming highlights follow the light them
       await mobileRow.evaluate(
         (element) => getComputedStyle(element).boxShadow,
       ),
-    ).toContain("50, 107, 164");
+    ).toContain("164, 164, 50");
     expect(
       await page.evaluate(() => document.documentElement.scrollWidth),
     ).toBeLessThanOrEqual(390);
@@ -389,13 +389,13 @@ test("discounted wishlist and released upcoming highlights follow the light them
     await expect(shell).toHaveCSS("--accent", "#c4a25a");
     expect(
       await stripe.evaluate((element) => getComputedStyle(element).boxShadow),
-    ).toContain("128, 183, 128");
+    ).toContain("164, 164, 50");
     await page.setViewportSize({ width: 390, height: 844 });
     expect(
       await mobileRow.evaluate(
         (element) => getComputedStyle(element).boxShadow,
       ),
-    ).toContain("128, 183, 128");
+    ).toContain("164, 164, 50");
   }
 });
 

@@ -1,4 +1,8 @@
-import type { Cover } from "./covers";
+export type Cover = {
+  providerUrl?: string;
+  overrideUrl?: string;
+  provider?: "steam" | "nintendo";
+};
 
 export type Status =
   | "playing"

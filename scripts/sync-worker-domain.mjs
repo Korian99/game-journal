@@ -1,8 +1,7 @@
 import fs from "node:fs";
-const domain = fs
-  .readFileSync("src/lib/domain.ts", "utf8")
-  .replace('from "./types"', 'from "./types.ts"')
-  .replace('from "./journal/console-labels"', 'from "./console-labels.ts"');
+const priceParser = fs
+  .readFileSync("src/features/stores/price-parser.ts", "utf8")
+  .replace('from "../../lib/types"', 'from "./types.ts"');
 const copies = [
   [
     "supabase/functions/price-worker/console-labels.ts",
@@ -12,7 +11,7 @@ const copies = [
     "supabase/functions/notification-worker/types.ts",
     fs.readFileSync("src/lib/types.ts", "utf8"),
   ],
-  ["supabase/functions/price-worker/domain.ts", domain],
+  ["supabase/functions/price-worker/domain.ts", priceParser],
   [
     "supabase/functions/price-worker/types.ts",
     fs.readFileSync("src/lib/types.ts", "utf8"),

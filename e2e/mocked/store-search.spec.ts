@@ -193,7 +193,7 @@ async function openEntry(page: Page, options: FixtureOptions = {}) {
   });
   await page.goto("./?tab=wishlist");
   await page
-    .getByRole("button", { name: "Agregar juego", exact: true })
+    .getByRole("button", { name: /^Agregar( juego)?$/ })
     .click();
   return {
     saves,

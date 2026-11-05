@@ -90,6 +90,7 @@ test("Diario combines reviews, includes played states, and persists its status f
   });
   await page.emulateMedia({ reducedMotion: "reduce" });
   await page.goto("./?tab=journal&year=all");
+  await page.locator(".notebook-library-summary > summary").click();
   const table = page.locator("table");
   const bestConsole = page.locator('[data-stat="best-console"]');
   await expect(page.locator(".filtered-stats > div")).toHaveCount(6);
@@ -164,19 +165,21 @@ test("Diario combines reviews, includes played states, and persists its status f
   await page.getByLabel("Filtrar estado").selectOption("");
   await page.setViewportSize({ width: 390, height: 844 });
   const mobile = page.locator(".mobile-games");
-  await expect(
-    mobile.getByLabel("Impresiones: 80/100", { exact: true }),
-  ).toBeVisible();
   const card = mobile
-    .locator(".mobile-game-wrapper")
+    .locator(".notebook-entry-card")
     .filter({ hasText: "Reseña preferida" });
-  await expect(card.locator(".journal-review-summary")).toContainText(
-    "Reseña: 86/100",
-  );
+  await expect(card.getByLabel("Reseña: 86/100", { exact: true })).toBeVisible();
   await expect(card.locator(".status")).toHaveText("Jugando");
   await expect(
     card.getByText("Hs. jugadas: 12 h", { exact: true }),
   ).toBeVisible();
+  await card.getByText("Leer comentarios").click();
+  await expect(card.locator(".notebook-entry-reflection-content")).toContainText(
+    "Impresiones",
+  );
+  await expect(card.locator(".notebook-entry-reflection-content")).toContainText(
+    "9.5",
+  );
   expect(
     await page.evaluate(
       () => document.documentElement.scrollWidth <= innerWidth,

@@ -439,7 +439,7 @@ test("the library keeps its filters and editor in a responsive notebook layout",
     .locator(".sidebar.open")
     .getByRole("button", { name: "Próximos" })
     .click();
-  await expect(page.getByRole("heading", { name: "Próximos." })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Próximos" })).toBeVisible();
   await page
     .locator(".notebook-bottom-nav")
     .getByRole("button", { name: "Más", exact: true })
@@ -625,7 +625,7 @@ test("row artwork appears in every collection view and missing or failed art sta
     await page.setViewportSize({ width: 390, height: 844 });
     const mobileRow = page
       .locator(
-        view === "library"
+        view === "library" || view === "journal"
           ? ".notebook-entry-card"
           : ".mobile-game-wrapper > .mobile-game",
       )

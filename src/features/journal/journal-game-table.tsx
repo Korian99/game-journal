@@ -53,9 +53,7 @@ export function JournalGameTable({
       button?.focus({ preventScroll: true });
       target.scrollIntoView({
         block: "center",
-        behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches
-          ? "instant"
-          : "smooth",
+        behavior: "instant",
       });
     }, 0);
     return () => window.clearTimeout(timer);

@@ -1,4 +1,6 @@
 import { z } from "zod";
+import type { Cover } from "./types";
+export type { Cover } from "./types";
 
 export const COVER_IMAGE_HOSTS = [
   "shared.akamai.steamstatic.com",
@@ -91,9 +93,7 @@ export const coverSchema = z.object({
     coverImageUrlSchema.optional(),
   ),
   provider: z.enum(["steam", "nintendo"]).optional(),
-});
-
-export type Cover = z.infer<typeof coverSchema>;
+}) satisfies z.ZodType<Cover>;
 
 export function parseCoverImageUrl(value: unknown): string | undefined {
   const result = coverImageUrlSchema.safeParse(value);

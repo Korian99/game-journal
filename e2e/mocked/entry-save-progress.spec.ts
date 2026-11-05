@@ -66,7 +66,7 @@ for (const editing of [true, false]) {
           .click();
       else {
         await page
-          .getByRole("button", { name: "Agregar juego", exact: true })
+          .getByRole("button", { name: /^Agregar( juego)?$/ })
           .click();
         await page
           .getByRole("button", { name: "Completar manualmente", exact: true })

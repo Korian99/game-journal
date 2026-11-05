@@ -168,12 +168,13 @@ it("keeps the Edge release parser identical to the app parser", () => {
     const expected = fs
       .readFileSync("src/lib/" + name + ".ts", "utf8")
       .replaceAll('from "./releases"', 'from "./releases.ts"')
-      .replaceAll('from "./types"', 'from "./types.ts"');
+      .replaceAll('from "./types"', 'from "./types.ts"')
+      .replaceAll("\r\n", "\n");
     expect(
       fs.readFileSync(
         "supabase/functions/notification-worker/" + name + ".ts",
         "utf8",
-      ),
+      ).replaceAll("\r\n", "\n"),
     ).toBe(expected);
   }
 });

@@ -93,7 +93,10 @@ test("the header stays visible while scrolling and dialogs open above it", async
     await page.setViewportSize({ width, height: 844 });
     await page.goto("./?tab=settings");
     await expect(
-      page.getByRole("heading", { name: "Preferencias", exact: true }),
+      page.getByRole("heading", {
+        name: "Apariencia y preferencias",
+        exact: true,
+      }),
     ).toBeAttached();
     await page.evaluate(() =>
       window.scrollTo({ top: 600, behavior: "instant" }),
