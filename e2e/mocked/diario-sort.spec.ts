@@ -26,7 +26,7 @@ test("Diario breaks period ties by start, finish, and name on desktop and mobile
     { title: "No start earlier finish", finished: "01/12/2025" },
     { title: "Zulu no dates" },
     { title: "Alpha no dates" },
-    { title: "Older period", period: "2024", started: "2026-01-01" },
+    { title: "Older period", period: "2024", started: "2026-01-01", rating: 99 },
     { title: "Unknown period", period: "", started: "2027-01-01" },
     { title: "Newer period", period: "2026", started: "2024-01-01" },
   ];
@@ -92,6 +92,9 @@ test("Diario breaks period ties by start, finish, and name on desktop and mobile
   ];
   const titles = page.locator("table .game-data-row .game-cell strong");
   await page.goto("./?tab=journal&year=all");
+  await expect(titles.first()).toHaveText("Older period");
+  // Explicit bookmarks keep their requested period order.
+  await page.goto("./?tab=journal&year=all&sort=period.desc");
   await expect(titles).toHaveText(descending);
   // Existing bookmarked sorts use the same tie-breakers, even without title in the URL.
   await page.goto("./?tab=journal&year=all&sort=period.desc");

@@ -12,7 +12,7 @@ export function defaultViewSort(view: string) {
     view === "library"
       ? { id: "started", desc: true }
       : view === "journal"
-        ? { id: "period", desc: true }
+        ? { id: "rating", desc: true }
         : view === "upcoming"
           ? { id: "year", desc: false }
           : view === "wishlist"

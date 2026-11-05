@@ -139,10 +139,6 @@ test("Diario combines reviews, includes played states, and persists its status f
   await expect(
     textOnly.getByLabel("Sin valoración", { exact: true }),
   ).toBeVisible();
-  await page.getByRole("button", { name: "Valoración", exact: true }).click();
-  await expect(table.locator(".game-data-row").first()).toContainText(
-    "Reseña preferida",
-  );
   expect(
     await page
       .locator(".table-scroll")

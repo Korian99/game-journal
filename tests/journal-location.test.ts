@@ -82,6 +82,22 @@ it("defaults Histórico to all years and Biblioteca to the current year", () => 
     ],
   });
 });
+it("defaults Histórico to highest Valoración while respecting bookmarked sorts", () => {
+  const history = location.readJournalLocation("?tab=journal", "2027");
+  expect(history.sort).toEqual([
+    { id: "rating", desc: true },
+    { id: "title", desc: false },
+  ]);
+  expect(
+    location.readJournalLocation(
+      "?tab=journal&sort=period.asc,title.desc",
+      "2027",
+    ).sort,
+  ).toEqual([
+    { id: "period", desc: false },
+    { id: "title", desc: true },
+  ]);
+});
 it("round trips all years, no sorting, and Unicode platform names", () => {
   const state = location.readJournalLocation(
     "?tab=journal&year=all&platform=Consola+de+Jos%C3%A9&sort=none",
