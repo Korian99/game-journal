@@ -69,18 +69,18 @@ import {
 } from "../imports/import-review-dialog";
 import { useJournalColumns } from "./journal-columns";
 import { JournalGameTable } from "./journal-game-table";
-import { JournalSummary } from "./journal-summary";
+import { JournalSummary } from "@/features/library/journal-summary";
 import { JournalToolbar } from "./journal-toolbar";
 import {
   NotebookCollectionHeading,
   NotebookLibraryToolbar,
-} from "./notebook-library-toolbar";
+} from "@/features/library/games/notebook-library-toolbar";
 import { Notebook } from "./notebook";
 import { NotificationDrawer } from "../notifications/notification-drawer";
 import { StatisticsPanel } from "./statistics-panel";
-import { SeriesManager } from "./series/series-manager";
+import { SeriesManager } from "@/features/library/series/series-manager";
 import { NotificationSettings } from "../settings/notification-settings";
-import "./notebook-library.css";
+import "@/features/library/notebook-library.css";
 import "./notebook-theme.css";
 
 const nav = [

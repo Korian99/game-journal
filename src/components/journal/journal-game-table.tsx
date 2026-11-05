@@ -9,12 +9,12 @@ import { wishlistPlatforms } from "@/lib/offers/wishlist-display";
 import type { Table } from "@tanstack/react-table";
 import { flexRender } from "@tanstack/react-table";
 import { ArrowUpDown, Pencil } from "lucide-react";
-import { JournalReview } from "./journal-review";
+import { JournalReview } from "@/features/library/history/journal-review";
 import { HypeBadge } from "../games/hype-badge";
 import { OwnershipBadge } from "../games/ownership-badge";
 import { PriorityMark } from "../games/priority-mark";
 import { WishlistPrice } from "../offers/wishlist-price";
-import { NotebookLibraryEntries } from "./notebook-library-entries";
+import { NotebookLibraryEntries } from "@/features/library/notebook-library-entries";
 import { GameRowArtwork } from "../games/game-cover";
 
 export function JournalGameTable({

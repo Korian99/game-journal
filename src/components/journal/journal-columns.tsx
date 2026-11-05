@@ -21,12 +21,12 @@ import {
 import type { SortingState } from "@tanstack/react-table";
 import { type ColumnDef } from "@tanstack/react-table";
 import { useMemo } from "react";
-import { JournalReview } from "./journal-review";
+import { JournalReview } from "@/features/library/history/journal-review";
 import { HypeBadge } from "../games/hype-badge";
 import {
   LibraryFinishReason,
   LibraryPlaythrough,
-} from "./library-game-details";
+} from "@/features/library/library-game-details";
 import { OwnershipBadge, getOwnershipInfo } from "../games/ownership-badge";
 import { PriorityMark } from "../games/priority-mark";
 import { WishlistPrice } from "../offers/wishlist-price";

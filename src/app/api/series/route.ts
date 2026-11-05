@@ -6,7 +6,7 @@ import {
   seriesDeleteSchema,
   seriesListSchema,
   seriesRecordSchema,
-} from "@/lib/series";
+} from "@/features/library/series/series";
 export const dynamic = "force-dynamic";
 const headers = { "Cache-Control": "private, no-store" };
 function canonical<T>(

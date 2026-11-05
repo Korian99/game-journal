@@ -3,7 +3,7 @@ import { databaseError } from "@/lib/api-errors";
 import { authorized, apiError } from "@/lib/auth";
 import { csvExport, excelExport, type ExportData } from "@/lib/export";
 import { formatDateTime } from "@/lib/journal/view-config";
-import { seriesListSchema } from "@/lib/series";
+import { seriesListSchema } from "@/features/library/series/series";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 type DB = Awaited<ReturnType<typeof authorized>>["db"];

@@ -4,7 +4,7 @@ import {
   seriesSaveSchema,
   reorderSeriesGames,
   getSeriesProgress,
-} from "../src/lib/series";
+} from "../src/features/library/series/series";
 import { emptyRecord } from "../src/lib/types";
 
 const play = (

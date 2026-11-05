@@ -7,7 +7,7 @@ import {
   seriesListSchema,
   seriesRecordSchema,
   type SeriesRecord,
-} from "@/lib/series";
+} from "./series";
 import type { JournalEntry } from "@/lib/journal/journal-types";
 import { GameCover } from "@/components/games/game-cover";
 import styles from "./series-manager.module.css";

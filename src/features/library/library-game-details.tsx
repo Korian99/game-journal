@@ -1,7 +1,7 @@
 import { formatDate } from "@/lib/journal/view-config";
 import type { JournalRecord } from "@/lib/types";
 import type { JournalEntry } from "@/lib/journal/journal-types";
-import { InlineField } from "./inline/inline-field";
+import { InlineField } from "@/components/journal/inline/inline-field";
 export function ReviewMark({
   rating,
   label = "Reseña",

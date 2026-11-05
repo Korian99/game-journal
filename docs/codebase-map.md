@@ -15,6 +15,8 @@ src/
     offers/            Store page editor and wishlist prices
     settings/          Invitations, backup status, and notifications
     ui/                Shared interface primitives, such as dialogs
+  features/
+    library/           Biblioteca modules, with games/, history/, series/, and shared collection UI
   hooks/               React state, effects, URL state, and filtered collections
   lib/
     journal/           View rules, dates, summaries, status, and journal types
@@ -23,7 +25,7 @@ src/
     ...                Shared types, validation, API helpers, and integrations
 ```
 
-Put a new component in its feature folder, a reusable stateful hook in `src/hooks`, and a calculation or formatting helper in the relevant `src/lib` folder. Shared helpers stay directly under `src/lib`. Route folders under `src/app` define URLs; the component folders do not.
+Put colocated Biblioteca UI and domain modules in `src/features/library` (games, history, series, or its shared parent); use `src/hooks` for reusable stateful hooks and `src/lib` for shared calculations, formatting, and types. Route folders under `src/app` define URLs; feature folders do not.
 
 ## Frontend responsibilities
 
@@ -36,7 +38,7 @@ Put a new component in its feature folder, a reusable stateful hook in `src/hook
 | src/components/journal/journal-columns.tsx      | Defines the table columns and sort behavior for each view. Common columns have names such as title and release rather than array positions. |
 | src/components/journal/journal-game-table.tsx   | Renders the sorted desktop rows and mobile cards.                                                                                           |
 | src/components/journal/journal-toolbar.tsx      | Renders search and filter controls.                                                                                                         |
-| src/components/journal/journal-summary.tsx      | Renders the totals and games per console for the filtered collection.                                                                       |
+| src/features/library/journal-summary.tsx        | Renders the totals and games per console for the filtered collection.                                                                       |
 | src/components/games/entry-editor.tsx           | Owns the entry draft, form tabs, validation feedback, and deletion confirmation.                                                            |
 | src/components/offers/offer-editor.tsx          | Edits an existing store page, its target price, and notification setting.                                                                   |
 | src/components/imports/import-review-dialog.tsx | Shows the import plan and collects conflict resolutions before applying it.                                                                 |
@@ -110,7 +112,7 @@ See improvements-setup.md for exact SQL rollout and real Google authorization/re
 
 ## Diario
 
-Diario reúne Recuerdo, Jugando, Terminado, No terminado y En pausa. Mantiene el año inicial 2024 y el orden por período; los filtros de estado y reseña y el orden de valoración se guardan en la URL. El filtro de reseña permite todas, con reseña o sin reseña; un cero cuenta como reseña, y la insignia de impresiones no sustituye ese campo. journal-review.tsx reúne reseña, memorabilidad e impresiones, usando reseña o impresiones numéricas × 10 en la insignia. Los campos originales se conservan sin conversión.
+Diario reúne Recuerdo, Jugando, Terminado, No terminado y En pausa. Mantiene el año inicial 2024 y el orden por período; los filtros de estado y reseña y el orden de valoración se guardan en la URL. El filtro de reseña permite todas, con reseña o sin reseña; un cero cuenta como reseña, y la insignia de impresiones no sustituye ese campo. `src/features/library/history/journal-review.tsx` reúne reseña, memorabilidad e impresiones, usando reseña o impresiones numéricas × 10 en la insignia. Los campos originales se conservan sin conversión.
 
 Lista de deseos muestra una única lista: se retiraron las tarjetas repetidas de precios que aparecían debajo de la tabla. Se mantienen prioridad, acceso, precios y descuentos en la lista.
 

@@ -1,6 +1,6 @@
 import { z } from "zod";
-import { effectiveCoverUrl, type Cover } from "./covers";
-import type { JournalEntry } from "./journal/journal-types";
+import { effectiveCoverUrl, type Cover } from "@/lib/covers";
+import type { JournalEntry } from "@/lib/journal/journal-types";
 
 type SeriesPlaythrough = Pick<
   JournalEntry,

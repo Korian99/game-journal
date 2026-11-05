@@ -9,8 +9,8 @@ import { statuses } from "@/lib/types";
 import { wishlistPlatforms } from "@/lib/offers/wishlist-display";
 import { InlineField } from "./inline-field";
 import { InlineEditContext } from "./inline-context";
-import { ReviewMark } from "../library-game-details";
-import { JournalScoreMark } from "../journal-review";
+import { ReviewMark } from "@/features/library/library-game-details";
+import { JournalScoreMark } from "@/features/library/history/journal-review";
 export function InlineIdentity({
   entry,
   view,

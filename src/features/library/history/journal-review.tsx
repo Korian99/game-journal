@@ -1,8 +1,8 @@
-import { InlineField } from "./inline/inline-field";
+import { InlineField } from "@/components/journal/inline/inline-field";
 import type { JournalEntry } from "@/lib/journal/journal-types";
 import type { JournalRecord } from "@/lib/types";
 import { journalReviewOrder } from "@/lib/journal/view-config";
-import { ReviewMark } from "./library-game-details";
+import { ReviewMark } from "../library-game-details";
 export function JournalScoreMark({ record }: { record: JournalRecord }) {
   return (
     <ReviewMark

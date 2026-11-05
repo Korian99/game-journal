@@ -1,5 +1,5 @@
 import fs from "node:fs";
-import { getSeriesProgress } from "../src/lib/series.ts";
+import { getSeriesProgress } from "../src/features/library/series/series.ts";
 import { disposableDatabase } from "./support/disposable-db.mjs";
 await disposableDatabase(async (sql) => {
   sql(fs.readFileSync("tests/series.integration.sql", "utf8"));
