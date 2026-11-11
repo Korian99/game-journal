@@ -65,6 +65,60 @@ function object(value: unknown): Record<string, unknown> {
     ? (value as Record<string, unknown>)
     : {};
 }
+const months = [
+  ["jan", "january", "ene", "enero"],
+  ["feb", "february", "febrero"],
+  ["mar", "march", "marzo"],
+  ["apr", "april", "abr", "abril"],
+  ["may", "mayo"],
+  ["jun", "june", "junio"],
+  ["jul", "july", "julio"],
+  ["aug", "august", "ago", "agosto"],
+  ["sep", "sept", "september", "septiembre"],
+  ["oct", "october", "octubre"],
+  ["nov", "november", "noviembre"],
+  ["dec", "december", "dic", "diciembre"],
+];
+function canonicalReleaseDate(value: unknown): string | undefined {
+  if (typeof value !== "string") return undefined;
+  const raw = value.replace(/\s+/g, " ").trim();
+  let normalized = raw;
+  if (/^\d{4}-\d{2}-\d{2}T/.test(raw)) normalized = raw.slice(0, 10);
+  if (/^\d{4}$/.test(normalized))
+    return Number(normalized) >= 1950 && Number(normalized) <= 2200
+      ? normalized
+      : undefined;
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(normalized)) {
+    const tokens = raw
+      .toLowerCase()
+      .replaceAll(",", "")
+      .replaceAll(".", "")
+      .split(/\s+/)
+      .filter((token) => token !== "de");
+    if (tokens.length !== 3) return undefined;
+    const monthFirst = months.findIndex((names) => names.includes(tokens[0]));
+    const dayFirst = months.findIndex((names) => names.includes(tokens[1]));
+    const month = monthFirst >= 0 ? monthFirst : dayFirst;
+    const day = monthFirst >= 0 ? tokens[1] : tokens[0];
+    const year = tokens[2];
+    if (month < 0 || !/^\d{1,2}$/.test(day) || !/^\d{4}$/.test(year))
+      return undefined;
+    normalized = `${year}-${String(month + 1).padStart(2, "0")}-${day.padStart(2, "0")}`;
+  }
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(normalized);
+  if (!match) return undefined;
+  const year = Number(match[1]),
+    month = Number(match[2]),
+    day = Number(match[3]);
+  const date = new Date(Date.UTC(year, month - 1, day));
+  return year >= 1950 &&
+    year <= 2200 &&
+    date.getUTCFullYear() === year &&
+    date.getUTCMonth() === month - 1 &&
+    date.getUTCDate() === day
+    ? normalized
+    : undefined;
+}
 export function parseSteam(response: unknown): Price {
   const result = object(response),
     d = object(result.data);
@@ -105,6 +159,7 @@ export function parseSteam(response: unknown): Price {
     currency: typeof p.currency === "string" ? p.currency : null,
     discount: typeof p.discount_percent === "number" ? p.discount_percent : 0,
     release: typeof release.date === "string" ? release.date : undefined,
+    releaseDate: canonicalReleaseDate(release.date),
   };
 }
 export function parseNintendo(html: string, url: string): Price {
@@ -113,6 +168,18 @@ export function parseNintendo(html: string, url: string): Price {
   const nodes: Record<string, unknown>[] = [];
   const quotes: Record<string, unknown>[] = [];
   let verifiedName: string | undefined;
+  let verifiedReleaseDate: string | undefined;
+  const pageRelease = canonicalReleaseDate(
+    $("h2,h3,dt")
+      .filter((_, element) =>
+        /^(release date|fecha de lanzamiento|fecha de estreno|fecha de salida)$/i.test(
+          $(element).text().replace(/\s+/g, " ").trim(),
+        ),
+      )
+      .first()
+      .next()
+      .text(),
+  );
   function structured(v: unknown) {
     if (Array.isArray(v)) {
       v.forEach(structured);
@@ -189,7 +256,12 @@ export function parseNintendo(html: string, url: string): Price {
     if (!candidate && nodes.filter((v) => v.offers && v.name).length !== 1)
       continue;
     const name = storeTitle(n.name);
-    if (candidate && name) verifiedName = name;
+    const releaseDate = canonicalReleaseDate(n.datePublished ?? n.releaseDate) ??
+      (candidate && name ? pageRelease : undefined);
+    if (candidate && name) {
+      verifiedName = name;
+      verifiedReleaseDate = releaseDate;
+    }
 
     if (
       offer &&
@@ -210,6 +282,7 @@ export function parseNintendo(html: string, url: string): Price {
       const regular = quote ? Number(quote.regularPrice) : final;
       return {
         name,
+        releaseDate,
         status: final === 0 ? "free" : "available",
         price: final,
         regular,
@@ -224,6 +297,7 @@ export function parseNintendo(html: string, url: string): Price {
   if (verifiedName)
     return {
       name: verifiedName,
+      releaseDate: verifiedReleaseDate,
       status: "unavailable",
       price: null,
       regular: null,

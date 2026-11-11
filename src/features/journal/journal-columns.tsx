@@ -21,6 +21,7 @@ import {
 import type { SortingState } from "@tanstack/react-table";
 import { type ColumnDef } from "@tanstack/react-table";
 import { useMemo } from "react";
+import { LoaderCircle } from "lucide-react";
 import { JournalReview } from "@/features/library/history/journal-review";
 import { HypeBadge } from "@/features/entries/hype-badge";
 import {
@@ -45,12 +46,14 @@ export function useJournalColumns({
   offers,
   sort,
   releaseNow,
+  refreshing,
   onEdit,
 }: {
   view: JournalView;
   offers: Offer[];
   sort: SortingState;
   releaseNow: Date;
+  refreshing: boolean;
   onEdit: (entry: JournalEntry) => void;
 }) {
   return useMemo<ColumnDef<JournalEntry>[]>(() => {
@@ -256,12 +259,27 @@ export function useJournalColumns({
           ...commonColumns.release,
           header: "Fecha de salida",
           cell: ({ row }) => (
-            <span className="upcoming-release-date">
-              <InlineField entry={row.original} view={view} field="release">
-                {releaseLabel(row.original)}
-              </InlineField>
-              {releaseHasArrived(row.original, releaseNow) && (
-                <span className="released-badge">Ya salió</span>
+            <span
+              className="upcoming-release-date"
+              aria-busy={refreshing}
+              role={refreshing ? "status" : undefined}
+              aria-label={refreshing ? "Actualizando fechas de lanzamiento" : undefined}
+            >
+              {refreshing ? (
+                <LoaderCircle
+                  size={14}
+                  className="save-spinner"
+                  aria-hidden="true"
+                />
+              ) : (
+                <>
+                  <InlineField entry={row.original} view={view} field="release">
+                    {releaseLabel(row.original)}
+                  </InlineField>
+                  {releaseHasArrived(row.original, releaseNow) && (
+                    <span className="released-badge">Ya salió</span>
+                  )}
+                </>
               )}
             </span>
           ),
@@ -314,6 +332,7 @@ export function useJournalColumns({
         cell: ({ row }) => (
           <WishlistPrice
             offers={offers.filter((o) => o.game_id === row.original.gameId)}
+            refreshing={refreshing}
           />
         ),
       },
@@ -341,5 +360,5 @@ export function useJournalColumns({
         ),
       },
     ];
-  }, [view, offers, sort, releaseNow, onEdit]);
+  }, [view, offers, sort, releaseNow, refreshing, onEdit]);
 }

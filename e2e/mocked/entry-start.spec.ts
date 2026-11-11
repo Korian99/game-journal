@@ -1015,3 +1015,65 @@ test("a conflicting page on a playing entry offers updating that entry instead o
     });
   expect(submissions[2].allowDuplicate).toBe(true);
 });
+test("saving a provider date from Próximos keeps the entry open and its playthrough fields", async ({
+  page,
+}) => {
+  const existing: JournalEntry = {
+    ...emptyRecord,
+    id: "20000000-0000-4000-8000-000000000001",
+    gameId: "30000000-0000-4000-8000-000000000001",
+    title: "Portal 2",
+    status: "upcoming",
+    release: "2027",
+    year: 2027,
+    notes: "Keep my notes",
+    updated_at: "2026-10-22T12:00:00Z",
+  };
+  const { saves } = await fixture(page, metadata, existing, "upcoming");
+  await page
+    .getByRole("button", { name: "Completar desde el buscador", exact: true })
+    .click();
+  await page.getByLabel("Buscar por título en Steam").fill("portal");
+  await page.getByRole("button", { name: "Buscar", exact: true }).click();
+  await page.getByRole("button", { name: "Portal 2" }).click();
+  await expect.poll(() => saves.length).toBe(1);
+  expect(saves[0]).toMatchObject({
+    id: existing.id,
+    title: existing.title,
+    status: "upcoming",
+    release: "2011-04-18",
+    year: 2011,
+    notes: "Keep my notes",
+    updated_at: existing.updated_at,
+  });
+  await expect(page.getByRole("heading", { name: "Tu partida" })).toBeVisible();
+  await expect(page.getByLabel("Nombre del juego", { exact: true })).toHaveValue(
+    existing.title,
+  );
+});
+
+test("selecting a provider outside Próximos does not persist its release date", async ({
+  page,
+}) => {
+  const existing: JournalEntry = {
+    ...emptyRecord,
+    id: "20000000-0000-4000-8000-000000000001",
+    gameId: "30000000-0000-4000-8000-000000000001",
+    title: "Portal 2",
+    status: "wishlist",
+    release: "2027",
+    year: 2027,
+    updated_at: "2026-10-22T12:00:00Z",
+  };
+  const { saves } = await fixture(page, metadata, existing, "wishlist");
+  await page
+    .getByRole("button", { name: "Completar desde el buscador", exact: true })
+    .click();
+  await page.getByLabel("Buscar por título en Steam").fill("portal");
+  await page.getByRole("button", { name: "Buscar", exact: true }).click();
+  await page.getByRole("button", { name: "Portal 2" }).click();
+  await expect(page.getByLabel("Nombre del juego", { exact: true })).toHaveValue(
+    "Portal 2",
+  );
+  expect(saves).toHaveLength(0);
+});

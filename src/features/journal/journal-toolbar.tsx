@@ -13,6 +13,7 @@ import {
   ChevronDown,
   ArrowDownUp,
   RefreshCw,
+  LoaderCircle,
   Search,
   SlidersHorizontal,
 } from "lucide-react";
@@ -61,13 +62,15 @@ export function JournalToolbar({
   platforms,
   yearOptions,
   busy,
+  refreshing,
   onRefresh,
 }: {
   location: ReturnType<typeof useJournalLocation>;
   platforms: string[];
   yearOptions: string[];
   busy: boolean;
-  onRefresh: () => void;
+  refreshing: boolean;
+  onRefresh: () => void | Promise<unknown>;
 }) {
   const {
     view,
@@ -296,9 +299,24 @@ export function JournalToolbar({
           </label>
         )}
         {["wishlist", "upcoming"].includes(view) && (
-          <button className="secondary" disabled={busy} onClick={onRefresh}>
-            <RefreshCw size={15} />
-            Actualizar precios
+          <button
+            className="secondary"
+            disabled={busy || refreshing}
+            aria-busy={refreshing}
+            onClick={() => void onRefresh()}
+          >
+            {refreshing ? (
+              <LoaderCircle size={15} className="save-spinner" aria-hidden="true" />
+            ) : (
+              <RefreshCw size={15} aria-hidden="true" />
+            )}
+            <span aria-live="polite" aria-atomic="true">
+              {refreshing
+                ? view === "upcoming"
+                  ? "Actualizando precios y fechas…"
+                  : "Actualizando precios…"
+                : "Actualizar precios"}
+            </span>
           </button>
         )}
       </div>

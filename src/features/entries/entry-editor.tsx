@@ -28,6 +28,8 @@ import {
   statusAfterDateEdits,
 } from "@/lib/journal/entry-status";
 import { parseRelease } from "@/lib/releases";
+import { upcomingReleaseUpdate } from "@/features/stores/upcoming-release";
+import type { JournalView } from "@/lib/journal/journal-location";
 import type {
   JournalEntry,
   PerformJournalAction,
@@ -66,11 +68,15 @@ export function EntryEditor({
   runAction,
   actionError,
   online = true,
+  view,
+  onReleaseFound,
 }: {
   entry: JournalEntry;
   initialDraft?: JournalEntry;
   actionError?: string;
   online?: boolean;
+  view: JournalView;
+  onReleaseFound?: (release: { release: string; year: number }) => Promise<JournalEntry | null>;
   offers: Offer[];
   members: SharingMember[];
   grants: ShareGrant[];
@@ -226,8 +232,30 @@ export function EntryEditor({
     setPageUrl("");
     setPageError("");
     setReleaseError("");
+    setReleaseSaveError("");
     setActiveTab("main");
     setStep("editor");
+    const releaseUpdate = upcomingReleaseUpdate(
+      view,
+      entry.status,
+      preview.fields.release,
+    );
+    if (step === "search" && entry.id && releaseUpdate && onReleaseFound) {
+      void onReleaseFound(releaseUpdate).then((saved) => {
+        if (saved) {
+          setDraft((current) => ({
+            ...current,
+            release: saved.release,
+            year: saved.year,
+            updated_at: saved.updated_at,
+          }));
+        } else {
+          setReleaseSaveError("No se pudo guardar la fecha de Próximos.");
+        }
+      }).catch(() => {
+        setReleaseSaveError("No se pudo guardar la fecha de Próximos.");
+      });
+    }
   }
   const [pageUrl, setPageUrl] = useState("");
   const [recipientId, setRecipientId] = useState("");
@@ -235,6 +263,7 @@ export function EntryEditor({
   const [activeTab, setActiveTab] = useState("main");
   const [pageError, setPageError] = useState("");
   const [releaseError, setReleaseError] = useState("");
+  const [releaseSaveError, setReleaseSaveError] = useState("");
   const [confirmDiscard, setConfirmDiscard] = useState(false);
   const dirty =
     JSON.stringify(draft) !== JSON.stringify(entry) ||
@@ -633,6 +662,11 @@ export function EntryEditor({
               draft.pages?.includes(storePreview.url) && (
                 <StorePreviewCard preview={storePreview} />
               )}
+            {activeTab === "main" && releaseSaveError && (
+              <p className="error" role="alert">
+                {releaseSaveError}
+              </p>
+            )}
             <MainTab
               online={online}
               draft={draft}

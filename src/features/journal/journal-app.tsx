@@ -158,6 +158,8 @@ export function JournalApp({
     setError,
   });
   const [releaseNow, setReleaseNow] = useState(() => new Date());
+  const [refreshingPrices, setRefreshingPrices] = useState(false);
+  const refreshInFlight = useRef(false);
   const [editingEntry, setEditingEntry] = useState<JournalEntry | null>(null);
   const [editingDraft, setEditingDraft] = useState<JournalEntry | undefined>(
     undefined,
@@ -306,6 +308,7 @@ export function JournalApp({
     offers,
     sort,
     releaseNow,
+    refreshing: refreshingPrices,
     onEdit: openEntry,
   });
   const table = useReactTable({
@@ -1042,12 +1045,21 @@ export function JournalApp({
                   platforms={platforms}
                   yearOptions={yearOptions}
                   busy={busy}
-                  onRefresh={() =>
-                    performAction(
-                      () => apiRequest("/api/refresh", "POST", {}),
-                      "Precios consultados.",
-                    )
-                  }
+                  refreshing={refreshingPrices}
+                  onRefresh={async () => {
+                    if (busy || refreshInFlight.current) return;
+                    refreshInFlight.current = true;
+                    setRefreshingPrices(true);
+                    try {
+                      await performAction(
+                        () => apiRequest("/api/refresh", "POST", {}),
+                        "Precios consultados.",
+                      );
+                    } finally {
+                      refreshInFlight.current = false;
+                      setRefreshingPrices(false);
+                    }
+                  }}
                 />
               )}
               <div className={"collection-layout"}>
@@ -1083,6 +1095,7 @@ export function JournalApp({
                         view={view}
                         offers={offers}
                         releaseNow={releaseNow}
+                        refreshing={refreshingPrices}
                         onQuickEdit={(entry) => {
                           if (
                             inlineEditing.dirty ||
@@ -1182,7 +1195,7 @@ export function JournalApp({
           key={editingEntry.id ?? "new"}
           entry={editingEntry}
           initialDraft={editingDraft}
-          saving={savingEntry}
+          saving={savingEntry || inlineEditing.saving}
           actionError={error}
           offers={offers.filter((o) => o.game_id === editingEntry.gameId)}
           members={sharing.members}
@@ -1215,6 +1228,25 @@ export function JournalApp({
             return removed;
           }}
           runAction={performAction}
+          view={view}
+          onReleaseFound={async (release) => {
+            if (view !== "upcoming" || editingEntry.status !== "upcoming")
+              return null;
+            const saved = await inlineEditing.saveDraft(
+              editingEntry,
+              { ...editingEntry, ...release },
+              "Fecha de lanzamiento",
+            );
+            if (saved)
+              setEditingEntry((current) =>
+                current &&
+                current.id === editingEntry.id &&
+                current.updated_at === editingEntry.updated_at
+                  ? saved
+                  : current,
+              );
+            return saved;
+          }}
         />
       )}
       {duplicate && (

@@ -1,9 +1,32 @@
 import type { Offer } from "@/lib/types";
+import { LoaderCircle } from "lucide-react";
 
-export function WishlistPrice({ offers }: { offers: Offer[] }) {
-  if (!offers.length) return <span className="muted">Sin precio</span>;
+export function WishlistPrice({
+  offers,
+  refreshing = false,
+}: {
+  offers: Offer[];
+  refreshing?: boolean;
+}) {
+  if (refreshing)
+    return (
+      <span
+        className="wishlist-prices"
+        aria-busy="true"
+        role="status"
+        aria-label="Actualizando precios"
+      >
+        <LoaderCircle size={14} className="save-spinner" aria-hidden="true" />
+      </span>
+    );
+  if (!offers.length)
+    return (
+      <span className="wishlist-prices" aria-busy="false">
+        <span className="muted">Sin precio</span>
+      </span>
+    );
   return (
-    <span className="wishlist-prices">
+    <span className="wishlist-prices" aria-busy="false">
       {offers.map((offer) => (
         <span className="wishlist-quote" key={offer.id}>
           <span className="wishlist-price-line">

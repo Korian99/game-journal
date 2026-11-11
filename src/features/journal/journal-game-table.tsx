@@ -21,6 +21,7 @@ export function JournalGameTable({
   view,
   offers,
   releaseNow,
+  refreshing,
   onQuickEdit,
   entryRowClass,
   focusedEntry = "",
@@ -29,6 +30,7 @@ export function JournalGameTable({
   view: JournalView;
   offers: Offer[];
   releaseNow: Date;
+  refreshing: boolean;
   onQuickEdit: (entry: JournalEntry) => void;
   entryRowClass: (entry: JournalEntry) => string | undefined;
   focusedEntry?: string;
@@ -102,6 +104,7 @@ export function JournalGameTable({
                       entry={r}
                       offers={offers}
                       releaseNow={releaseNow}
+                      refreshing={refreshing}
                     />
                   ) : view === "wishlist" ? (
                     <>
@@ -117,6 +120,7 @@ export function JournalGameTable({
                       <small>Hs. estimadas: {r.estimated || "—"}</small>
                       <WishlistPrice
                         offers={offers.filter((o) => o.game_id === r.gameId)}
+                        refreshing={refreshing}
                       />
                     </>
                   ) : (

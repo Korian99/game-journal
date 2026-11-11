@@ -39,6 +39,20 @@ describe("store URLs", () => {
     ).toBe("steam:620:AR"));
 });
 describe("prices", () => {
+  it("keeps Steam's raw release label and adds only a validated canonical date", () => {
+    const p = parseSteam({
+      success: true,
+      data: { name: "Known date", release_date: { date: "18 Apr, 2011" } },
+    });
+    expect(p.release).toBe("18 Apr, 2011");
+    expect(p.releaseDate).toBe("2011-04-18");
+    expect(
+      parseSteam({
+        success: true,
+        data: { release_date: { date: "To be announced" } },
+      }).releaseDate,
+    ).toBeUndefined();
+  });
   it("preserves Steam currency and zero prices", () => {
     const p = parseSteam({
       success: true,
@@ -490,6 +504,7 @@ describe("store titles", () => {
         "@type": "Product",
         url,
         name: "  Nintendo \n Title  ",
+        datePublished: "2027-03-05",
       }) +
       "</script>";
     expect(parseNintendo(html, url)).toMatchObject({
@@ -497,7 +512,16 @@ describe("store titles", () => {
       status: "unavailable",
       price: null,
       currency: null,
+      releaseDate: "2027-03-05",
     });
+  });
+  it("uses a Nintendo release label only from the matching product page", () => {
+    const url = "https://www.nintendo.com/es-ar/store/products/test-switch/";
+    const html =
+      '<script type="application/ld+json">' +
+      JSON.stringify({ "@type": "Product", url, name: "Test" }) +
+      "</script><h3>Fecha de lanzamiento</h3><div>12 de junio de 2018</div>";
+    expect(parseNintendo(html, url).releaseDate).toBe("2018-06-12");
   });
   it("rejects missing or unrelated Nintendo metadata instead of accepting page chrome", () => {
     const url = "https://www.nintendo.com/es-ar/store/products/test-switch/";

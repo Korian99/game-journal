@@ -69,6 +69,7 @@ export type Price = {
   currency: string | null;
   discount: number;
   release?: string;
+  releaseDate?: string;
 };
 export const statuses: Record<Status, string> = {
   playing: "Jugando",
