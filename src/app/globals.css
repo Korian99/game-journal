@@ -3071,6 +3071,16 @@ tbody.game-entry-group + tbody.game-entry-group > tr:first-child > td {
   grid-template-columns: 1fr 1fr;
   gap: 14px;
 }
+.quick-editor-status-row {
+  align-items: end;
+  margin-bottom: 18px;
+}
+.quick-editor-status-row > label {
+  margin-bottom: 0;
+}
+.quick-editor-status-row > div {
+  justify-self: end;
+}
 .quick-editor-body input,
 .quick-editor-body select {
   min-height: 44px;

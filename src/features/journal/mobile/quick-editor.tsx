@@ -34,6 +34,7 @@ export function QuickEditor({
   const [fields, setFields] = useState(() => quickFields(entry));
   const [confirmDiscard, setConfirmDiscard] = useState(false);
   const [error, setError] = useState("");
+  const [transitioningTo, setTransitioningTo] = useState<"playing" | "completed" | "">("");
   const intro = useRef<HTMLParagraphElement>(null),
     keepEditing = useRef<HTMLButtonElement>(null);
   const inFlight = useRef(false),
@@ -46,6 +47,9 @@ export function QuickEditor({
     "abandoned",
     "remembered",
   ].includes(fields.status);
+  const canStart = ["wishlist", "upcoming", "backlog", "paused", "abandoned"].includes(
+    entry.status,
+  );
   function requestClose() {
     if (saving || inFlight.current) return false;
     if (dirty) {
@@ -88,6 +92,23 @@ export function QuickEditor({
       inFlight.current = false;
     }
   }
+  async function saveStatusTransition(status: "playing" | "completed") {
+    if (!online || saving || inFlight.current || transitioningTo) return;
+    setError("");
+    setTransitioningTo(status);
+    inFlight.current = true;
+    try {
+      const draft = quickDraft(entry, { ...fields, status });
+      if (await onSave(entry, draft)) onClose();
+    } catch (failure) {
+      setError(
+        failure instanceof Error ? failure.message : "No se pudo guardar.",
+      );
+    } finally {
+      inFlight.current = false;
+      setTransitioningTo("");
+    }
+  }
   function full() {
     if (saving || inFlight.current) return;
     setError("");
@@ -107,9 +128,9 @@ export function QuickEditor({
       title="Edición rápida"
       variant="sheet"
       onClose={requestClose}
-      closeDisabled={saving}
+      closeDisabled={saving || !!transitioningTo}
       onEscapeKeyDown={(event) => {
-        if (saving) event.preventDefault();
+        if (saving || inFlight.current) event.preventDefault();
       }}
       onOpenAutoFocus={(event) => {
         event.preventDefault();
@@ -153,21 +174,65 @@ export function QuickEditor({
               void save();
             }}
           >
-            <fieldset disabled={saving || !online}>
-              <label>
-                Estado
-                <select
-                  aria-label="Estado"
-                  value={fields.status}
-                  onChange={(event) => update("status", event.target.value)}
-                >
-                  {Object.entries(statuses).map(([value, label]) => (
-                    <option key={value} value={value}>
-                      {label}
-                    </option>
-                  ))}
-                </select>
-              </label>
+            <fieldset disabled={saving || !online || !!transitioningTo}>
+              <div className="quick-editor-numbers quick-editor-status-row">
+                <label>
+                  Estado
+                  <select
+                    aria-label="Estado"
+                    value={fields.status}
+                    onChange={(event) => update("status", event.target.value)}
+                  >
+                    {Object.entries(statuses).map(([value, label]) => (
+                      <option key={value} value={value}>
+                        {label}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <div>
+                  {canStart && (
+                    <button
+                      type="button"
+                      className="secondary"
+                      disabled={saving || !online || !!transitioningTo}
+                      aria-busy={transitioningTo === "playing"}
+                      onClick={() =>
+                        void saveStatusTransition("playing")
+                      }
+                    >
+                      {transitioningTo === "playing" && (
+                        <LoaderCircle size={15} className="save-spinner" />
+                      )}
+                      {transitioningTo === "playing"
+                        ? entry.status === "paused"
+                          ? "Retomando…"
+                          : "Empezando…"
+                        : entry.status === "paused"
+                          ? "Retomar"
+                          : "Empezar"}
+                    </button>
+                  )}
+                  {entry.status === "playing" && (
+                    <button
+                      type="button"
+                      className="secondary"
+                      disabled={saving || !online || !!transitioningTo}
+                      aria-busy={transitioningTo === "completed"}
+                      onClick={() =>
+                        void saveStatusTransition("completed")
+                      }
+                    >
+                      {transitioningTo === "completed" && (
+                        <LoaderCircle size={15} className="save-spinner" />
+                      )}
+                      {transitioningTo === "completed"
+                        ? "Terminando…"
+                        : "Terminar"}
+                    </button>
+                  )}
+                </div>
+              </div>
               {played ? (
                 <div className="quick-editor-numbers">
                   <label>
@@ -213,7 +278,7 @@ export function QuickEditor({
               <button
                 type="button"
                 className="text-button"
-                disabled={saving}
+                disabled={saving || !!transitioningTo}
                 onClick={full}
               >
                 Abrir formulario completo
@@ -222,7 +287,7 @@ export function QuickEditor({
                 <button
                   type="button"
                   className="secondary"
-                  disabled={saving}
+                  disabled={saving || !!transitioningTo}
                   onClick={requestClose}
                 >
                   Cancelar
@@ -230,7 +295,7 @@ export function QuickEditor({
                 <button
                   type="submit"
                   className="primary"
-                  disabled={saving || !online || !dirty}
+                  disabled={saving || !!transitioningTo || !online || !dirty}
                 >
                   {saving ? (
                     <>
