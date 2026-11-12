@@ -1,6 +1,21 @@
 begin;
 insert into auth.users(id,email) values('abababab-abab-4bab-8bab-ababababab01','drive-fixture@example.invalid'),('abababab-abab-4bab-8bab-ababababab02','drive-other@example.invalid');
 insert into public.members(id,display_name) values('abababab-abab-4bab-8bab-ababababab01','Drive fixture'),('abababab-abab-4bab-8bab-ababababab02','Drive other');
+set local role service_role;
+do $$ declare owner uuid:='abababab-abab-4bab-8bab-ababababab01';result jsonb;
+begin
+ perform public.drive_backup_admin('oauth_begin',owner,'{"stateHash":"service-fixture","verifier":"service-verifier"}');
+ result:=public.drive_backup_admin('oauth_consume',owner,'{"stateHash":"service-fixture"}');
+ if result->>'verifier'<>'service-verifier' then raise exception 'Service-role OAuth state lost';end if;
+ begin
+  perform public.drive_backup_admin('oauth_consume',owner,'{"stateHash":"service-fixture"}');
+  raise exception 'Service-role OAuth state replay accepted';
+ exception when raise_exception then
+  if sqlerrm='Service-role OAuth state replay accepted' then raise;end if;
+  if sqlerrm<>'OAuth vencido o ya utilizado' then raise;end if;
+ end;
+end $$;
+reset role;
 do $$ declare owner uuid:='abababab-abab-4bab-8bab-ababababab01';source uuid;work jsonb;again jsonb;ids jsonb:='{"json":"json_fixture","excel":"excel_fixture","manifest":"manifest_fixture"}';
 begin
  source:=private.capture_daily_backup(owner);
