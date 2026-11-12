@@ -10,6 +10,7 @@ import {
 import { formatDateTime } from "@/lib/journal/view-config";
 import { createResource } from "@/lib/resource";
 import { Modal } from "@/components/ui/dialog";
+import styles from "../../app/(public)/public.module.css";
 export function DriveBackupPanel({
   details = true,
 }: { details?: boolean } = {}) {
@@ -120,7 +121,12 @@ export function DriveBackupPanel({
       <h2>Copia en Google Drive</h2>
       <p className="fine-print">
         JSON y Excel en una carpeta privada. La planilla original no se
-        modifica.
+        modifica. <a href="/privacy">Cómo se usan tus datos de Google</a>.
+      </p>
+      <p className={styles.backupRisk}>
+        <strong>Copias experimentales:</strong> pueden fallar, quedar
+        incompletas o perderse. No se garantiza su recuperación. Conservá copias
+        independientes. <a href="/terms">Ver riesgos</a>.
       </p>
       {error && (
         <p className="error" role="alert">
@@ -213,7 +219,7 @@ export function DriveBackupPanel({
       )}
       {status?.connected && (
         <p className="fine-print">
-          Se conservan 30 copias diarias y 12 mensuales.
+          Retención configurada: 30 copias diarias y 12 mensuales.
         </p>
       )}
       {confirmDisconnect && (
