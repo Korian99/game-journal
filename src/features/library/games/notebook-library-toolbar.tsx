@@ -52,13 +52,22 @@ export function NotebookCollectionHeading({
         <h1>{title}</h1>
       </div>
       {libraryPresentation && onLibraryPresentationChange && (
-        <button
-          type="button"
-          className="library-notebook-view-toggle"
-          onClick={() => onLibraryPresentationChange(libraryPresentation === "notebook" ? "list" : "notebook")}
-        >
-          {libraryPresentation === "notebook" ? "Ver lista" : "Abrir cuaderno"}
-        </button>
+        <div className="library-layout-switch" role="group" aria-label="Vista de Biblioteca">
+          <button
+            type="button"
+            aria-pressed={libraryPresentation === "notebook"}
+            onClick={() => libraryPresentation !== "notebook" && onLibraryPresentationChange("notebook")}
+          >
+            Cuaderno
+          </button>
+          <button
+            type="button"
+            aria-pressed={libraryPresentation === "list"}
+            onClick={() => libraryPresentation !== "list" && onLibraryPresentationChange("list")}
+          >
+            Lista
+          </button>
+        </div>
       )}
       <button className="primary notebook-library-add" onClick={onAdd}>
         <Plus size={17} aria-hidden="true" />

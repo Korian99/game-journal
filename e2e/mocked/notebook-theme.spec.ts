@@ -284,6 +284,31 @@ test("Biblioteca notebook selection, mobile return, and quick edit work", async 
   await expect(page.locator(".modal-content")).toHaveCount(0);
 });
 
+test("notebook exposes guarded inline fields and keeps dirty edits on selection", async ({ page }) => {
+  await page.addInitScript(() => localStorage.setItem("journal-library-layout", "notebook"));
+  await mockApp(page);
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await page.goto("./?tab=library");
+  const index = page.getByRole("navigation", { name: "Juegos de la Biblioteca" });
+  await index.getByRole("button", { name: "Theme fixture" }).click();
+  await page.getByRole("button", { name: "Editar Nombre de Theme fixture" }).click();
+  const title = page.getByRole("textbox", { name: "Nombre" });
+  await expect(title).toBeVisible();
+  await title.fill("Theme draft");
+  await expect(page.locator(".inline-edit-bar")).toContainText("Theme fixture");
+  await expect(index.getByRole("button", { name: "Playing fixture" })).toBeDisabled();
+  await page.getByRole("group", { name: "Vista de Biblioteca" }).getByRole("button", { name: "Lista" }).click();
+  await expect(page.locator(".library-notebook-spread")).toBeVisible();
+  const search = page.getByRole("textbox", { name: "Buscar juegos en esta lista" });
+  await search.fill("Playing fixture");
+  await expect(index.getByRole("button", { name: "Theme fixture" })).toHaveCount(0);
+  await expect(page.locator(".inline-edit-bar")).toContainText("Theme fixture");
+  await search.fill("");
+  await page.getByRole("button", { name: "Cancelar edición" }).click();
+  await index.getByRole("button", { name: "Playing fixture" }).click();
+  await expect(page.locator(".library-notebook-page")).toContainText("Playing fixture");
+});
+
 test("discounted wishlist and released upcoming highlights follow the light theme", async ({
   page,
 }) => {

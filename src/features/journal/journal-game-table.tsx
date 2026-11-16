@@ -166,7 +166,7 @@ export function JournalGameTable({
           ))
         )}
       </div>
-      <div className="table-scroll journal-desktop-table">
+      {(view !== "library" || libraryPresentation === "list") && <div className="table-scroll journal-desktop-table">
         <table
           className={
             view === "upcoming"
@@ -252,7 +252,7 @@ export function JournalGameTable({
             );
           })}
         </table>
-      </div>
+      </div>}
     </div>
   );
 }

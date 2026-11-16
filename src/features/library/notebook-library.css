@@ -1191,7 +1191,7 @@
 @media (max-width: 640px) {
   .notebook-library-heading { display: grid; grid-template-columns: minmax(0, 1fr) auto; }
   .notebook-library-heading > div:first-child { grid-column: 1 / -1; }
-  .notebook-library-heading > .library-notebook-view-toggle { grid-column: 1; grid-row: 2; justify-self: start; }
+  .notebook-library-heading > .library-layout-switch { grid-column: 1; grid-row: 2; justify-self: start; }
   .notebook-library-heading .notebook-library-add { grid-column: 2; grid-row: 2; }
 }
 
@@ -1202,15 +1202,15 @@
 .notebook-library .library-layout-list .notebook-entry-list { display: none; }
 .library-notebook-spread { --text: #332a21; --muted: #766953; --accent: #8c642a; --line: #c5b697; --surface: #f3ead8; --raised: #eee2cc; --ink: #f3ead8; display: grid; min-height: min(690px, calc(100dvh - 290px)); grid-template-columns: minmax(230px, .78fr) minmax(0, 1.7fr); overflow: hidden; border: 12px solid #153f40; border-radius: 8px 12px 12px 8px; background: #153f40; box-shadow: 0 18px 38px rgb(0 0 0 / 24%), inset 0 0 0 1px #8b7448; }
 .library-notebook-index, .library-notebook-page { position: relative; min-width: 0; color: #332a21; background-color: #f3ead8; background-image: repeating-linear-gradient(to bottom, transparent 0 31px, rgb(68 112 139 / 12%) 32px 33px); }
-.library-notebook-index { padding: 25px 18px 20px 24px; border-right: 1px solid #cdbd9f; box-shadow: inset -9px 0 14px rgb(47 38 25 / 10%); }
-.library-notebook-index::before, .library-notebook-page::before { position: absolute; top: 0; bottom: 0; left: 47px; width: 1px; background: rgb(177 79 64 / 48%); content: ""; pointer-events: none; }
-.library-notebook-index h2 { margin: 0 0 3px 30px; color: #214d4b; font: normal 30px/1.2 Georgia, "Palatino Linotype", serif; }
+.library-notebook-index { padding: 20px 16px 18px; border-right: 2px solid rgb(177 79 64 / 52%); box-shadow: inset -9px 0 14px rgb(47 38 25 / 10%); }
+.library-notebook-index h2 { margin: 0 0 3px; color: #214d4b; font: normal 30px/1.2 Georgia, "Palatino Linotype", serif; }
 .library-notebook-index-count { margin: 0 0 14px 30px; color: #766953; font-size: 12px; }
-.library-notebook-view-toggle { display: inline-flex; min-height: 34px; align-items: center; margin: 0 0 12px 30px; padding: 0 8px; border: 1px solid #c5b697; color: #214d4b; background: rgb(255 255 255 / 35%); font-size: 12px; cursor: pointer; }
-.library-notebook-view-toggle.list-mode { margin: 0 0 12px; }
-.notebook-library-heading > .library-notebook-view-toggle { min-height: 42px; margin: 0; white-space: nowrap; }
+.library-layout-switch { display: inline-flex; min-height: 42px; align-items: center; gap: 2px; margin: 0; padding: 3px; border: 1px solid var(--line); border-radius: 6px; background: var(--surface); }
+.library-layout-switch button { min-height: 34px; padding: 0 12px; border: 0; border-radius: 4px; color: var(--muted); background: transparent; font: 600 13px/1 var(--font-body); cursor: pointer; }
+.library-layout-switch button[aria-pressed="true"] { color: var(--ink); background: var(--accent); box-shadow: 0 1px 2px rgb(0 0 0 / 16%); }
+.library-layout-switch button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .notebook-library:has(.library-notebook-spread) .notebook-library-heading { min-height: 0; margin-bottom: 12px; }
-.library-notebook-index nav { display: grid; max-height: calc(100% - 78px); gap: 2px; overflow: auto; padding-left: 30px; }
+.library-notebook-index nav { display: grid; max-height: calc(100% - 54px); gap: 2px; overflow: auto; padding-left: 0; }
 .library-notebook-index nav button { display: grid; min-height: 48px; grid-template-columns: 30px minmax(0, 1fr); align-content: center; align-items: center; gap: 2px 8px; padding: 5px 8px; border: 0; border-bottom: 1px solid rgb(99 83 59 / 20%); color: #332a21; background: transparent; text-align: left; cursor: pointer; }
 .library-notebook-index nav button .game-cover { grid-row: span 2; width: 30px; height: 38px; aspect-ratio: auto; border-radius: 0; }
 .library-notebook-index nav button small { grid-column: 2; }
@@ -1218,9 +1218,9 @@
 .library-notebook-index nav button span { overflow: hidden; font: 15px/1.25 Georgia, "Palatino Linotype", serif; text-overflow: ellipsis; white-space: nowrap; }
 .library-notebook-index nav button small { color: #766953; font-size: 11px; }
 .library-notebook-index nav button.is-selected { border-left: 3px solid #b2863d; background: rgb(178 134 61 / 12%); }
+.library-notebook-index nav button:disabled, .library-notebook-back:disabled { cursor: not-allowed; opacity: .72; }
 .library-notebook-index nav button:focus-visible, .library-notebook-back:focus-visible { outline: 2px solid #214d4b; outline-offset: 2px; }
-.library-notebook-page { padding: 30px clamp(24px, 4vw, 56px) 34px 69px; box-shadow: inset 8px 0 16px rgb(47 38 25 / 9%); }
-.library-notebook-page::before { left: 30px; }
+.library-notebook-page { padding: 28px clamp(24px, 4vw, 50px) 30px 34px; box-shadow: inset 8px 0 16px rgb(47 38 25 / 9%); }
 .library-notebook-back { display: none; }
 .library-notebook-page-heading { display: grid; grid-template-columns: 126px minmax(0, 1fr) auto; align-items: center; gap: 24px; }
 .library-notebook-cover { position: relative; padding: 5px; background: #fffdf7; box-shadow: 0 3px 8px rgb(40 32 20 / 24%); transform: rotate(-2deg); }
@@ -1240,20 +1240,21 @@
 .library-notebook-notes section { margin: 0 0 18px; }
 .library-notebook-notes h4 { margin: 0 0 4px; color: #766953; font: 12px/1.3 var(--font-body); }
 .library-notebook-notes p, .library-notebook-notes .game-comments-text { margin: 0; color: #343b35; font: 16px/1.8 Georgia, "Palatino Linotype", serif; white-space: pre-wrap; }
+.library-notebook-writing { display: inline-block; max-width: 100%; color: #343b35; font: 16px/1.8 Georgia, "Palatino Linotype", serif; white-space: pre-wrap; }
+.library-notebook-page-heading h2 .inline-value { max-width: 100%; color: inherit; font: inherit; }
+.library-notebook-page .inline-pencil { opacity: .55; }
 .library-notebook-empty-note { color: #766953; font: italic 15px/1.5 Georgia, "Palatino Linotype", serif; }
 
 @media (max-width: 760px), (pointer: coarse) {
   .notebook-library .library-layout-notebook .journal-desktop-table:has(.library-table) { display: none; }
   .notebook-library .library-layout-list .notebook-entry-list { display: grid; }
   .library-notebook-spread { display: block; min-height: 0; overflow: hidden; border-width: 8px; }
-  .library-notebook-index { min-height: 390px; padding: 20px 13px 14px 18px; border-right: 0; }
+  .library-notebook-index { min-height: 360px; padding: 12px; border-right: 0; border-bottom: 0; }
   .library-notebook-index.is-away { display: none; }
-  .library-notebook-index::before { left: 36px; }
-  .library-notebook-index h2, .library-notebook-index-count { margin-left: 26px; }
-  .library-notebook-index nav { max-height: min(58dvh, 520px); padding-left: 26px; }
-  .library-notebook-page { display: none; min-height: 390px; padding: 22px 16px 28px 51px; }
+  .library-notebook-index h2, .library-notebook-index-count { margin-left: 0; }
+  .library-notebook-index nav { max-height: min(58dvh, 520px); padding-left: 0; }
+  .library-notebook-page { display: none; min-height: 390px; padding: 18px 14px 22px; }
   .library-notebook-page.is-current { display: block; }
-  .library-notebook-page::before { left: 20px; }
   .library-notebook-back { display: inline-flex; min-height: 40px; margin: 0 0 17px; padding: 0 9px; border: 1px solid #c5b697; color: #214d4b; background: rgb(255 255 255 / 34%); }
   .library-notebook-page-heading { grid-template-columns: 84px minmax(0, 1fr); gap: 14px; }
   .library-notebook-page-heading > .notebook-entry-actions { grid-column: 1 / -1; flex-direction: row; justify-content: flex-end; }
@@ -1261,4 +1262,108 @@
   .library-notebook-page-heading h2 { font-size: 25px; }
   .library-notebook-meta { margin-top: 18px; }
   .library-notebook-notes { margin-top: 20px; }
+}
+
+/* Keep the paper dark and legible when the charcoal notebook theme is active. */
+:root:not(.light) .notebook-library .library-notebook-spread {
+  --text: #e8e1d4;
+  --muted: #c0b7a6;
+  --accent: #c5a057;
+  --line: #5b5d65;
+  --surface: #303238;
+  --raised: #393b42;
+  --ink: #303238;
+  border-color: #292a2d;
+  background: #252629;
+  box-shadow: 0 18px 38px rgb(0 0 0 / 24%), inset 0 0 0 1px #55565b;
+}
+
+:root:not(.light) .notebook-library .library-notebook-index,
+:root:not(.light) .notebook-library .library-notebook-page {
+  color: #e8e1d4;
+  background-color: #303238;
+  background-image: repeating-linear-gradient(
+    to bottom,
+    transparent 0 31px,
+    rgb(139 159 184 / 13%) 32px 33px
+  );
+}
+
+:root:not(.light) .notebook-library .library-notebook-index {
+  border-color: #51535b;
+  border-right-color: rgb(190 108 95 / 48%);
+  box-shadow: inset -9px 0 14px rgb(0 0 0 / 18%);
+}
+
+:root:not(.light) .notebook-library .library-notebook-index h2,
+:root:not(.light) .notebook-library .library-notebook-page-heading h2,
+:root:not(.light) .notebook-library .library-notebook-notes h3 {
+  color: #e5d3a2;
+}
+
+:root:not(.light) .notebook-library .library-notebook-index nav button {
+  border-color: rgb(210 199 177 / 18%);
+  color: #e8e1d4;
+}
+
+:root:not(.light) .notebook-library .library-notebook-index nav button small,
+:root:not(.light) .notebook-library .library-notebook-index-count,
+:root:not(.light) .notebook-library .library-notebook-kicker,
+:root:not(.light) .notebook-library .library-notebook-page-heading p,
+:root:not(.light) .notebook-library .library-notebook-notes h4,
+:root:not(.light) .notebook-library .library-notebook-empty-note {
+  color: #c0b7a6;
+}
+
+:root:not(.light) .notebook-library .library-notebook-index nav button.is-selected {
+  border-left-color: #c5a057;
+  background: rgb(197 160 87 / 16%);
+}
+
+:root:not(.light) .notebook-library .library-notebook-index nav button:focus-visible,
+:root:not(.light) .notebook-library .library-notebook-back:focus-visible {
+  outline-color: #d0ad5e;
+}
+
+:root:not(.light) .notebook-library .library-notebook-page {
+  box-shadow: inset 8px 0 16px rgb(0 0 0 / 17%);
+}
+
+:root:not(.light) .notebook-library .library-notebook-page .status {
+  border-color: #6a665d;
+  color: #e8e1d4;
+  background: rgb(232 225 212 / 8%);
+}
+
+:root:not(.light) .notebook-library .library-notebook-page .review-mark,
+:root:not(.light) .notebook-library .library-notebook-page .mobile-edit-button,
+:root:not(.light) .notebook-library .library-notebook-back {
+  border-color: #68635a;
+  color: #eee6d6;
+  background: rgb(232 225 212 / 8%);
+}
+
+:root:not(.light) .notebook-library .library-notebook-meta {
+  border-color: rgb(210 199 177 / 24%);
+  color: #d8cfbd;
+}
+
+:root:not(.light) .notebook-library .library-notebook-notes p,
+:root:not(.light) .notebook-library .library-notebook-notes .game-comments-text,
+:root:not(.light) .notebook-library .library-notebook-writing {
+  color: #e5dfd3;
+}
+
+:root:not(.light) .notebook-library .library-layout-switch {
+  border-color: #505158;
+  background: #2b2c30;
+}
+
+:root:not(.light) .notebook-library .library-layout-switch button {
+  color: #c2bdb4;
+}
+
+:root:not(.light) .notebook-library .library-layout-switch button[aria-pressed="true"] {
+  color: #242326;
+  background: #c4a25a;
 }

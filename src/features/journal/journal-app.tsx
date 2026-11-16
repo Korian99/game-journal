@@ -162,6 +162,10 @@ export function JournalApp({
     typeof window !== "undefined" && window.localStorage.getItem("journal-library-layout") === "list" ? "list" : "notebook",
   );
   function changeLibraryPresentation(presentation: "notebook" | "list") {
+    if (inlineEditing.dirty || inlineEditing.saving) {
+      setNotice("Guardá o cancelá la edición antes de cambiar de vista.");
+      return;
+    }
     window.localStorage.setItem("journal-library-layout", presentation);
     setLibraryPresentation(presentation);
   }
