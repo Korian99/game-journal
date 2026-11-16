@@ -158,6 +158,13 @@ export function JournalApp({
     setError,
   });
   const [releaseNow, setReleaseNow] = useState(() => new Date());
+  const [libraryPresentation, setLibraryPresentation] = useState<"notebook" | "list">(() =>
+    typeof window !== "undefined" && window.localStorage.getItem("journal-library-layout") === "list" ? "list" : "notebook",
+  );
+  function changeLibraryPresentation(presentation: "notebook" | "list") {
+    window.localStorage.setItem("journal-library-layout", presentation);
+    setLibraryPresentation(presentation);
+  }
   const [refreshingPrices, setRefreshingPrices] = useState(false);
   const refreshInFlight = useRef(false);
   const [editingEntry, setEditingEntry] = useState<JournalEntry | null>(null);
@@ -633,6 +640,8 @@ export function JournalApp({
                 platforms={platforms}
                 yearOptions={yearOptions}
                 resultsCount={games.length}
+                libraryPresentation={libraryPresentation}
+                onLibraryPresentationChange={changeLibraryPresentation}
                 onAdd={() =>
                   openEntry({
                     ...emptyRecord,
@@ -1113,6 +1122,8 @@ export function JournalApp({
                         }}
                         entryRowClass={entryRowClass}
                         focusedEntry={journalLocation.focusedEntry}
+                        libraryPresentation={libraryPresentation}
+                        onLibraryPresentationChange={changeLibraryPresentation}
                       />
                     </InlineEditContext.Provider>
                   )}

@@ -264,6 +264,26 @@ test("playing row highlight uses the shared olive accent in both themes", async 
   expect(darkMobileShadow).not.toContain("164, 164, 50");
 });
 
+test("Biblioteca notebook selection, mobile return, and quick edit work", async ({ page }) => {
+  await page.addInitScript(() => localStorage.setItem("journal-library-layout", "notebook"));
+  await mockApp(page);
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("./?tab=library");
+
+  const index = page.getByRole("navigation", { name: "Juegos de la Biblioteca" });
+  await expect(page.locator(".library-notebook-spread")).toBeVisible();
+  await index.getByRole("button", { name: "Theme fixture" }).click();
+  await expect(page.locator(".library-notebook-page")).toContainText("Theme fixture");
+  await page.getByRole("button", { name: "← Biblioteca" }).click();
+  await expect(index.getByRole("button", { name: "Theme fixture" })).toBeVisible();
+
+  await index.getByRole("button", { name: "Theme fixture" }).click();
+  await page.getByRole("button", { name: "Editar rápidamente Theme fixture" }).click();
+  await expect(page.locator(".modal-content")).toBeVisible();
+  await page.keyboard.press("Escape");
+  await expect(page.locator(".modal-content")).toHaveCount(0);
+});
+
 test("discounted wishlist and released upcoming highlights follow the light theme", async ({
   page,
 }) => {

@@ -1,12 +1,13 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { statuses } from "@/lib/types";
 import type { JournalEntry } from "@/lib/journal/journal-types";
 import { formatDate } from "@/lib/journal/view-config";
 import { GameComments } from "@/features/journal/game-comments";
 import { LibraryPlaythrough, ReviewMark } from "./library-game-details";
 import { Pencil } from "lucide-react";
-import { GameRowArtwork } from "@/features/entries/game-cover";
+import { GameCover, GameRowArtwork } from "@/features/entries/game-cover";
 
 export function NotebookLibraryEntries({
   entries,
@@ -14,15 +15,107 @@ export function NotebookLibraryEntries({
   entryRowClass,
   onQuickEdit,
   view = "library",
+  presentation = "notebook",
 }: {
   entries: JournalEntry[];
   focusedEntry: string;
   entryRowClass: (entry: JournalEntry) => string | undefined;
   onQuickEdit: (entry: JournalEntry) => void;
   view?: "library" | "journal";
+  presentation?: "notebook" | "list";
 }) {
+  const [selectedId, setSelectedId] = useState("");
+  const [showingPage, setShowingPage] = useState(false);
+  const selectedEntry = entries.find((entry) => (entry.id ?? entry.sourceKey) === selectedId) ?? entries[0];
+
+  useEffect(() => {
+    if (!selectedEntry) {
+      setSelectedId("");
+      return;
+    }
+    const key = selectedEntry.id ?? selectedEntry.sourceKey;
+    if (selectedId !== key) setSelectedId(key);
+  }, [selectedEntry, selectedId]);
+
+  useEffect(() => {
+    if (!focusedEntry || !entries.some((entry) => entry.id === focusedEntry)) return;
+    setSelectedId(focusedEntry);
+    setShowingPage(true);
+  }, [entries, focusedEntry]);
+
+  if (view === "library" && presentation === "notebook") {
+    return (
+      <section className="library-notebook-spread" aria-label="Cuaderno de Biblioteca">
+        <aside className={`library-notebook-index${showingPage ? " is-away" : ""}`}>
+          <h2>Índice</h2>
+          <nav aria-label="Juegos de la Biblioteca">
+            {entries.map((entry) => (
+              <button
+                type="button"
+                key={entry.id ?? entry.sourceKey}
+                data-entry-id={entry.id}
+                aria-label={`${entry.title}, ${statuses[entry.status]}`}
+                className={(entry.id ?? entry.sourceKey) === (selectedEntry?.id ?? selectedEntry?.sourceKey) ? "is-selected" : ""}
+                aria-current={(entry.id ?? entry.sourceKey) === (selectedEntry?.id ?? selectedEntry?.sourceKey) ? "page" : undefined}
+                onClick={() => {
+                  setSelectedId(entry.id ?? entry.sourceKey);
+                  setShowingPage(true);
+                }}
+              >
+                <GameCover cover={entry.cover} title={entry.title} />
+                <span>{entry.title}</span>
+                <small>{statuses[entry.status]}</small>
+              </button>
+            ))}
+          </nav>
+        </aside>
+        <article className={`library-notebook-page${showingPage ? " is-current" : ""}`}>
+          {selectedEntry ? (
+            <>
+              <button className="library-notebook-back" type="button" onClick={() => setShowingPage(false)}>
+                ← Biblioteca
+              </button>
+              <div className="library-notebook-page-heading">
+                <div className="library-notebook-cover"><GameCover cover={selectedEntry.cover} title={selectedEntry.title} size="feature" /></div>
+                <div>
+                  <h2>{selectedEntry.title}</h2>
+                  <p>{selectedEntry.device || selectedEntry.platforms || "Plataforma sin definir"}</p>
+                  <span className={`status ${selectedEntry.status}`}>{statuses[selectedEntry.status]}</span>
+                </div>
+                <div className="notebook-entry-actions">
+                  <ReviewMark rating={selectedEntry.rating} />
+                  <button
+                    type="button"
+                    className="mobile-edit-button"
+                    data-quick-edit-id={selectedEntry.id}
+                    aria-label={`Editar rápidamente ${selectedEntry.title}`}
+                    title="Editar"
+                    onClick={() => onQuickEdit(selectedEntry)}
+                  >
+                    <Pencil size={17} aria-hidden="true" />
+                  </button>
+                </div>
+              </div>
+              <div className="library-notebook-meta">
+                <LibraryPlaythrough record={selectedEntry} />
+                <span><b>Terminé:</b> {formatDate(selectedEntry.finished) || "—"}</span>
+              </div>
+              <div className="library-notebook-notes">
+                <h3>Notas personales</h3>
+                {selectedEntry.reason.trim() && <section><h4>Por qué</h4><p>{selectedEntry.reason}</p></section>}
+                {selectedEntry.impression.trim() && <section><h4>Impresiones</h4><p>{selectedEntry.impression}</p></section>}
+                {selectedEntry.notes.trim() ? <GameComments entry={selectedEntry} /> : <p className="library-notebook-empty-note">Todavía no hay notas para este juego.</p>}
+              </div>
+            </>
+          ) : <p className="library-notebook-empty-note">No hay juegos en esta selección.</p>}
+        </article>
+      </section>
+    );
+  }
+
   return (
-    <div className="notebook-entry-list">
+    <>
+      <div className="notebook-entry-list">
       {entries.map((entry) => (
         <article
           className={[
@@ -104,6 +197,7 @@ export function NotebookLibraryEntries({
           )}
         </article>
       ))}
-    </div>
+      </div>
+    </>
   );
 }

@@ -36,10 +36,14 @@ export function NotebookCollectionHeading({
   title,
   kicker,
   onAdd,
+  libraryPresentation,
+  onLibraryPresentationChange,
 }: {
   title: string;
   kicker: string;
   onAdd: () => void;
+  libraryPresentation?: "notebook" | "list";
+  onLibraryPresentationChange?: (presentation: "notebook" | "list") => void;
 }) {
   return (
     <header className="notebook-library-heading">
@@ -47,6 +51,15 @@ export function NotebookCollectionHeading({
         <span className="notebook-library-kicker">{kicker}</span>
         <h1>{title}</h1>
       </div>
+      {libraryPresentation && onLibraryPresentationChange && (
+        <button
+          type="button"
+          className="library-notebook-view-toggle"
+          onClick={() => onLibraryPresentationChange(libraryPresentation === "notebook" ? "list" : "notebook")}
+        >
+          {libraryPresentation === "notebook" ? "Ver lista" : "Abrir cuaderno"}
+        </button>
+      )}
       <button className="primary notebook-library-add" onClick={onAdd}>
         <Plus size={17} aria-hidden="true" />
         <span className="desktop-label">Agregar juego</span>
@@ -62,12 +75,16 @@ export function NotebookLibraryToolbar({
   yearOptions,
   resultsCount,
   onAdd,
+  libraryPresentation,
+  onLibraryPresentationChange,
 }: {
   location: ReturnType<typeof useJournalLocation>;
   platforms: string[];
   yearOptions: string[];
   resultsCount: number;
   onAdd: () => void;
+  libraryPresentation: "notebook" | "list";
+  onLibraryPresentationChange: (presentation: "notebook" | "list") => void;
 }) {
   const {
     query,
@@ -107,6 +124,8 @@ export function NotebookLibraryToolbar({
         title="Biblioteca"
         kicker={`${year || "Todos los años"} · ${resultsCount} ${resultsCount === 1 ? "juego" : "juegos"}`}
         onAdd={onAdd}
+        libraryPresentation={libraryPresentation}
+        onLibraryPresentationChange={onLibraryPresentationChange}
       />
 
       <div className="notebook-library-toolbar">

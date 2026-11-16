@@ -25,6 +25,8 @@ export function JournalGameTable({
   onQuickEdit,
   entryRowClass,
   focusedEntry = "",
+  libraryPresentation,
+  onLibraryPresentationChange,
 }: {
   table: Table<JournalEntry>;
   view: JournalView;
@@ -34,6 +36,8 @@ export function JournalGameTable({
   onQuickEdit: (entry: JournalEntry) => void;
   entryRowClass: (entry: JournalEntry) => string | undefined;
   focusedEntry?: string;
+  libraryPresentation: "notebook" | "list";
+  onLibraryPresentationChange: (presentation: "notebook" | "list") => void;
 }) {
   const hasTarget = table
     .getRowModel()
@@ -62,7 +66,7 @@ export function JournalGameTable({
   }, [focusedEntry, hasTarget, view]);
   const commentsBelow = view === "library" || view === "journal";
   return (
-    <>
+    <div className={view === "library" ? `library-layout library-layout-${libraryPresentation}` : undefined}>
       <div className="mobile-games">
         {view === "library" || view === "journal" ? (
           <NotebookLibraryEntries
@@ -71,6 +75,7 @@ export function JournalGameTable({
             entryRowClass={entryRowClass}
             onQuickEdit={onQuickEdit}
             view={view}
+            presentation={libraryPresentation}
           />
         ) : (
           table.getRowModel().rows.map(({ original: r }) => (
@@ -248,6 +253,6 @@ export function JournalGameTable({
           })}
         </table>
       </div>
-    </>
+    </div>
   );
 }
