@@ -1259,6 +1259,7 @@ tbody tr:hover {
 }
 .editor-panel {
   padding: 25px;
+  
 }
 .editor-panel[hidden] {
   display: none;
