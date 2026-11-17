@@ -2663,6 +2663,13 @@ tbody.game-entry-group + tbody.game-entry-group > tr:first-child > td {
 .inline-value:focus-visible {
   border-color: var(--accent);
 }
+.inline-value.is-touch-selected {
+  background: var(--raised);
+  border-color: var(--accent);
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+.inline-value.is-touch-selected .inline-pencil { opacity: 1; }
 .inline-pencil {
   flex-shrink: 0;
   color: var(--accent);

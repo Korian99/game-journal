@@ -79,23 +79,30 @@ async function touch(page: Page, type: "touchStart" | "touchEnd" | "touchCancel"
   return session;
 }
 
-test("a short touch tap does not open an inline editor or save", async ({ page }) => {
-  const { posts } = await setup(page);
-  await noteTrigger(page).scrollIntoViewIfNeeded();
-  const box = (await noteTrigger(page).boundingBox())!;
-  const session = await touch(page, "touchStart", box.x + 12, box.y + 12);
-  await session.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
-  await expect(page.getByRole("textbox", { name: "Comentarios adicionales", exact: true })).toHaveCount(0);
-  expect(posts).toHaveLength(0);
-});
+async function tap(page: Page, x: number, y: number) {
+  const session = await page.context().newCDPSession(page);
+  await session.send("Input.dispatchTouchEvent", {
+    type: "touchStart",
+    touchPoints: [{ x, y }],
+  });
+  await session.send("Input.dispatchTouchEvent", {
+    type: "touchEnd",
+    touchPoints: [],
+  });
+}
 
-test("a held touch opens the canonical editor on release and saves one field", async ({ page }) => {
+test("the first touch marks a field and a delayed second tap opens and saves once", async ({ page }) => {
   const { posts } = await setup(page);
-  await noteTrigger(page).scrollIntoViewIfNeeded();
-  const box = (await noteTrigger(page).boundingBox())!;
-  const session = await touch(page, "touchStart", box.x + 12, box.y + 12);
-  await page.waitForTimeout(550);
-  await session.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
+  const trigger = noteTrigger(page);
+  await trigger.scrollIntoViewIfNeeded();
+  const box = (await trigger.boundingBox())!;
+  await tap(page, box.x + 12, box.y + 12);
+  await expect(trigger).toHaveClass(/is-touch-selected/);
+  await expect(page.locator(".inline-editor")).toHaveCount(0);
+  expect(posts).toHaveLength(0);
+
+  await page.waitForTimeout(2100);
+  await tap(page, box.x + 12, box.y + 12);
   const input = page.getByRole("textbox", { name: "Comentarios adicionales", exact: true });
   await expect(input).toBeFocused();
   await input.fill("Updated review");
@@ -108,6 +115,30 @@ test("a held touch opens the canonical editor on release and saves one field", a
   });
   await expect(input).toHaveCount(0);
   expect(posts).toHaveLength(1);
+});
+
+test("touching another field or outside disarms the prior field", async ({ page }) => {
+  const { posts } = await setup(page);
+  const trigger = noteTrigger(page);
+  const reminder = page.locator(".library-notebook-reminder").getByRole("button", {
+    name: "Editar Notas de Touch fixture",
+    exact: true,
+  });
+  await trigger.scrollIntoViewIfNeeded();
+  const firstBox = (await trigger.boundingBox())!;
+  await tap(page, firstBox.x + 12, firstBox.y + 12);
+  await expect(trigger).toHaveClass(/is-touch-selected/);
+
+  await reminder.scrollIntoViewIfNeeded();
+  const reminderBox = (await reminder.boundingBox())!;
+  await tap(page, reminderBox.x + 12, reminderBox.y + 12);
+  await expect(reminder).toHaveClass(/is-touch-selected/);
+  await expect(trigger).not.toHaveClass(/is-touch-selected/);
+  await expect(page.locator(".inline-editor")).toHaveCount(0);
+
+  await page.getByRole("heading", { name: "Biblioteca", exact: true }).click();
+  await expect(reminder).not.toHaveClass(/is-touch-selected/);
+  expect(posts).toHaveLength(0);
 });
 
 test("touch movement and cancellation prevent touch activation", async ({ page }) => {
@@ -180,6 +211,10 @@ test("keyboard and mouse activation remain available on a touch device", async (
   await trigger.scrollIntoViewIfNeeded();
   await trigger.focus();
   await page.keyboard.press("Enter");
+  await expect(page.getByRole("textbox", { name: "Comentarios adicionales", exact: true })).toBeFocused();
+  await page.getByRole("button", { name: "Cancelar celda", exact: true }).click();
+  await trigger.focus();
+  await page.keyboard.press("Space");
   await expect(page.getByRole("textbox", { name: "Comentarios adicionales", exact: true })).toBeFocused();
   await page.getByRole("button", { name: "Cancelar celda", exact: true }).click();
   await trigger.click();
