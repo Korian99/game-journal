@@ -85,6 +85,7 @@ export const recordSchema = z
     replay: z.string().max(100),
     reason: z.string().max(20000),
     notes: z.string().max(50000),
+    reminder: z.string().max(5000).optional(),
     sourceKey: z.string().max(1000),
     pages: pagesSchema.optional(),
     updated_at: z.string().optional(),

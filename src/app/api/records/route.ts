@@ -7,6 +7,7 @@ import { databaseError } from "@/lib/api-errors";
 import { parseStoreUrl } from "@/lib/domain";
 import { periodAfterDateEdits } from "@/lib/journal/entry-period";
 import { datesAfterStatusChange } from "@/lib/journal/entry-status";
+import { reminderForSave } from "@/lib/journal/record-reminder";
 export const dynamic = "force-dynamic";
 export async function GET(request?: Request) {
   try {
@@ -51,6 +52,11 @@ export async function POST(request: Request) {
       existing.data ?? [],
     );
     const previous = existingRecords.find((record) => record.id === input.id);
+    input.reminder = reminderForSave(
+      input.reminder,
+      previous?.reminder,
+      Object.prototype.hasOwnProperty.call(body, "reminder"),
+    );
     if (decision.intent !== "undo") {
       Object.assign(input, datesAfterStatusChange(input, previous));
       input.period = periodAfterDateEdits(input, previous);

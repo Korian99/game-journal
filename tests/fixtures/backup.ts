@@ -11,6 +11,7 @@ export function backupFixture() {
     title: "Recovery fixture",
     status: "completed" as const,
     notes: "PRIVATE REVIEW",
+    reminder: "PRIVATE REMINDER",
     updated_at: "2026-10-21T06:00:00Z",
   };
   return {
@@ -36,7 +37,7 @@ export function backupFixture() {
           id: recordId,
           game_id: gameId,
           owner_id: backupOwner,
-          data: { status: record.status, notes: record.notes },
+          data: { status: record.status, notes: record.notes, reminder: record.reminder },
           source_key: null,
           source_snapshot: { original: "kept" },
           updated_at: record.updated_at,

@@ -19,6 +19,7 @@ export const inlineFields = {
   impression: { label: "Impresiones", type: "text" },
   reason: { label: "Por qué", type: "textarea" },
   notes: { label: "Comentarios adicionales", type: "textarea" },
+  reminder: { label: "Notas", type: "textarea" },
   priority: { label: "Prioridad", type: "text" },
   ownership: { label: "Acceso", type: "ownership" },
   hype: { label: "Hype", type: "hype" },

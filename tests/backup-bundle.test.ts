@@ -38,6 +38,8 @@ it("uses one complete snapshot for JSON and Excel and verifies their exact bytes
     original: "kept",
   });
   expect(restored.records[0].notes).toBe("PRIVATE REVIEW");
+  expect(restored.records[0].reminder).toBe("PRIVATE REMINDER");
+  expect(restored.sourceTables.playthroughs[0].data.reminder).toBe("PRIVATE REMINDER");
   const book = new ExcelJS.Workbook();
   await book.xlsx.load(new Uint8Array(bundle.excel.bytes).buffer);
   expect(book.getWorksheet("Juegos")!.rowCount).toBe(2);

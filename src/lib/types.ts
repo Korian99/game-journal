@@ -38,6 +38,7 @@ export type JournalRecord = {
   replay: string;
   reason: string;
   notes: string;
+  reminder?: string;
   sourceKey: string;
   pages?: string[];
   sourceSnapshot?: Record<string, unknown>;
@@ -101,5 +102,6 @@ export const emptyRecord: JournalRecord = {
   replay: "",
   reason: "",
   notes: "",
+  reminder: "",
   sourceKey: "",
 };

@@ -45,6 +45,7 @@ export const journalEntrySchema = z
     replay: text.optional(),
     reason: text.optional(),
     notes: text.optional(),
+    reminder: text.optional(),
     sourceKey: text.optional(),
     sourceSnapshot: z.record(text, z.unknown()).optional(),
     updated_at: text.optional(),

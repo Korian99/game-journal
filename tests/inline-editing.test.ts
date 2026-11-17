@@ -25,6 +25,13 @@ it("validates and normalizes inline values without dropping the revision", () =>
   expect(() => inlineCandidate(entry, "title", " ")).toThrow();
   expect(() => inlineCandidate(entry, "started", "31/02/2026")).toThrow();
 });
+it("edits a private next-session reminder independently from review comments", () => {
+  const reviewed = { ...entry, notes: "Review comment", reminder: "" };
+  const saved = inlineCandidate(reviewed, "reminder", "Try the alternate route");
+  expect(saved).toMatchObject({ reminder: "Try the alternate route", notes: "Review comment" });
+  const restored = undoCandidate(saved, inlineChange(reviewed, saved, "Recordatorio"));
+  expect(restored).toMatchObject({ reminder: "", notes: "Review comment" });
+});
 it("keeps automatic dates/status/period behavior for inline edits", () => {
   const started = inlineCandidate(entry, "started", "31/12/2025");
   expect(started).toMatchObject({ status: "playing", period: "2025" });

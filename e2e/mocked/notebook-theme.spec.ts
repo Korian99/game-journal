@@ -309,6 +309,50 @@ test("notebook exposes guarded inline fields and keeps dirty edits on selection"
   await expect(page.locator(".library-notebook-page")).toContainText("Playing fixture");
 });
 
+test("a private next-session reminder persists without replacing review comments", async ({ page }) => {
+  await page.addInitScript(() => localStorage.setItem("journal-library-layout", "notebook"));
+  await mockApp(page, false, true);
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await page.goto("./?tab=library");
+  let index = page.getByRole("navigation", { name: "Juegos de la Biblioteca" });
+  await index.getByRole("button", { name: "Theme fixture" }).click();
+  const reminder = page.locator(".library-notebook-reminder");
+  const comments = page.locator(".library-notebook-notes");
+  await expect(reminder).toContainText("Agregar recordatorio");
+  await expect(comments).toContainText("Existing review comment");
+  await page.getByRole("button", { name: "Editar Notas de Theme fixture", exact: true }).click();
+  await page.getByRole("textbox", { name: "Notas", exact: true }).fill("Try another route next time");
+  await page.getByRole("button", { name: "Guardar celda" }).click();
+  await expect(reminder).toContainText("Try another route next time");
+  await expect(comments).toContainText("Existing review comment");
+
+  await page.reload();
+  index = page.getByRole("navigation", { name: "Juegos de la Biblioteca" });
+  await index.getByRole("button", { name: "Theme fixture" }).click();
+  await expect(page.locator(".library-notebook-reminder")).toContainText("Try another route next time");
+  await expect(page.locator(".library-notebook-notes")).toContainText("Existing review comment");
+  await page.getByRole("group", { name: "Vista de Biblioteca" }).getByRole("button", { name: "Lista" }).click();
+  await page.setViewportSize({ width: 390, height: 844 });
+  await expect(page.locator(".notebook-entry-card").filter({ hasText: "Theme fixture" })).toContainText("Existing review comment");
+});
+
+test("Biblioteca index paginates without inner scrolling and returns to the same page", async ({ page }) => {
+  await page.addInitScript(() => localStorage.setItem("journal-library-layout", "notebook"));
+  await mockApp(page, true);
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("./?tab=library&year=all");
+  const index = page.getByRole("navigation", { name: "Juegos de la Biblioteca" });
+  const pagination = page.getByRole("group", { name: "Paginación del índice" });
+  await expect(pagination).toContainText("Página 1 de");
+  expect(await index.evaluate((node) => node.scrollHeight)).toBeLessThanOrEqual(await index.evaluate((node) => node.clientHeight));
+  await pagination.getByRole("button", { name: "Página siguiente" }).click();
+  const currentPage = await pagination.innerText();
+  expect(currentPage).toContain("Página 2 de");
+  await index.getByRole("button").first().click();
+  await page.getByRole("button", { name: "← Biblioteca" }).click();
+  await expect(pagination).toContainText("Página 2 de");
+});
+
 test("discounted wishlist and released upcoming highlights follow the light theme", async ({
   page,
 }) => {
@@ -444,7 +488,7 @@ test("discounted wishlist and released upcoming highlights follow the light them
   }
 });
 
-async function mockApp(page: Page) {
+async function mockApp(page: Page, paginationFixture = false, reviewFixture = false) {
   const records = [
     {
       ...emptyRecord,
@@ -481,9 +525,31 @@ async function mockApp(page: Page) {
       updated_at: "2026-10-18T10:00:00Z",
     },
   ];
+  if (reviewFixture) records[0].notes = "Existing review comment";
+  if (paginationFixture) {
+    records.push(...Array.from({ length: 28 }, (_, index) => ({
+      ...emptyRecord,
+      id: `20000000-0000-4000-8000-${String(index + 20).padStart(12, "0")}`,
+      gameId: `30000000-0000-4000-8000-${String(index + 20).padStart(12, "0")}`,
+      title: `Index fixture ${String(index + 1).padStart(2, "0")}`,
+      status: "completed",
+      period: "2026",
+      started: `2026-02-${String((index % 27) + 1).padStart(2, "0")}`,
+      finished: "2026-03-01",
+      updated_at: `2026-10-${String((index % 27) + 1).padStart(2, "0")}T10:00:00Z`,
+    })));
+  }
 
   await page.route("**/api/**", async (route) => {
     const { pathname } = new URL(route.request().url());
+    if (pathname === "/api/records" && route.request().method() === "POST") {
+      const incoming = route.request().postDataJSON() as Record<string, unknown>;
+      const index = records.findIndex((record) => record.id === incoming.id);
+      if (index < 0) return route.fulfill({ status: 404, json: { error: "Not found" } });
+      const saved = { ...records[index], ...incoming, updated_at: "2026-11-17T12:00:00Z" } as (typeof records)[number];
+      records[index] = saved;
+      return route.fulfill({ json: { id: saved.id, gameId: saved.gameId, record: saved } });
+    }
     if (pathname === "/api/records")
       return route.fulfill({
         json: { records, member: { display_name: "Fixture", role: "member" } },
