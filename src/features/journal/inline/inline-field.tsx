@@ -29,6 +29,14 @@ export function InlineField({
   const root = useRef<HTMLSpanElement>(null);
   const trigger = useRef<HTMLButtonElement>(null);
   const wasActive = useRef(false);
+  const touchGesture = useRef<{
+    pointerId: number;
+    x: number;
+    y: number;
+    startedAt: number;
+  } | null>(null);
+  const suppressTouchClick = useRef(false);
+  const touchTrackingCleanup = useRef<(() => void) | null>(null);
   const [customDevice, setCustomDevice] = useState(false);
   const active =
     !!edit?.active &&
@@ -52,6 +60,32 @@ export function InlineField({
         input.select();
     }
   }, [active, customDevice]);
+  useEffect(() => {
+    return () => {
+      touchGesture.current = null;
+      touchTrackingCleanup.current?.();
+      touchTrackingCleanup.current = null;
+    };
+  }, []);
+  const stopTouchTracking = () => {
+    touchGesture.current = null;
+    touchTrackingCleanup.current?.();
+    touchTrackingCleanup.current = null;
+  };
+  const startTouchTracking = (pointerId: number) => {
+    touchTrackingCleanup.current?.();
+    const cancelOnAdditionalTouch = (event: PointerEvent) => {
+      if (event.pointerType === "touch" && event.pointerId !== pointerId)
+        stopTouchTracking();
+    };
+    const cancelOnScroll = () => stopTouchTracking();
+    window.addEventListener("pointerdown", cancelOnAdditionalTouch, true);
+    window.addEventListener("scroll", cancelOnScroll, true);
+    touchTrackingCleanup.current = () => {
+      window.removeEventListener("pointerdown", cancelOnAdditionalTouch, true);
+      window.removeEventListener("scroll", cancelOnScroll, true);
+    };
+  };
   if (!edit) return <>{children}</>;
   const spec = inlineFields[field];
   if (!active)
@@ -64,7 +98,58 @@ export function InlineField({
         aria-label={"Editar " + spec.label + " de " + entry.title}
         title={"Editar " + spec.label}
         disabled={!edit.canEdit}
-        onClick={() => {
+        onPointerDown={(event) => {
+          if (event.pointerType !== "touch") {
+            suppressTouchClick.current = false;
+            return;
+          }
+          event.preventDefault();
+          suppressTouchClick.current = true;
+          touchGesture.current = event.isPrimary && edit.canEdit
+            ? {
+                pointerId: event.pointerId,
+                x: event.clientX,
+                y: event.clientY,
+                startedAt: performance.now(),
+              }
+            : null;
+          if (touchGesture.current) {
+            event.currentTarget.setPointerCapture(event.pointerId);
+            startTouchTracking(event.pointerId);
+          }
+        }}
+        onPointerMove={(event) => {
+          const gesture = touchGesture.current;
+          if (
+            gesture?.pointerId === event.pointerId &&
+            Math.hypot(event.clientX - gesture.x, event.clientY - gesture.y) > 10
+          )
+            stopTouchTracking();
+        }}
+        onPointerUp={(event) => {
+          const gesture = touchGesture.current;
+          if (gesture?.pointerId !== event.pointerId) return;
+          stopTouchTracking();
+          if (performance.now() - gesture.startedAt < 500) return;
+          setCustomDevice(false);
+          edit.begin(entry, field, view, slot);
+        }}
+        onPointerCancel={() => {
+          stopTouchTracking();
+        }}
+        onLostPointerCapture={() => {
+          stopTouchTracking();
+        }}
+        onContextMenu={(event) => {
+          if (touchGesture.current) event.preventDefault();
+        }}
+        onClick={(event) => {
+          if (
+            event.detail !== 0 &&
+            suppressTouchClick.current
+          ) {
+            return;
+          }
           setCustomDevice(false);
           edit.begin(entry, field, view, slot);
         }}
