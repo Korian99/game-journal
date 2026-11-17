@@ -1382,7 +1382,7 @@
   overflow: visible;
 }
 
-.library-notebook-spread.is-detail .library-notebook-page {
+.notebook-library .library-notebook-spread.is-detail .library-notebook-page {
   height: auto;
   max-height: none;
   overflow: visible;
