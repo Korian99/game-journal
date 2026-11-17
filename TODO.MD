@@ -1,3 +1,8 @@
-# Pendientes
-
-Sin tareas pendientes.
+- [x] Resumen, Principal and Más have their own content components, with `box-shadow: inset 8px 0 16px #0000002b` on each book page.
+  - Resumen: `src/features/library/notebook-summary.tsx` (`NotebookSummary`).
+  - Principal: `src/features/entries/editor/principal-page.tsx` (`PrincipalPage`).
+  - Más: `src/features/entries/editor/more-tab.tsx` (`MoreTab`).
+- [x] Terminé and Impresiones appear side by side, including on mobile.
+- [x] Opening a game detail stores its ID in `?detail=<id>` so reload restores it while keeping the list filters.
+- [x] Returning to Biblioteca scrolls to the game and focuses its edit button in the list; confirming discard does the same.
+- [x] Explain how the editors differ: `JournalView` chooses the opening flow. Biblioteca sets the detail URL and renders `EntryEditor` with `embedded`, which supplies the notebook pages and hides fields already available in Resumen. Histórico and Lista de deseos open the same editor in its normal modal mode, with their complete fields. The save and validation logic is shared.

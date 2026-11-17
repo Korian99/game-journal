@@ -56,8 +56,9 @@ async function setup(page: Page, longNotes = false) {
   });
   await page.goto("./?tab=library&year=all");
   await page
-    .getByRole("navigation", { name: "Juegos de la Biblioteca" })
-    .getByRole("button", { name: "Touch fixture" })
+    .locator(".notebook-entry-card")
+    .filter({ hasText: "Touch fixture" })
+    .getByRole("button", { name: "Editar rápidamente Touch fixture", exact: true })
     .click();
   return { posts };
 }

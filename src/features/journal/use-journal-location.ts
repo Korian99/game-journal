@@ -12,7 +12,7 @@ import {
   type JournalView,
 } from "@/lib/journal/journal-location";
 
-export function useJournalLocation(initialLocation?: JournalLocation) {
+export function useJournalLocation(initialLocation?: JournalLocation, canRestoreLocation?: () => boolean) {
   const [state, setState] = useState(
     () => initialLocation ?? defaultJournalLocation(),
   );
@@ -39,12 +39,18 @@ export function useJournalLocation(initialLocation?: JournalLocation) {
     [],
   );
   useEffect(() => {
-    const restore = () =>
+    const restore = (event?: PopStateEvent) => {
+      if (event && canRestoreLocation && !canRestoreLocation()) {
+        const search = writeJournalLocation(current.current, window.location.search);
+        window.history.pushState(null, "", window.location.pathname + "?" + search + window.location.hash);
+        return;
+      }
       commit(readJournalLocation(window.location.search), "replace");
+    };
     restore();
     window.addEventListener("popstate", restore);
     return () => window.removeEventListener("popstate", restore);
-  }, [commit]);
+  }, [commit, canRestoreLocation]);
   const update = useCallback(
     (patch: Partial<JournalLocation>, mode: "push" | "replace" = "push") => {
       commit({ ...current.current, ...patch }, mode);
@@ -62,11 +68,13 @@ export function useJournalLocation(initialLocation?: JournalLocation) {
     },
     [update],
   );
+  const setDetailEntry = useCallback((detailEntry: string) => update({ detailEntry }, "replace"), [update]);
   const setView = useCallback(
     (view: JournalView) => {
       commit({
         ...(remembered.current.get(view) ?? defaultJournalLocation(view)),
         focusedEntry: "",
+        detailEntry: "",
         notificationId: "",
       });
     },
@@ -88,6 +96,7 @@ export function useJournalLocation(initialLocation?: JournalLocation) {
         scale: "",
         year: "",
         focusedEntry: entryId,
+        detailEntry: "",
         notificationId: "",
         notificationOpen: false,
       });
@@ -105,6 +114,7 @@ export function useJournalLocation(initialLocation?: JournalLocation) {
         ...destination,
         view: "library",
         librarySection,
+        detailEntry: "",
         focusedEntry: "",
         notificationId: "",
       });
@@ -127,6 +137,7 @@ export function useJournalLocation(initialLocation?: JournalLocation) {
     clearNotificationTarget,
     setView,
     setLibrarySection,
+    setDetailEntry,
     setSort,
     setQuery: (query: string) => update({ query }, "replace"),
     setStatus: (status: string) => update({ status }),

@@ -41,6 +41,7 @@ export type JournalLocation = {
   compareYear: string;
   estimateTarget: "story" | "extras" | "completionist";
   focusedEntry: string;
+  detailEntry: string;
   notificationId: string;
   notificationOpen: boolean;
   notificationRead: "all" | "unread";
@@ -89,6 +90,7 @@ const locationKeys = [
   "notificationRead",
   "notificationType",
   "entry",
+  "detail",
   "notification",
 ];
 export function defaultJournalLocation(
@@ -115,6 +117,7 @@ export function defaultJournalLocation(
     suggestionHours: "",
     suggestionUnknownEstimates: false,
     focusedEntry: "",
+    detailEntry: "",
     notificationId: "",
     notificationOpen: false,
     notificationRead: "unread",
@@ -145,6 +148,7 @@ export function readJournalLocation(
       : "";
   };
   state.focusedEntry = targetId("entry");
+  if (view === "library" && state.librarySection === "games") state.detailEntry = targetId("detail");
   state.notificationId = targetId("notification");
   state.notificationOpen = params.get("notifications") === "open";
   state.notificationRead =
@@ -263,6 +267,8 @@ export function writeJournalLocation(
   if (state.view === "library" && state.librarySection === "series")
     params.set("section", "series");
   if (state.focusedEntry) params.set("entry", state.focusedEntry);
+  if (state.view === "library" && state.librarySection === "games" && state.detailEntry)
+    params.set("detail", state.detailEntry);
   if (state.notificationId) params.set("notification", state.notificationId);
   if (state.notificationOpen) params.set("notifications", "open");
   if (state.notificationRead === "all") params.set("notificationRead", "all");

@@ -30,6 +30,8 @@ export function MainTab({
   setPageError,
   busy,
   activeTab,
+  omitSummaryFields = false,
+  bookFields = false,
 }: Pick<
   EditorContext,
   | "online"
@@ -49,12 +51,12 @@ export function MainTab({
   | "setPageError"
   | "busy"
   | "activeTab"
->) {
+> & { omitSummaryFields?: boolean; bookFields?: boolean }) {
   return (
     <>
       {activeTab === "main" && (
         <>
-          {renderField("title", "Nombre del juego")}
+          {!omitSummaryFields && renderField("title", "Nombre del juego")}
           <PlatformPicker
             label="Plataformas disponibles"
             value={draft.platforms}
@@ -63,7 +65,7 @@ export function MainTab({
             multiple
           />
           <div className="form-grid">
-            <label>
+            {!omitSummaryFields && <label>
               Estado
               <select
                 form={formId}
@@ -77,7 +79,19 @@ export function MainTab({
                   </option>
                 ))}
               </select>
-            </label>
+            </label>}
+            {bookFields && <>
+              {renderField("focus", "Historia, gameplay o ambos")}
+              {renderField("replay", "¿Lo rejugarías?")}
+              <label>
+                Hype
+                <select form={formId} aria-label="Hype" value={draft.hype} onChange={(event) => updateDraftField("hype", event.target.value)}>
+                  <option value="" disabled>Elegí el hype…</option>
+                  {draft.hype && !["Bajo", "Medio", "Dunno", "Alto", "Hyper"].includes(draft.hype) && <option value={draft.hype}>{draft.hype} (actual)</option>}
+                  {["Bajo", "Medio", "Dunno", "Alto", "Hyper"].map((level) => <option key={level} value={level}>{level}</option>)}
+                </select>
+              </label>
+            </>}
             <label>
               Acceso al juego
               <select
@@ -107,7 +121,7 @@ export function MainTab({
               </select>
             </label>
             {renderField("priority", "Prioridad")}
-            {renderField("estimated", "Horas estimadas")}
+            {!omitSummaryFields && renderField("estimated", "Horas estimadas")}
           </div>
           <section className="editor-section">
             <h3>

@@ -7,22 +7,23 @@ export function ReviewTab({
   renderField,
   formId,
   activeTab,
+  omitSummaryFields = false,
 }: Pick<
   EditorContext,
   "draft" | "updateDraftField" | "renderField" | "formId" | "activeTab"
->) {
+> & { omitSummaryFields?: boolean }) {
   return (
     <>
       {activeTab === "review" && (
         <>
           <ScoringGuideButton />
           <div className="form-grid">
-            {renderField("rating", "Reseña / 100", "number")}
-            {renderField("hours", "Horas jugadas", "number")}
-            {renderField("impression", "Impresiones")}
+            {!omitSummaryFields && renderField("rating", "Reseña / 100", "number")}
+            {!omitSummaryFields && renderField("hours", "Horas jugadas", "number")}
+            {!omitSummaryFields && renderField("impression", "Impresiones")}
             {renderField("focus", "Historia, gameplay o ambos")}
           </div>
-          <label>
+          {!omitSummaryFields && <label>
             Comentarios adicionales · privados
             <textarea
               form={formId}
@@ -30,7 +31,7 @@ export function ReviewTab({
               value={draft.notes}
               onChange={(e) => updateDraftField("notes", e.target.value)}
             />
-          </label>
+          </label>}
         </>
       )}
     </>

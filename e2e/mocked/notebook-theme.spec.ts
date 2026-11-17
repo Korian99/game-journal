@@ -1,4 +1,4 @@
-import { expect, test, type Page } from "@playwright/test";
+import { expect, test, type Locator, type Page } from "@playwright/test";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { emptyRecord } from "../../src/lib/types";
@@ -264,58 +264,143 @@ test("playing row highlight uses the shared olive accent in both themes", async 
   expect(darkMobileShadow).not.toContain("164, 164, 50");
 });
 
-test("Biblioteca notebook selection, mobile return, and quick edit work", async ({ page }) => {
-  await page.addInitScript(() => localStorage.setItem("journal-library-layout", "notebook"));
+test("Biblioteca edits open a grouped book page and return to the list", async ({ page }) => {
+  await page.addInitScript(() => {
+    localStorage.setItem("journal-library-layout", "notebook");
+    localStorage.setItem("journal-theme", "light");
+  });
   await mockApp(page);
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("./?tab=library");
 
-  const index = page.getByRole("navigation", { name: "Juegos de la Biblioteca" });
-  await expect(page.locator(".library-notebook-spread")).toBeVisible();
-  await index.getByRole("button", { name: "Theme fixture" }).click();
+  await expect(page.getByRole("group", { name: "Vista de Biblioteca" })).toHaveCount(0);
+  const listEdit = page.locator(".notebook-entry-card")
+    .filter({ hasText: "Theme fixture" })
+    .getByRole("button", { name: "Editar rápidamente Theme fixture" });
+  await listEdit.click();
   await expect(page.locator(".library-notebook-page")).toContainText("Theme fixture");
-  await page.getByRole("button", { name: "← Biblioteca" }).click();
-  await expect(index.getByRole("button", { name: "Theme fixture" })).toBeVisible();
-
-  await index.getByRole("button", { name: "Theme fixture" }).click();
-  await page.getByRole("button", { name: "Editar rápidamente Theme fixture" }).click();
-  await expect(page.locator(".modal-content")).toBeVisible();
-  await page.keyboard.press("Escape");
-  await expect(page.locator(".modal-content")).toHaveCount(0);
+  await expect(page.getByRole("dialog")).toHaveCount(0);
+  await page.screenshot({ path: join(tmpdir(), "notebook-detail-mobile-light.png"), fullPage: true, animations: "disabled" });
+  await expect(page.getByRole("tab", { name: "Resumen", exact: true })).toBeVisible();
+  await page.getByRole("tab", { name: "Más", exact: true }).click();
+  await expect(page.getByRole("combobox", { name: "Escala de producción", exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: "← Biblioteca", exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "← Biblioteca", exact: true }).click();
+  await expect(page.locator(".notebook-entry-card").filter({ hasText: "Theme fixture" })).toBeVisible();
+  await expect(page.locator(".library-notebook-page")).toHaveCount(0);
+  await page.evaluate(() => { document.documentElement.classList.remove("light"); localStorage.setItem("journal-theme", "dark"); });
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await page.locator(".library-table").getByRole("button", { name: "Ver detalles de Theme fixture", exact: true }).click();
+  await page.screenshot({ path: join(tmpdir(), "notebook-detail-desktop-dark.png"), fullPage: true, animations: "disabled" });
+  await expect(page.getByRole("button", { name: "← Biblioteca", exact: true })).toBeVisible();
 });
 
-test("notebook exposes guarded inline fields and keeps dirty edits on selection", async ({ page }) => {
-  await page.addInitScript(() => localStorage.setItem("journal-library-layout", "notebook"));
+test("book pages keep the full draft through save and guard dirty inline edits", async ({ page }) => {
   await mockApp(page);
   await page.setViewportSize({ width: 1280, height: 900 });
   await page.goto("./?tab=library");
-  const index = page.getByRole("navigation", { name: "Juegos de la Biblioteca" });
-  await index.getByRole("button", { name: "Theme fixture" }).click();
+  await page.locator(".library-table").getByRole("button", { name: "Ver detalles de Theme fixture", exact: true }).click();
+  await page.getByRole("tab", { name: "Más", exact: true }).click();
+  await page.getByRole("combobox", { name: "Escala de producción", exact: true }).selectOption("indie");
+  await expect(page.getByRole("tab", { name: "Resumen", exact: true })).toBeDisabled();
+  await page.getByRole("button", { name: "Guardar entrada", exact: true }).click();
+  await expect(page.getByRole("tab", { name: "Resumen", exact: true })).toBeEnabled();
+  await page.getByRole("tab", { name: "Resumen", exact: true }).click();
+  await page.getByRole("tab", { name: "Más", exact: true }).click();
+  await expect(page.getByRole("combobox", { name: "Escala de producción", exact: true })).toHaveValue("indie");
+  await page.getByRole("tab", { name: "Resumen", exact: true }).click();
   await page.getByRole("button", { name: "Editar Nombre de Theme fixture" }).click();
-  const title = page.getByRole("textbox", { name: "Nombre" });
-  await expect(title).toBeVisible();
-  await title.fill("Theme draft");
-  await expect(page.locator(".inline-edit-bar")).toContainText("Theme fixture");
-  await expect(index.getByRole("button", { name: "Playing fixture" })).toBeDisabled();
-  await page.getByRole("group", { name: "Vista de Biblioteca" }).getByRole("button", { name: "Lista" }).click();
-  await expect(page.locator(".library-notebook-spread")).toBeVisible();
-  const search = page.getByRole("textbox", { name: "Buscar juegos en esta lista" });
-  await search.fill("Playing fixture");
-  await expect(index.getByRole("button", { name: "Theme fixture" })).toHaveCount(0);
-  await expect(page.locator(".inline-edit-bar")).toContainText("Theme fixture");
-  await search.fill("");
-  await page.getByRole("button", { name: "Cancelar edición" }).click();
-  await index.getByRole("button", { name: "Playing fixture" }).click();
-  await expect(page.locator(".library-notebook-page")).toContainText("Playing fixture");
+  await page.getByRole("textbox", { name: "Nombre" }).fill("Theme draft");
+  await expect(page.getByRole("tab", { name: "Más", exact: true })).toBeDisabled();
+  await page.getByRole("button", { name: "← Biblioteca", exact: true }).click();
+  await expect(page.getByRole("textbox", { name: "Nombre" })).toHaveValue("Theme draft");
+  await page.getByRole("button", { name: "Cancelar celda" }).click();
+  await page.getByRole("tab", { name: "Más", exact: true }).click();
+  await page.getByRole("combobox", { name: "Escala de producción", exact: true }).selectOption("aa");
+  await page.getByRole("button", { name: "← Biblioteca", exact: true }).click();
+  await expect(page.getByRole("heading", { name: "Descartar cambios" })).toBeVisible();
+  await page.getByRole("button", { name: "Seguir editando" }).click();
+  await expect(page.getByRole("combobox", { name: "Escala de producción", exact: true })).toHaveValue("aa");
+  await page.getByRole("button", { name: "← Biblioteca", exact: true }).click();
+  await page.getByRole("button", { name: "Descartar cambios", exact: true }).click();
+  await expect(page.locator(".library-table")).toContainText("Theme fixture");
+  await expect(page.locator(".library-table").getByRole("button", { name: "Ver detalles de Theme fixture", exact: true })).toBeFocused();
+});
+
+test("book principal and more pages keep moved fields and the modal editor stays complete", async ({ page }) => {
+  await page.addInitScript(() => localStorage.setItem("journal-theme", "dark"));
+  await mockApp(page);
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await page.goto("./?tab=library");
+  await page.locator(".library-table").getByRole("button", { name: "Ver detalles de Theme fixture", exact: true }).click();
+
+  const summary = page.getByRole("tabpanel", { name: "Resumen" });
+  await expect(summary.getByRole("button", { name: "Editar Nombre de Theme fixture" })).toBeVisible();
+  await expect(summary.getByRole("button", { name: "Editar Comentarios adicionales de Theme fixture" })).toBeVisible();
+
+  await page.getByRole("tab", { name: "Principal", exact: true }).click();
+  const main = page.getByRole("tabpanel", { name: "Principal" });
+  const guide = page.getByRole("button", { name: "Guía de reseñas", exact: true });
+  const back = page.getByRole("button", { name: "← Biblioteca", exact: true });
+  await expect(guide).toBeVisible();
+  const guideBox = (await guide.boundingBox())!;
+  const backBox = (await back.boundingBox())!;
+  expect(guideBox.x).toBeGreaterThan(backBox.x + backBox.width);
+  await expect(main.getByRole("textbox", { name: "Historia, gameplay o ambos", exact: true })).toBeVisible();
+  await expect(main.getByRole("textbox", { name: "¿Lo rejugarías?", exact: true })).toBeVisible();
+  await expect(main.getByRole("combobox", { name: "Hype", exact: true })).toBeVisible();
+  await expect(main.getByRole("textbox", { name: "Nombre del juego", exact: true })).toHaveCount(0);
+  await expect(main.getByRole("combobox", { name: "Estado", exact: true })).toHaveCount(0);
+  await expect(main.getByRole("textbox", { name: "Horas estimadas", exact: true })).toHaveCount(0);
+  await expect(page.getByRole("tablist", { name: "Secciones del juego" }).getByRole("tab")).toHaveCount(3);
+  await expect(page.getByRole("tab", { name: "Partida", exact: true })).toHaveCount(0);
+  await expect(page.getByRole("tab", { name: "Reseña", exact: true })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Cancelar", exact: true })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Guardar entrada", exact: true })).toBeVisible();
+  await page.screenshot({ path: join(tmpdir(), "notebook-extra-principal-desktop-dark.png"), fullPage: true, animations: "disabled" });
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.evaluate(() => { document.documentElement.classList.add("light"); localStorage.setItem("journal-theme", "light"); });
+  await page.screenshot({ path: join(tmpdir(), "notebook-extra-principal-mobile-light.png"), fullPage: true, animations: "disabled" });
+  await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(390);
+  const mobileBack = (await back.boundingBox())!;
+  const mobileGuide = (await guide.boundingBox())!;
+  expect(mobileGuide.y + mobileGuide.height / 2).toBeCloseTo(mobileBack.y + mobileBack.height / 2, 0);
+  await page.setViewportSize({ width: 360, height: 800 });
+  await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(360);
+  await page.getByRole("tab", { name: "Resumen", exact: true }).click();
+  await expect(page.getByRole("button", { name: "Cancelar", exact: true })).toBeVisible();
+  await page.screenshot({ path: join(tmpdir(), "notebook-extra-summary-mobile-light.png"), fullPage: true, animations: "disabled" });
+  await page.getByRole("tab", { name: "Principal", exact: true }).click();
+  await page.getByRole("tab", { name: "Más", exact: true }).click();
+  const more = page.getByRole("tabpanel", { name: "Más" });
+  await expect(more.getByRole("textbox", { name: "¿Lo rejugarías?", exact: true })).toHaveCount(0);
+  await expect(more.getByRole("combobox", { name: "Hype", exact: true })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Guardar entrada", exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Cancelar", exact: true })).toBeVisible();
+  await page.getByRole("tab", { name: "Resumen", exact: true }).click();
+  await expect(page.getByRole("button", { name: "Guardar entrada", exact: true })).toHaveCount(0);
+
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await page.goto("./?tab=wishlist");
+  await page.locator(".wishlist-table").getByRole("button", { name: "Ver detalles de Wishlist fixture", exact: true }).click();
+  const modal = page.getByRole("dialog", { name: "Tu partida", exact: true });
+  await expect(modal.getByRole("button", { name: "Cancelar", exact: true })).toBeVisible();
+  await expect(modal.getByRole("textbox", { name: "Nombre del juego", exact: true })).toBeVisible();
+  await expect(modal.getByRole("tab", { name: "Partida", exact: true })).toBeVisible();
+  await expect(modal.getByRole("tab", { name: "Reseña", exact: true })).toBeVisible();
+  await modal.getByRole("tab", { name: "Reseña", exact: true }).click();
+  await expect(modal.getByRole("textbox", { name: "Historia, gameplay o ambos", exact: true })).toBeVisible();
+  await modal.getByRole("tab", { name: "Más", exact: true }).click();
+  await expect(modal.getByRole("textbox", { name: "¿Lo rejugarías?", exact: true })).toBeVisible();
+  await expect(modal.getByRole("combobox", { name: "Hype" })).toBeVisible();
 });
 
 test("a private next-session reminder persists without replacing review comments", async ({ page }) => {
-  await page.addInitScript(() => localStorage.setItem("journal-library-layout", "notebook"));
   await mockApp(page, false, true);
   await page.setViewportSize({ width: 1280, height: 900 });
   await page.goto("./?tab=library");
-  let index = page.getByRole("navigation", { name: "Juegos de la Biblioteca" });
-  await index.getByRole("button", { name: "Theme fixture" }).click();
+  const openBook = () => page.locator(".library-table").getByRole("button", { name: "Ver detalles de Theme fixture", exact: true });
+  await openBook().click();
   const reminder = page.locator(".library-notebook-reminder");
   const comments = page.locator(".library-notebook-notes");
   await expect(reminder).toContainText("Agregar recordatorio");
@@ -326,66 +411,77 @@ test("a private next-session reminder persists without replacing review comments
   await expect(reminder).toContainText("Try another route next time");
   await expect(comments).toContainText("Existing review comment");
 
+  await page.getByRole("button", { name: "← Biblioteca", exact: true }).click();
   await page.reload();
-  index = page.getByRole("navigation", { name: "Juegos de la Biblioteca" });
-  await index.getByRole("button", { name: "Theme fixture" }).click();
+  await openBook().click();
   await expect(page.locator(".library-notebook-reminder")).toContainText("Try another route next time");
   await expect(page.locator(".library-notebook-notes")).toContainText("Existing review comment");
-  await page.getByRole("group", { name: "Vista de Biblioteca" }).getByRole("button", { name: "Lista" }).click();
+  await page.getByRole("button", { name: "← Biblioteca", exact: true }).click();
   await page.setViewportSize({ width: 390, height: 844 });
   await expect(page.locator(".notebook-entry-card").filter({ hasText: "Theme fixture" })).toContainText("Existing review comment");
 });
 
-test("Biblioteca index scrolls and keeps its position after returning to the selected entry", async ({ page }) => {
-  await page.addInitScript(() => localStorage.setItem("journal-library-layout", "notebook"));
+test("book detail URL survives reload and keeps the summary columns", async ({ page }) => {
+  await mockApp(page);
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await page.goto("./?tab=library&year=all&q=Theme");
+  await page.locator(".library-table").getByRole("button", { name: "Ver detalles de Theme fixture", exact: true }).click();
+  await expect.poll(() => new URL(page.url()).searchParams.get("detail")).toBe("20000000-0000-4000-8000-000000000001");
+  await page.reload();
+  await expect(page.getByRole("tab", { name: "Resumen", exact: true })).toHaveAttribute("aria-selected", "true");
+  const finished = page.getByRole("button", { name: "Editar Terminé de Theme fixture", exact: true });
+  const impression = page.getByRole("button", { name: "Editar Impresiones de Theme fixture", exact: true });
+  for (const width of [1280, 390]) {
+    await page.setViewportSize({ width, height: 900 });
+    const [a, b] = await Promise.all([finished.boundingBox(), impression.boundingBox()]);
+    expect(a).not.toBeNull(); expect(b).not.toBeNull();
+    expect(Math.abs(a!.y - b!.y)).toBeLessThan(3);
+    expect(b!.x).toBeGreaterThan(a!.x);
+    await page.locator(".library-notebook-spread").screenshot({ path: join(tmpdir(), `notebook-summary-todo-${width}.png`), animations: "disabled" });
+  }
+  await page.getByRole("button", { name: "← Biblioteca", exact: true }).click();
+  expect(new URL(page.url()).searchParams.has("detail")).toBe(false);
+  expect(new URL(page.url()).searchParams.get("q")).toBe("Theme");
+});
+
+test("browser back keeps a dirty detail draft and a missing detail returns to the list", async ({ page }) => {
+  await mockApp(page);
+  await page.goto("./?tab=library&year=all");
+  await page.locator(".library-table").getByRole("button", { name: "Ver detalles de Theme fixture", exact: true }).click();
+  await page.getByRole("tab", { name: "Más", exact: true }).click();
+  await page.getByRole("combobox", { name: "Escala de producción", exact: true }).selectOption("indie");
+  await page.evaluate(() => { history.pushState(null, "", "/?tab=library&year=all"); dispatchEvent(new PopStateEvent("popstate")); });
+  await expect(page.getByRole("combobox", { name: "Escala de producción", exact: true })).toHaveValue("indie");
+  expect(new URL(page.url()).searchParams.has("detail")).toBe(true);
+  await page.getByRole("button", { name: "← Biblioteca", exact: true }).click();
+  await page.getByRole("button", { name: "Descartar cambios", exact: true }).click();
+  await page.goto("./?tab=library&year=all&detail=20000000-0000-4000-8000-999999999999");
+  await expect(page.locator(".library-table")).toBeVisible();
+  await expect.poll(() => new URL(page.url()).searchParams.has("detail")).toBe(false);
+});
+
+test("Biblioteca list scroll returns focus to the game edit button", async ({ page }) => {
   await mockApp(page, true);
-
-  for (const theme of ["light", "dark"] as const) {
+  for (const width of [390, 1280]) {
+    await page.setViewportSize({ width, height: width === 390 ? 844 : 900 });
     await page.goto("./?tab=library&year=all");
-    await page.evaluate((value) => localStorage.setItem("journal-theme", value), theme);
-    await page.reload();
-    for (const width of [390, 1280]) {
-      await page.setViewportSize({ width, height: width === 390 ? 844 : 900 });
-      await page.goto("./?tab=library&year=all");
-      await expect(page.getByRole("heading", { name: "Índice", exact: true })).toHaveCount(0);
-      const index = page.getByRole("navigation", { name: "Juegos de la Biblioteca" });
-      const box = (await index.boundingBox())!;
-      const start = await index.evaluate((node) => node.scrollTop);
-      await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
-      await page.mouse.wheel(0, 600);
-      await expect.poll(() => index.evaluate((node) => node.scrollTop)).toBeGreaterThan(start);
-
-      const targetEntry = index.getByRole("button", { name: /Index fixture 28/ });
-      await targetEntry.scrollIntoViewIfNeeded();
-      const beforeSelection = await index.evaluate((node) => ({
-        scrollTop: node.scrollTop,
-        scrollHeight: node.scrollHeight,
-        clientHeight: node.clientHeight,
-      }));
-      await targetEntry.click();
-      await expect(page.locator(".library-notebook-page-heading")).toContainText("Index fixture 28");
-      if (width === 390)
-        await page.getByRole("button", { name: "← Biblioteca" }).click();
-      else
-        await expect(index).toBeVisible();
-      await expect(targetEntry).toHaveAttribute("aria-current", "page");
-      const afterReturn = await index.evaluate((node) => ({
-        scrollTop: node.scrollTop,
-        scrollHeight: node.scrollHeight,
-        clientHeight: node.clientHeight,
-      }));
-      const expectedPosition = Math.min(
-        beforeSelection.scrollTop,
-        afterReturn.scrollHeight - afterReturn.clientHeight,
-      );
-      await expect.poll(() => index.evaluate((node) => node.scrollTop)).toBe(expectedPosition);
-      await expect(targetEntry).toBeInViewport();
-      await page.screenshot({
-        path: join(tmpdir(), `notebook-index-${theme}-${width}.png`),
-        fullPage: true,
-        animations: "disabled",
-      });
-    }
+    await expect(page.getByRole("group", { name: "Vista de Biblioteca" })).toHaveCount(0);
+    const list = width === 390 ? page.locator(".notebook-entry-list") : page.locator(".library-table");
+    const start = await page.evaluate(() => window.scrollY);
+    await page.mouse.wheel(0, 600);
+    await expect.poll(() => page.evaluate(() => window.scrollY)).toBeGreaterThanOrEqual(start);
+    const target = width === 390 ? page.locator(".notebook-entry-card").filter({ hasText: "Index fixture 28" }) : page.locator(".library-table");
+    await target.scrollIntoViewIfNeeded();
+    const returnFocus = width === 390
+      ? target.getByRole("button", { name: "Editar rápidamente Index fixture 28", exact: true })
+      : target.getByRole("button", { name: "Ver detalles de Index fixture 28", exact: true });
+    await returnFocus.click();
+    await expect(page.locator(".library-notebook-page-heading")).toContainText("Index fixture 28");
+    await expect(page.getByRole("dialog")).toHaveCount(0);
+    await page.getByRole("button", { name: "← Biblioteca", exact: true }).click();
+    await expect(list).toBeVisible();
+    await expect(target).toBeInViewport();
+    await expect(returnFocus).toBeFocused();
   }
 });
 
@@ -932,4 +1028,77 @@ test("collection filters remain discoverable inside a compact disclosure", async
       }
     }
   }
+});
+
+async function dispatchTouchSwipe(page: Page, target: Locator, dx: number, dy: number, gutter = false) {
+  await target.scrollIntoViewIfNeeded();
+  const box = await target.boundingBox();
+  expect(box).not.toBeNull();
+  const x = gutter ? box!.x + 8 : box!.x + box!.width / 2;
+  const y = box!.y + Math.min(box!.height / 2, 90);
+  const session = await page.context().newCDPSession(page);
+  await session.send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: [{ x, y }] });
+  await session.send("Input.dispatchTouchEvent", { type: "touchMove", touchPoints: [{ x: x + dx * 0.55, y: y + dy * 0.55 }] });
+  await session.send("Input.dispatchTouchEvent", { type: "touchMove", touchPoints: [{ x: x + dx, y: y + dy }] });
+  await session.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
+  await session.detach();
+}
+
+test.describe("mobile book page swipes", () => {
+  test.use({ hasTouch: true, viewport: { width: 390, height: 844 } });
+
+  async function openBook(page: Page) {
+    await mockApp(page);
+    await page.goto("./?tab=library");
+    await page.locator(".notebook-entry-card").filter({ hasText: "Theme fixture" }).getByRole("button", { name: "Editar rápidamente Theme fixture" }).click();
+  }
+
+  test("book touch swipes navigate the three tabs without saving", async ({ page }) => {
+    const posts: string[] = [];
+    page.on("request", (request) => {
+      if (request.url().includes("/api/records") && request.method() === "POST") posts.push(request.url());
+    });
+    await openBook(page);
+    await dispatchTouchSwipe(page, page.locator(".notebook-book-header"), -130, 0);
+    await expect(page.getByRole("tab", { name: "Principal", exact: true })).toHaveAttribute("aria-selected", "true");
+    await dispatchTouchSwipe(page, page.locator(".notebook-book-header"), -130, 0);
+    await expect(page.getByRole("tab", { name: "Más", exact: true })).toHaveAttribute("aria-selected", "true");
+    await dispatchTouchSwipe(page, page.locator(".notebook-book-header"), 130, 0);
+    await expect(page.getByRole("tab", { name: "Principal", exact: true })).toHaveAttribute("aria-selected", "true");
+    await dispatchTouchSwipe(page, page.locator(".notebook-book-header"), 130, 0);
+    await expect(page.getByRole("tab", { name: "Resumen", exact: true })).toHaveAttribute("aria-selected", "true");
+    expect(posts).toEqual([]);
+  });
+
+  test("vertical and input swipes do not change tabs and dirty form stays guarded", async ({ page }) => {
+    await openBook(page);
+    const totalScroll = () => page.evaluate(() => window.scrollY + Array.from(document.querySelectorAll<HTMLElement>("*"))
+      .reduce((total, node) => total + node.scrollTop, 0));
+    const before = await totalScroll();
+    await dispatchTouchSwipe(page, page.locator(".notebook-book-editor"), 0, -180, true);
+    await expect.poll(totalScroll).toBeGreaterThan(before);
+    await expect(page.getByRole("tab", { name: "Resumen", exact: true })).toHaveAttribute("aria-selected", "true");
+    await page.getByRole("tab", { name: "Principal", exact: true }).click();
+    const focus = page.getByRole("textbox", { name: "Historia, gameplay o ambos", exact: true });
+    await dispatchTouchSwipe(page, focus, -140, 0);
+    await expect(page.getByRole("tab", { name: "Principal", exact: true })).toHaveAttribute("aria-selected", "true");
+    await page.getByRole("tab", { name: "Más", exact: true }).click();
+    await page.getByRole("combobox", { name: "Escala de producción", exact: true }).selectOption("indie");
+    await dispatchTouchSwipe(page, page.locator(".notebook-book-header"), 130, 0);
+    await expect(page.getByRole("tab", { name: "Principal", exact: true })).toHaveAttribute("aria-selected", "true");
+    await dispatchTouchSwipe(page, page.locator(".notebook-book-header"), 130, 0);
+    await expect(page.getByRole("tab", { name: "Resumen", exact: true })).toBeDisabled();
+    await expect(page.getByRole("tab", { name: "Principal", exact: true })).toHaveAttribute("aria-selected", "true");
+    await page.getByRole("tab", { name: "Más", exact: true }).click();
+    await expect(page.getByRole("combobox", { name: "Escala de producción", exact: true })).toHaveValue("indie");
+  });
+
+  test("dirty inline summary blocks touch navigation", async ({ page }) => {
+    await openBook(page);
+    await page.getByRole("button", { name: "Editar Nombre de Theme fixture" }).click();
+    await page.getByRole("textbox", { name: "Nombre", exact: true }).fill("Theme draft");
+    await dispatchTouchSwipe(page, page.locator(".notebook-book-header"), -140, 0);
+    await expect(page.getByRole("tab", { name: "Resumen", exact: true })).toHaveAttribute("aria-selected", "true");
+    await expect(page.getByRole("textbox", { name: "Nombre", exact: true })).toHaveValue("Theme draft");
+  });
 });

@@ -1,15 +1,14 @@
 "use client";
 
-import { useContext, useEffect, useLayoutEffect, useRef, useState } from "react";
+import type { ReactNode } from "react";
 import { statuses } from "@/lib/types";
 import type { JournalEntry } from "@/lib/journal/journal-types";
 import { formatDate } from "@/lib/journal/view-config";
 import { GameComments } from "@/features/journal/game-comments";
 import { LibraryPlaythrough, ReviewMark } from "./library-game-details";
 import { Pencil } from "lucide-react";
-import { GameCover, GameRowArtwork } from "@/features/entries/game-cover";
-import { InlineEditContext } from "@/features/journal/inline/inline-context";
-import { InlineField } from "@/features/journal/inline/inline-field";
+import { GameRowArtwork } from "@/features/entries/game-cover";
+import { NotebookSummary } from "./notebook-summary";
 
 export function NotebookLibraryEntries({
   entries,
@@ -17,149 +16,27 @@ export function NotebookLibraryEntries({
   entryRowClass,
   onQuickEdit,
   view = "library",
-  presentation = "notebook",
+  detailEntryId = "",
+  detailEntry,
+  detailEditor,
 }: {
   entries: JournalEntry[];
   focusedEntry: string;
   entryRowClass: (entry: JournalEntry) => string | undefined;
   onQuickEdit: (entry: JournalEntry) => void;
   view?: "library" | "journal";
-  presentation?: "notebook" | "list";
+  detailEntryId?: string;
+  detailEntry?: JournalEntry;
+  detailEditor?: (summary: ReactNode) => ReactNode;
 }) {
-  const [selectedId, setSelectedId] = useState("");
-  const [showingPage, setShowingPage] = useState(false);
-  const indexNav = useRef<HTMLElement>(null);
-  const inlineEdit = useContext(InlineEditContext);
-  const selectedEntry = entries.find((entry) => (entry.id ?? entry.sourceKey) === selectedId) ?? entries[0];
-  const entriesKey = entries.map((entry) => entry.id ?? entry.sourceKey).join("|");
+  const selectedEntry = detailEntry ?? entries.find((entry) => (entry.id ?? entry.sourceKey) === detailEntryId);
 
-  useLayoutEffect(() => {
-    const nav = indexNav.current;
-    if (!nav) return;
-    const measure = () => {
-      const spread = nav.closest<HTMLElement>(".library-notebook-spread");
-      if (!spread) return;
-      if (window.matchMedia("(max-width: 760px), (pointer: coarse)").matches) {
-        const bottomNav = document.querySelector<HTMLElement>(".notebook-bottom-nav");
-        const bottomHeight = bottomNav?.getBoundingClientRect().height ?? 0;
-        const top = Math.max(0, spread.getBoundingClientRect().top);
-        const availableHeight = Math.max(190, Math.min(620, window.innerHeight - top - bottomHeight - 18));
-        spread.style.setProperty("--library-spread-height", `${availableHeight}px`);
-      } else {
-        spread.style.removeProperty("--library-spread-height");
-      }
-    };
-    measure();
-    const observer = new ResizeObserver(measure);
-    observer.observe(nav);
-    observer.observe(nav.closest(".library-notebook-spread")!);
-    window.addEventListener("resize", measure);
-    return () => {
-      observer.disconnect();
-      window.removeEventListener("resize", measure);
-    };
-  }, [presentation]);
-
-  useEffect(() => {
-    if (!selectedEntry) {
-      setSelectedId("");
-      return;
-    }
-    const key = selectedEntry.id ?? selectedEntry.sourceKey;
-    if (selectedId !== key) setSelectedId(key);
-  }, [selectedEntry, selectedId]);
-
-  useEffect(() => {
-    if (!focusedEntry) return;
-    if (!entries.some((entry) => entry.id === focusedEntry)) return;
-    setSelectedId(focusedEntry);
-    setShowingPage(true);
-  }, [entriesKey, focusedEntry]);
-
-  useEffect(() => {
-    if (
-      showingPage ||
-      !focusedEntry ||
-      selectedEntry?.id !== focusedEntry
-    )
-      return;
-    const row = Array.from(indexNav.current?.querySelectorAll<HTMLButtonElement>("[data-entry-id]") ?? [])
-      .find((button) => button.dataset.entryId === focusedEntry);
-    row?.scrollIntoView({ block: "nearest" });
-  }, [entriesKey, focusedEntry, showingPage, selectedEntry]);
-
-  if (view === "library" && presentation === "notebook") {
+  if (view === "library" && detailEntryId) {
     return (
-      <section className="library-notebook-spread" aria-label="Cuaderno de Biblioteca">
-        <aside className={`library-notebook-index${showingPage ? " is-away" : ""}`}>
-          <nav ref={indexNav} aria-label="Juegos de la Biblioteca">
-            {entries.map((entry) => (
-              <button
-                type="button"
-                key={entry.id ?? entry.sourceKey}
-                data-entry-id={entry.id}
-                aria-label={`${entry.title}, ${statuses[entry.status]}`}
-                className={(entry.id ?? entry.sourceKey) === (selectedEntry?.id ?? selectedEntry?.sourceKey) ? "is-selected" : ""}
-                aria-current={(entry.id ?? entry.sourceKey) === (selectedEntry?.id ?? selectedEntry?.sourceKey) ? "page" : undefined}
-                disabled={!!inlineEdit?.dirty || !!inlineEdit?.saving}
-                onClick={() => {
-                  setSelectedId(entry.id ?? entry.sourceKey);
-                  setShowingPage(true);
-                }}
-              >
-                <GameCover cover={entry.cover} title={entry.title} />
-                <span>{entry.title}</span>
-                <small>{statuses[entry.status]}</small>
-              </button>
-            ))}
-          </nav>
-        </aside>
-        <article className={`library-notebook-page${showingPage ? " is-current" : ""}`} data-entry-id={selectedEntry?.id} tabIndex={-1}>
-          {selectedEntry ? (
-            <>
-              <button className="library-notebook-back" type="button" disabled={!!inlineEdit?.dirty || !!inlineEdit?.saving} onClick={() => setShowingPage(false)}>
-                ← Biblioteca
-              </button>
-              <div className="library-notebook-page-heading">
-                <div className="library-notebook-cover"><GameCover cover={selectedEntry.cover} title={selectedEntry.title} size="feature" /></div>
-                <div>
-                  <h2><InlineField entry={selectedEntry} field="title" view="library">{selectedEntry.title}</InlineField></h2>
-                  <p><InlineField entry={selectedEntry} field="device" view="library">{selectedEntry.device || selectedEntry.platforms || "Plataforma sin definir"}</InlineField></p>
-                  <InlineField entry={selectedEntry} field="status" view="library"><span className={`status ${selectedEntry.status}`}>{statuses[selectedEntry.status]}</span></InlineField>
-                </div>
-                <div className="notebook-entry-actions">
-                  <InlineField entry={selectedEntry} field="rating" view="library"><ReviewMark rating={selectedEntry.rating} /></InlineField>
-                  <button
-                    type="button"
-                    className="mobile-edit-button"
-                    data-quick-edit-id={selectedEntry.id}
-                    aria-label={`Editar rápidamente ${selectedEntry.title}`}
-                    title="Editar"
-                    onClick={() => onQuickEdit(selectedEntry)}
-                  >
-                    <Pencil size={17} aria-hidden="true" />
-                  </button>
-                </div>
-              </div>
-              <section className="library-notebook-reminder" aria-label="Recordatorio para la próxima partida">
-                {/* <h3>Notas</h3> */}
-                <InlineField entry={selectedEntry} field="reminder" view="library">
-                  <span className="library-notebook-writing">{selectedEntry.reminder || "Agregar recordatorio"}</span>
-                </InlineField>
-              </section>
-              <div className="library-notebook-meta">
-                <LibraryPlaythrough record={selectedEntry} inline />
-                <span><b>Terminé:</b> <InlineField entry={selectedEntry} field="finished" view="library">{formatDate(selectedEntry.finished) || "—"}</InlineField></span>
-              </div>
-              <div className="library-notebook-notes">
-                <h3>Notas finales</h3>
-                <section><h4>Por qué</h4><InlineField entry={selectedEntry} field="reason" view="library"><span className="library-notebook-writing">{selectedEntry.reason || "Agregar"}</span></InlineField></section>
-                <section><h4>Impresiones</h4><InlineField entry={selectedEntry} field="impression" view="library"><span className="library-notebook-writing">{selectedEntry.impression || "Agregar"}</span></InlineField></section>
-                <section><h4>Comentarios adicionales</h4><InlineField entry={selectedEntry} field="notes" view="library"><span className="library-notebook-writing">{selectedEntry.notes || "Agregar"}</span></InlineField></section>
-              </div>
-            </>
-          ) : <p className="library-notebook-empty-note">No hay juegos en esta selección.</p>}
-        </article>
+      <section className="library-notebook-spread is-detail" aria-label="Detalle del juego">
+        {selectedEntry ? detailEditor?.(
+          <NotebookSummary entry={selectedEntry} />,
+        ) ?? <p className="library-notebook-empty-note">No hay juegos en esta selección.</p> : null}
       </section>
     );
   }

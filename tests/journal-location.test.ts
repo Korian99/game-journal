@@ -1,6 +1,15 @@
 import { expect, it } from "vitest";
 import * as location from "../src/lib/journal/journal-location";
 
+it("round trips a Biblioteca detail without changing its filters", () => {
+  const id = "20000000-0000-4000-8000-000000000001";
+  const state = location.readJournalLocation(`?tab=library&year=all&q=Theme&detail=${id}`, "2026");
+  expect(state).toMatchObject({ detailEntry: id, query: "Theme", year: "" });
+  expect(location.readJournalLocation(location.writeJournalLocation(state, "", "2026"), "2026")).toEqual(state);
+  expect(location.readJournalLocation(`?tab=wishlist&detail=${id}`, "2026")).toMatchObject({ detailEntry: "" });
+  expect(location.readJournalLocation("?tab=library&detail=invalid", "2026")).toMatchObject({ detailEntry: "" });
+});
+
 it("restores a bookmarked tab, year, search, filters, and sort", () => {
   const state = location.readJournalLocation(
     "?tab=library&year=2025&q=Pok%C3%A9mon&status=completed&platform=Nintendo+DS&sort=rating.desc,title.asc",
@@ -15,6 +24,7 @@ it("restores a bookmarked tab, year, search, filters, and sort", () => {
     compareYear: "",
     estimateTarget: "story",
     focusedEntry: "",
+    detailEntry: "",
     notificationId: "",
     notificationOpen: false,
     notificationRead: "unread",

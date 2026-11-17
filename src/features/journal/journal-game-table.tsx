@@ -15,6 +15,7 @@ import { PriorityMark } from "@/features/entries/priority-mark";
 import { WishlistPrice } from "@/features/wishlist/wishlist-price";
 import { NotebookLibraryEntries } from "@/features/library/notebook-library-entries";
 import { GameRowArtwork } from "@/features/entries/game-cover";
+import type { ReactNode } from "react";
 
 export function JournalGameTable({
   table,
@@ -25,8 +26,9 @@ export function JournalGameTable({
   onQuickEdit,
   entryRowClass,
   focusedEntry = "",
-  libraryPresentation,
-  onLibraryPresentationChange,
+  detailEntryId = "",
+  detailEntry,
+  detailEditor,
 }: {
   table: Table<JournalEntry>;
   view: JournalView;
@@ -36,8 +38,9 @@ export function JournalGameTable({
   onQuickEdit: (entry: JournalEntry) => void;
   entryRowClass: (entry: JournalEntry) => string | undefined;
   focusedEntry?: string;
-  libraryPresentation: "notebook" | "list";
-  onLibraryPresentationChange: (presentation: "notebook" | "list") => void;
+  detailEntryId?: string;
+  detailEntry?: JournalEntry;
+  detailEditor?: (summary: ReactNode) => ReactNode;
 }) {
   const hasTarget = table
     .getRowModel()
@@ -66,7 +69,7 @@ export function JournalGameTable({
   }, [focusedEntry, hasTarget, view]);
   const commentsBelow = view === "library" || view === "journal";
   return (
-    <div className={view === "library" ? `library-layout library-layout-${libraryPresentation}` : undefined}>
+    <div className={view === "library" ? "library-layout library-layout-list" : undefined}>
       <div className="mobile-games">
         {view === "library" || view === "journal" ? (
           <NotebookLibraryEntries
@@ -75,7 +78,9 @@ export function JournalGameTable({
             entryRowClass={entryRowClass}
             onQuickEdit={onQuickEdit}
             view={view}
-            presentation={libraryPresentation}
+            detailEntryId={detailEntryId}
+            detailEntry={detailEntry}
+            detailEditor={detailEditor}
           />
         ) : (
           table.getRowModel().rows.map(({ original: r }) => (
@@ -166,7 +171,7 @@ export function JournalGameTable({
           ))
         )}
       </div>
-      {(view !== "library" || libraryPresentation === "list") && <div className="table-scroll journal-desktop-table">
+      {(view !== "library" || !detailEntryId) && <div className="table-scroll journal-desktop-table">
         <table
           className={
             view === "upcoming"

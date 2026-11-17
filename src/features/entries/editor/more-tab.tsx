@@ -23,6 +23,7 @@ export function MoreTab({
   releaseError,
   setReleaseError,
   activeTab,
+  hideMovedFields = false,
 }: Pick<
   EditorContext,
   | "online"
@@ -42,7 +43,7 @@ export function MoreTab({
   | "releaseError"
   | "setReleaseError"
   | "activeTab"
->) {
+> & { hideMovedFields?: boolean }) {
   return (
     <>
       <ReleaseField
@@ -76,8 +77,8 @@ export function MoreTab({
             </label>
             {renderField("period", "Año o período jugado")}
             {renderField("memorability", "Memorabilidad / 10", "number")}
-            {renderField("replay", "¿Lo rejugarías?")}
-            <label>
+            {!hideMovedFields && renderField("replay", "¿Lo rejugarías?")}
+            {!hideMovedFields && <label>
               Hype
               <select
                 form={formId}
@@ -101,7 +102,7 @@ export function MoreTab({
                   </option>
                 ))}
               </select>
-            </label>
+            </label>}
           </div>
 
           {entry.id && (

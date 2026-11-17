@@ -6,8 +6,6 @@ import {
 } from "@/features/stores/target-draft";
 import { EntrySaveStatus } from "./entry-save-status";
 import { EntryStart } from "./editor/entry-start";
-import { StorePreviewCard } from "./editor/store-preview-card";
-import { CoverEditor } from "./editor/cover-editor";
 import {
   storePreviewSchema,
   type StorePreview,
@@ -17,7 +15,7 @@ import {
   restoreStoreCover,
   storeCoverSourcePages,
 } from "@/features/stores/restore-store-cover";
-import { MainTab } from "./editor/main-tab";
+import { PrincipalPage } from "./editor/principal-page";
 import { PlaythroughTab } from "./editor/playthrough-tab";
 import { ReviewTab } from "./editor/review-tab";
 import { MoreTab } from "./editor/more-tab";
@@ -44,8 +42,9 @@ import {
   mergeProviderCover,
 } from "@/lib/covers";
 import { Check, LoaderCircle, Trash2 } from "lucide-react";
-import { useEffect, useId, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState, type MutableRefObject, type ReactNode } from "react";
 import { EntryActionsMenu } from "./entry-actions-menu";
+import { ScoringGuideButton } from "@/features/settings/scoring-guide-panel";
 
 import { Modal } from "@/components/ui/dialog";
 import {
@@ -70,6 +69,11 @@ export function EntryEditor({
   online = true,
   view,
   onReleaseFound,
+  embedded = false,
+  summaryContent,
+  onDirtyChange,
+  inlineBlocked = false,
+  backRequestRef,
 }: {
   entry: JournalEntry;
   initialDraft?: JournalEntry;
@@ -77,6 +81,11 @@ export function EntryEditor({
   online?: boolean;
   view: JournalView;
   onReleaseFound?: (release: { release: string; year: number }) => Promise<JournalEntry | null>;
+  embedded?: boolean;
+  summaryContent?: ReactNode;
+  onDirtyChange?: (dirty: boolean) => void;
+  inlineBlocked?: boolean;
+  backRequestRef?: MutableRefObject<(() => void) | null>;
   offers: Offer[];
   members: SharingMember[];
   grants: ShareGrant[];
@@ -94,6 +103,16 @@ export function EntryEditor({
       initial.status = defaultNewEntryStatus(initial);
     return initial;
   });
+  const draftRef = useRef(draft);
+  const baselineRef = useRef(entry);
+  draftRef.current = draft;
+  useEffect(() => {
+    if (!embedded) return;
+    if (JSON.stringify(draftRef.current) === JSON.stringify(baselineRef.current)) {
+      baselineRef.current = entry;
+      setDraft(entry);
+    }
+  }, [entry, embedded]);
   const [targetDrafts, setTargetDrafts] = useState<Record<string, string>>({});
   const [targetError, setTargetError] = useState("");
   const targetChanges = offerTargetChanges(offers, targetDrafts);
@@ -260,7 +279,9 @@ export function EntryEditor({
   const [pageUrl, setPageUrl] = useState("");
   const [recipientId, setRecipientId] = useState("");
   const [priceHistory, setPriceHistory] = useState<PriceHistory | null>(null);
-  const [activeTab, setActiveTab] = useState("main");
+  const [activeTab, setActiveTab] = useState(embedded ? "summary" : "main");
+  const tabSwipe = useRef<{ pointerId: number; x: number; y: number } | null>(null);
+  const suppressSwipeClick = useRef(false);
   const [pageError, setPageError] = useState("");
   const [releaseError, setReleaseError] = useState("");
   const [releaseSaveError, setReleaseSaveError] = useState("");
@@ -270,11 +291,19 @@ export function EntryEditor({
     !!pageUrl.trim() ||
     targetChanges.updates.length > 0 ||
     !!targetChanges.invalidOfferId;
+  useEffect(() => onDirtyChange?.(dirty), [dirty, onDirtyChange]);
   function requestClose() {
-    if (busy || saving) return;
+    if (busy || saving || inlineBlocked) return;
     if (dirty) setConfirmDiscard(true);
     else onClose();
   }
+  useEffect(() => {
+    if (!backRequestRef) return;
+    backRequestRef.current = requestClose;
+    return () => {
+      if (backRequestRef.current === requestClose) backRequestRef.current = null;
+    };
+  });
   useEffect(() => {
     if (!dirty) return;
     const prevent = (event: BeforeUnloadEvent) => {
@@ -315,11 +344,17 @@ export function EntryEditor({
   }
   const formId = editorId + "-form";
   const tabs = [
+    ...(embedded ? [{ id: "summary", label: "Resumen" }] : []),
     { id: "main", label: "Principal" },
-    { id: "playthrough", label: "Partida" },
-    { id: "review", label: "Reseña" },
+    ...(!embedded ? [{ id: "playthrough", label: "Partida" }] : []),
+    ...(!embedded ? [{ id: "review", label: "Reseña" }] : []),
     { id: "more", label: "Más" },
   ];
+  function selectTab(id: string) {
+    if (inlineBlocked || busy || saving || (embedded && dirty && id === "summary"))
+      return;
+    setActiveTab(id);
+  }
   const updateDraftField = (key: keyof JournalEntry, value: unknown) => {
     if (key === "status") statusExplicitlyChosen.current = true;
     setDraft((current) => {
@@ -492,34 +527,7 @@ export function EntryEditor({
         />
       </Modal>
     );
-  return (
-    <Modal
-      open
-      onClose={requestClose}
-      title={entry.id ? "Tu partida" : "Agregar un juego"}
-      headerStatus={saving ? <EntrySaveStatus /> : undefined}
-      onEscapeKeyDown={(event) => {
-        const trigger = document.getElementById(editorId + "-options");
-        const menu = trigger?.closest("details");
-        if (menu?.open) {
-          event.preventDefault();
-          menu.open = false;
-          trigger?.focus();
-        }
-      }}
-      headerActions={
-        entry.id ? (
-          <EntryActionsMenu
-            triggerId={editorId + "-options"}
-            busy={busy || !online}
-            onDeleteRequest={() => {
-              setDeleteError("");
-              setConfirmDelete(true);
-            }}
-          />
-        ) : undefined
-      }
-    >
+  const editorBody = (
       <div className="modal-body entry-editor">
         <form
           id={formId}
@@ -580,25 +588,13 @@ export function EntryEditor({
             role="tablist"
             aria-label="Secciones del juego"
             onKeyDown={(event) => {
-              if (
-                !["ArrowLeft", "ArrowRight", "Home", "End"].includes(event.key)
-              )
+              if (inlineBlocked || !["ArrowLeft", "ArrowRight", "Home", "End"].includes(event.key))
                 return;
               event.preventDefault();
               const index = tabs.findIndex((tab) => tab.id === activeTab);
-              const next =
-                event.key === "Home"
-                  ? 0
-                  : event.key === "End"
-                    ? tabs.length - 1
-                    : (index +
-                        (event.key === "ArrowRight" ? 1 : -1) +
-                        tabs.length) %
-                      tabs.length;
-              setActiveTab(tabs[next].id);
-              document
-                .getElementById(editorId + "-tab-" + tabs[next].id)
-                ?.focus();
+              const next = event.key === "Home" ? 0 : event.key === "End" ? tabs.length - 1 : (index + (event.key === "ArrowRight" ? 1 : -1) + tabs.length) % tabs.length;
+              selectTab(tabs[next].id);
+              document.getElementById(editorId + "-tab-" + tabs[next].id)?.focus();
             }}
           >
             {tabs.map((tab) => (
@@ -610,12 +606,18 @@ export function EntryEditor({
                 aria-controls={editorId + "-panel-" + tab.id}
                 aria-selected={activeTab === tab.id}
                 tabIndex={activeTab === tab.id ? 0 : -1}
-                onClick={() => setActiveTab(tab.id)}
+                disabled={inlineBlocked || busy || saving || (embedded && dirty && tab.id === "summary")}
+                onClick={() => selectTab(tab.id)}
               >
                 {tab.label}
               </button>
             ))}
           </div>
+          {embedded && (
+            <section className="editor-panel" role="tabpanel" id={editorId + "-panel-summary"} aria-labelledby={editorId + "-tab-summary"} hidden={activeTab !== "summary"}>
+              {summaryContent}
+            </section>
+          )}
           <section
             className="editor-panel"
             role="tabpanel"
@@ -623,167 +625,105 @@ export function EntryEditor({
             aria-labelledby={editorId + "-tab-main"}
             hidden={activeTab !== "main"}
           >
-            <div hidden={activeTab !== "main"}>
-              <CoverEditor
-                cover={draft.cover}
-                title={draft.title}
-                inputId={editorId + "-cover-url"}
-                formId={formId}
-                disabled={busy || saving || coverRestoreBusy}
-                onChange={(cover) => updateDraftField("cover", cover)}
-                onRestore={() => void resetCover()}
-                restoring={coverRestoreBusy}
-                restoreError={coverRestoreError}
-                restoreStatus={coverRestoreStatus}
-              />
-            </div>
-            {activeTab === "main" && (
-              <button
-                type="button"
-                className="text-button editor-store-lookup"
-                disabled={busy || !online}
-                onClick={() => setStep("page")}
-              >
-                Completar desde una página
-              </button>
-            )}
-            {activeTab === "main" && (
-              <button
-                type="button"
-                className="text-button editor-store-lookup"
-                disabled={busy || !online}
-                onClick={() => setStep("search")}
-              >
-                Completar desde el buscador
-              </button>
-            )}
-            {activeTab === "main" &&
-              storePreview &&
-              draft.pages?.includes(storePreview.url) && (
-                <StorePreviewCard preview={storePreview} />
-              )}
-            {activeTab === "main" && releaseSaveError && (
-              <p className="error" role="alert">
-                {releaseSaveError}
-              </p>
-            )}
-            <MainTab
-              online={online}
-              draft={draft}
-              updateDraftField={updateDraftField}
-              renderField={renderField}
-              formId={formId}
-              offers={offers}
-              targetDrafts={targetDrafts}
-              setTargetDraft={setTargetDraft}
-              runAction={runAction}
-              priceHistory={priceHistory}
-              setPriceHistory={setPriceHistory}
-              pageUrl={pageUrl}
-              setPageUrl={setPageUrl}
-              pageError={pageError}
-              setPageError={setPageError}
-              busy={busy}
-              activeTab={activeTab}
+            <PrincipalPage
+              main={{ online, draft, updateDraftField, renderField, formId, offers, targetDrafts, setTargetDraft, runAction, priceHistory, setPriceHistory, pageUrl, setPageUrl, pageError, setPageError, busy, activeTab, omitSummaryFields: embedded, bookFields: embedded }}
+              cover={{ cover: draft.cover, title: draft.title, inputId: editorId + "-cover-url", formId, disabled: busy || saving || coverRestoreBusy, onChange: (cover) => updateDraftField("cover", cover), onRestore: () => void resetCover(), restoring: coverRestoreBusy, restoreError: coverRestoreError, restoreStatus: coverRestoreStatus }}
+              storePreview={storePreview}
+              releaseSaveError={releaseSaveError}
+              onLookupPage={() => setStep("page")}
+              onLookupSearch={() => setStep("search")}
             />
           </section>
-          <section
-            className="editor-panel"
-            role="tabpanel"
-            id={editorId + "-panel-playthrough"}
-            aria-labelledby={editorId + "-tab-playthrough"}
-            hidden={activeTab !== "playthrough"}
-          >
-            <PlaythroughTab
-              draft={draft}
-              updateDraftField={updateDraftField}
-              renderField={renderField}
-              formId={formId}
-              activeTab={activeTab}
-            />
-          </section>
-          <section
-            className="editor-panel"
-            role="tabpanel"
-            id={editorId + "-panel-review"}
-            aria-labelledby={editorId + "-tab-review"}
-            hidden={activeTab !== "review"}
-          >
-            <ReviewTab
-              draft={draft}
-              updateDraftField={updateDraftField}
-              renderField={renderField}
-              formId={formId}
-              activeTab={activeTab}
-            />
-          </section>
-          <section
-            className="editor-panel"
-            role="tabpanel"
-            id={editorId + "-panel-more"}
-            aria-labelledby={editorId + "-tab-more"}
-            hidden={activeTab !== "more"}
-          >
-            <MoreTab
-              online={online}
-              dirty={dirty}
-              entry={entry}
-              draft={draft}
-              updateDraftField={updateDraftField}
-              renderField={renderField}
-              formId={formId}
-              runAction={runAction}
-              members={members}
-              grants={grants}
-              recipientId={recipientId}
-              setRecipientId={setRecipientId}
-              busy={busy}
-              onSave={saveDraft}
-              releaseError={releaseError}
-              setReleaseError={setReleaseError}
-              activeTab={activeTab}
-            />
+          {!embedded && <section className="editor-panel" role="tabpanel" id={editorId + "-panel-playthrough"} aria-labelledby={editorId + "-tab-playthrough"} hidden={activeTab !== "playthrough"}>
+            <PlaythroughTab draft={draft} updateDraftField={updateDraftField} renderField={renderField} formId={formId} activeTab={activeTab} />
+          </section>}
+          {!embedded && <section className="editor-panel" role="tabpanel" id={editorId + "-panel-review"} aria-labelledby={editorId + "-tab-review"} hidden={activeTab !== "review"}>
+            <ReviewTab draft={draft} updateDraftField={updateDraftField} renderField={renderField} formId={formId} activeTab={activeTab} omitSummaryFields={embedded} />
+          </section>}
+          <section className="editor-panel" role="tabpanel" id={editorId + "-panel-more"} aria-labelledby={editorId + "-tab-more"} hidden={activeTab !== "more"}>
+            <MoreTab online={online} dirty={dirty} entry={entry} draft={draft} updateDraftField={updateDraftField} renderField={renderField} formId={formId} runAction={runAction} members={members} grants={grants} recipientId={recipientId} setRecipientId={setRecipientId} busy={busy} onSave={saveDraft} releaseError={releaseError} setReleaseError={setReleaseError} activeTab={activeTab} hideMovedFields={embedded} />
           </section>
         </fieldset>
-        {!online && (
-          <p className="fine-print">
-            Necesitás conexión para guardar. El formulario se conserva mientras
-            siga abierto.
-          </p>
-        )}
-        {(targetError || actionError) && (
-          <p className="error" role="alert">
-            {targetError || actionError}
-          </p>
-        )}
+        {!online && <p className="fine-print">Necesitás conexión para guardar. El formulario se conserva mientras siga abierto.</p>}
+        {(targetError || actionError) && <p className="error" role="alert">{targetError || actionError}</p>}
         <div className="entry-editor-actions">
-          <button
-            type="button"
-            className="text-button"
-            onClick={requestClose}
-            disabled={busy}
-          >
-            Cancelar
-          </button>
-          <button
-            type="submit"
-            form={formId}
-            className="primary"
-            disabled={busy || saving || coverRestoreBusy}
-          >
-            {saving ? "Guardando…" : "Guardar entrada"}
-            {saving ? (
-              <LoaderCircle
-                size={16}
-                className="save-spinner"
-                aria-hidden="true"
-              />
-            ) : (
-              <Check size={16} aria-hidden="true" />
-            )}
-          </button>
+          {(!embedded || activeTab !== "main") && <button type="button" className="text-button" onClick={requestClose} disabled={busy}>Cancelar</button>}
+          {(!embedded || activeTab === "main" || activeTab === "more") && <button type="submit" form={formId} className="primary" disabled={busy || saving || coverRestoreBusy}>
+            {saving ? "Guardando…" : "Guardar entrada"}{saving ? <LoaderCircle size={16} className="save-spinner" aria-hidden="true" /> : <Check size={16} aria-hidden="true" />}
+          </button>}
         </div>
       </div>
+    );
+  if (embedded)
+    return (
+      <section
+        className="notebook-book-editor"
+        aria-label="Datos del juego"
+        onPointerDown={(event) => {
+          suppressSwipeClick.current = false;
+          if (event.pointerType !== "touch" || !event.isPrimary) { tabSwipe.current = null; return; }
+          const target = event.target instanceof Element ? event.target : null;
+          if (!target || target.closest("input, textarea, select, a, [contenteditable=true], .inline-editor, button:not(.inline-value), [role=button]")) { tabSwipe.current = null; return; }
+          tabSwipe.current = { pointerId: event.pointerId, x: event.clientX, y: event.clientY };
+        }}
+        onPointerUp={(event) => {
+          const gesture = tabSwipe.current;
+          if (!gesture || gesture.pointerId !== event.pointerId) return;
+          const dx = event.clientX - gesture.x;
+          const dy = event.clientY - gesture.y;
+          tabSwipe.current = null;
+          if (Math.abs(dx) < 60 || Math.abs(dx) <= Math.abs(dy) * 1.5) return;
+          suppressSwipeClick.current = true;
+          const index = tabs.findIndex((tab) => tab.id === activeTab);
+          const next = tabs[index + (dx < 0 ? 1 : -1)];
+          if (!next) return;
+          selectTab(next.id);
+        }}
+        onPointerCancel={() => { tabSwipe.current = null; }}
+        onLostPointerCapture={() => { tabSwipe.current = null; }}
+        onClickCapture={(event) => {
+          if (!suppressSwipeClick.current || event.detail === 0) return;
+          suppressSwipeClick.current = false;
+          event.preventDefault();
+          event.stopPropagation();
+        }}
+      >
+        <div className="notebook-book-header">
+          <button type="button" className="library-notebook-back" onClick={requestClose} disabled={busy || saving}>← Biblioteca</button>
+          <ScoringGuideButton />
+        </div>
+        {editorBody}
+      </section>
+    );
+  return (
+    <Modal
+      open
+      onClose={requestClose}
+      title={entry.id ? "Tu partida" : "Agregar un juego"}
+      headerStatus={saving ? <EntrySaveStatus /> : undefined}
+      onEscapeKeyDown={(event) => {
+        const trigger = document.getElementById(editorId + "-options");
+        const menu = trigger?.closest("details");
+        if (menu?.open) {
+          event.preventDefault();
+          menu.open = false;
+          trigger?.focus();
+        }
+      }}
+      headerActions={
+        entry.id ? (
+          <EntryActionsMenu
+            triggerId={editorId + "-options"}
+            busy={busy || !online}
+            onDeleteRequest={() => {
+              setDeleteError("");
+              setConfirmDelete(true);
+            }}
+          />
+        ) : undefined
+      }
+    >
+      {editorBody}
     </Modal>
   );
 }

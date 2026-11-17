@@ -96,7 +96,9 @@ const nav = [
 export function JournalApp({
   initialLocation,
 }: { initialLocation?: JournalLocation } = {}) {
-  const journalLocation = useJournalLocation(initialLocation);
+  const detailNavigationGuard = useRef<() => boolean>(() => true);
+  const canRestoreLocation = useCallback(() => detailNavigationGuard.current(), []);
+  const journalLocation = useJournalLocation(initialLocation, canRestoreLocation);
   const {
     view,
     query,
@@ -158,17 +160,12 @@ export function JournalApp({
     setError,
   });
   const [releaseNow, setReleaseNow] = useState(() => new Date());
-  const [libraryPresentation, setLibraryPresentation] = useState<"notebook" | "list">(() =>
-    typeof window !== "undefined" && window.localStorage.getItem("journal-library-layout") === "list" ? "list" : "notebook",
-  );
-  function changeLibraryPresentation(presentation: "notebook" | "list") {
-    if (inlineEditing.dirty || inlineEditing.saving) {
-      setNotice("Guardá o cancelá la edición antes de cambiar de vista.");
-      return;
-    }
-    window.localStorage.setItem("journal-library-layout", presentation);
-    setLibraryPresentation(presentation);
-  }
+  const detailEntryId = journalLocation.detailEntry;
+  const detailEntry = view === "library" && detailEntryId ? getRecord(detailEntryId) : undefined;
+  const setDetailEntryId = journalLocation.setDetailEntry;
+  const [detailDraftDirty, setDetailDraftDirty] = useState(false);
+  const [detailEditorRevision, setDetailEditorRevision] = useState(0);
+  const detailBackRequest = useRef<(() => void) | null>(null);
   const [refreshingPrices, setRefreshingPrices] = useState(false);
   const refreshInFlight = useRef(false);
   const [editingEntry, setEditingEntry] = useState<JournalEntry | null>(null);
@@ -176,6 +173,7 @@ export function JournalApp({
     undefined,
   );
   const [quickEntry, setQuickEntry] = useState<JournalEntry | null>(null);
+  const restoreNotebookEditorFocus = useRef(false);
   const [undoEntry, setUndoEntry] = useState<{
     id: string;
     expires: number;
@@ -194,11 +192,50 @@ export function JournalApp({
     return () => window.clearTimeout(timeout);
   }, [notice, setNotice]);
   const openEntry = useCallback((entry: JournalEntry) => {
+    if (!detailNavigationGuard.current()) return;
+    setDetailEntryId("");
+    setDetailDraftDirty(false);
+    restoreNotebookEditorFocus.current = false;
     setEditingDraft(undefined);
     setEditingEntry(entry);
   }, []);
+  function openLibraryListEntry(entry: JournalEntry) {
+    if (inlineEditing.dirty || inlineEditing.saving || busy || savingEntry) {
+      setNotice("Guardá o cancelá la edición actual antes de abrir otra.");
+      return;
+    }
+    const current = getRecord(entry.id ?? "");
+    if (!current) {
+      setNotice("La partida ya no está disponible.");
+      return;
+    }
+    inlineEditing.cancel();
+    const id = current.id ?? current.sourceKey;
+    setDetailEntryId(id);
+    setDetailDraftDirty(false);
+    setEditingDraft(undefined);
+    setEditingEntry(null);
+  }
+  function closeLibraryDetail() {
+    const returnId = detailEntryId;
+    setDetailEntryId("");
+    setDetailDraftDirty(false);
+    requestAnimationFrame(() => {
+      const row = Array.from(document.querySelectorAll<HTMLElement>("[data-entry-id]"))
+        .find((node) => node.dataset.entryId === returnId && node.getClientRects().length > 0);
+      const button = row?.querySelector<HTMLButtonElement>(".inline-details, [data-quick-edit-id]");
+      const target = button ?? row;
+      if (target) {
+        target.focus({ preventScroll: true });
+        target.scrollIntoView({ block: "center", behavior: "instant" });
+      } else {
+        const heading = document.querySelector<HTMLElement>(".notebook-library-heading h1");
+        if (heading) { heading.tabIndex = -1; heading.focus({ preventScroll: true }); }
+      }
+    });
+  }
   async function signOut() {
-    if (inlineEditing.dirty || inlineEditing.saving) {
+    if (detailDraftDirty || inlineEditing.dirty || inlineEditing.saving) {
       setNotice("Guardá o cancelá la edición antes de cerrar sesión.");
       return;
     }
@@ -217,6 +254,20 @@ export function JournalApp({
     offerTargets: OfferTargetUpdate[];
   } | null>(null);
   const [savingEntry, setSavingEntry] = useState(false);
+  useEffect(() => {
+    if (detailEntryId && !detailEntry && !loading && resourceStates.records.checkedAt && !resourceStates.records.error) {
+      setDetailEntryId("");
+      setDetailDraftDirty(false);
+      setNotice("La partida ya no está disponible.");
+    }
+  }, [detailEntryId, detailEntry, loading, resourceStates.records.checkedAt, resourceStates.records.error, setDetailEntryId, setNotice]);
+  detailNavigationGuard.current = () => {
+    if (detailEntryId && (detailDraftDirty || inlineEditing.dirty || inlineEditing.saving || savingEntry)) {
+      setNotice("Guardá o cancelá la edición antes de salir de la ficha.");
+      return false;
+    }
+    return true;
+  };
   const saveInFlight = useRef(false);
   async function saveEntry(
     candidate: JournalEntry,
@@ -264,7 +315,12 @@ export function JournalApp({
         }
       }, "Entrada guardada.");
       if (saved) {
-        setEditingEntry(null);
+        restoreNotebookEditorFocus.current = false;
+        if (!detailEntryId) setEditingEntry(null);
+        else {
+          setDetailDraftDirty(false);
+          setDetailEditorRevision((revision) => revision + 1);
+        }
         setDuplicate(null);
       }
       return saved;
@@ -320,7 +376,10 @@ export function JournalApp({
     sort,
     releaseNow,
     refreshing: refreshingPrices,
-    onEdit: openEntry,
+    onEdit: (entry) => {
+      if (view === "library") openLibraryListEntry(entry);
+      else openEntry(entry);
+    },
   });
   const table = useReactTable({
     data: games,
@@ -368,6 +427,7 @@ export function JournalApp({
     }
   }
   function switchView(v: JournalView) {
+    if (!detailNavigationGuard.current()) return;
     if (v === "library") journalLocation.setLibrarySection("games");
     else setView(v);
     setSidebarOpen(false);
@@ -518,7 +578,7 @@ export function JournalApp({
               busy ||
               savingEntry ||
               inlineEditing.saving ||
-              !!editingEntry ||
+              !!editingEntry || !!detailEntryId ||
               !!quickEntry ||
               !!batch ||
               !!duplicate ||
@@ -644,8 +704,6 @@ export function JournalApp({
                 platforms={platforms}
                 yearOptions={yearOptions}
                 resultsCount={games.length}
-                libraryPresentation={libraryPresentation}
-                onLibraryPresentationChange={changeLibraryPresentation}
                 onAdd={() =>
                   openEntry({
                     ...emptyRecord,
@@ -1086,7 +1144,7 @@ export function JournalApp({
                           (games.length === 1 ? "juego" : "juegos")}
                     </span>
                   </div>
-                  {!loading && games.length === 0 ? (
+                  {!loading && games.length === 0 && !detailEntry ? (
                     <Empty
                       title={
                         resourceStates.records.error && !records.length
@@ -1102,7 +1160,11 @@ export function JournalApp({
                       }
                     />
                   ) : (
-                    <InlineEditContext.Provider value={inlineEditing}>
+                    <InlineEditContext.Provider value={
+                      detailEntryId && detailDraftDirty
+                        ? { ...inlineEditing, canEdit: false }
+                        : inlineEditing
+                    }>
                       <JournalGameTable
                         table={table}
                         view={view}
@@ -1122,12 +1184,49 @@ export function JournalApp({
                             return;
                           }
                           inlineEditing.cancel();
+                          if (view === "library") {
+                            openLibraryListEntry(entry);
+                            return;
+                          }
                           setQuickEntry({ ...entry });
                         }}
                         entryRowClass={entryRowClass}
                         focusedEntry={journalLocation.focusedEntry}
-                        libraryPresentation={libraryPresentation}
-                        onLibraryPresentationChange={changeLibraryPresentation}
+                        detailEntryId={view === "library" ? detailEntryId : ""}
+                        detailEntry={detailEntry}
+                        detailEditor={(summary) => detailEntry ? (
+                          <EntryEditor
+                            key={`${detailEntry.id}-${detailEditorRevision}`}
+                            entry={detailEntry}
+                            saving={savingEntry || inlineEditing.saving}
+                            actionError={error}
+                            offers={offers.filter((o) => o.game_id === detailEntry.gameId)}
+                            members={sharing.members}
+                        grants={sharing.grants.filter((g) => g.entry_id === detailEntry.id)}
+                            busy={busy}
+                            online={online}
+                            embedded
+                            summaryContent={summary}
+                            inlineBlocked={inlineEditing.dirty || inlineEditing.saving}
+                            onDirtyChange={setDetailDraftDirty}
+                            backRequestRef={detailBackRequest}
+                            onClose={closeLibraryDetail}
+                            onSave={async (entry, targets) => { await saveEntry(entry, false, targets); }}
+                            onDelete={async () => {
+                              if (!online) { setError("Eliminar requiere conexión."); return false; }
+                              const current = getRecord(detailEntryId) ?? detailEntry;
+                              const removed = await performAction(async () => {
+                                await apiRequest("/api/records", "DELETE", { id: current.id, expected: current.updated_at });
+                                removeRecord(current.id!);
+                              }, "Entrada movida a Papelera.");
+                              if (removed) { setUndoEntry({ id: current.id!, expires: Date.now() + 10000 }); setEditingEntry(null); setDetailEntryId(""); }
+                              return removed;
+                            }}
+                            runAction={performAction}
+                            view={view}
+                            onReleaseFound={async () => null}
+                          />
+                        ) : summary}
                       />
                     </InlineEditContext.Provider>
                   )}
@@ -1205,7 +1304,7 @@ export function JournalApp({
           }}
         />
       )}
-      {editingEntry && (
+      {editingEntry && !detailEntryId && (
         <EntryEditor
           key={editingEntry.id ?? "new"}
           entry={editingEntry}
@@ -1217,7 +1316,26 @@ export function JournalApp({
           grants={sharing.grants.filter((g) => g.entry_id === editingEntry.id)}
           busy={busy}
           online={online}
-          onClose={() => setEditingEntry(null)}
+          onClose={() => {
+            const restoreId = restoreNotebookEditorFocus.current
+              ? editingEntry.id
+              : undefined;
+            restoreNotebookEditorFocus.current = false;
+            setEditingEntry(null);
+            if (restoreId)
+              requestAnimationFrame(() => {
+                const button = Array.from(
+                  document.querySelectorAll<HTMLButtonElement>(
+                    "[data-notebook-full-edit-id]",
+                  ),
+                ).find(
+                  (node) =>
+                    node.dataset.notebookFullEditId === restoreId &&
+                    node.getClientRects().length > 0,
+                );
+                button?.focus({ preventScroll: true });
+              });
+          }}
           onSave={async (entry, targets) => {
             await saveEntry(entry, false, targets);
           }}
