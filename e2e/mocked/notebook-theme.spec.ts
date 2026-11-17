@@ -336,21 +336,57 @@ test("a private next-session reminder persists without replacing review comments
   await expect(page.locator(".notebook-entry-card").filter({ hasText: "Theme fixture" })).toContainText("Existing review comment");
 });
 
-test("Biblioteca index paginates without inner scrolling and returns to the same page", async ({ page }) => {
+test("Biblioteca index scrolls and keeps its position after returning to the selected entry", async ({ page }) => {
   await page.addInitScript(() => localStorage.setItem("journal-library-layout", "notebook"));
   await mockApp(page, true);
-  await page.setViewportSize({ width: 390, height: 844 });
-  await page.goto("./?tab=library&year=all");
-  const index = page.getByRole("navigation", { name: "Juegos de la Biblioteca" });
-  const pagination = page.getByRole("group", { name: "Paginación del índice" });
-  await expect(pagination).toContainText("Página 1 de");
-  expect(await index.evaluate((node) => node.scrollHeight)).toBeLessThanOrEqual(await index.evaluate((node) => node.clientHeight));
-  await pagination.getByRole("button", { name: "Página siguiente" }).click();
-  const currentPage = await pagination.innerText();
-  expect(currentPage).toContain("Página 2 de");
-  await index.getByRole("button").first().click();
-  await page.getByRole("button", { name: "← Biblioteca" }).click();
-  await expect(pagination).toContainText("Página 2 de");
+
+  for (const theme of ["light", "dark"] as const) {
+    await page.goto("./?tab=library&year=all");
+    await page.evaluate((value) => localStorage.setItem("journal-theme", value), theme);
+    await page.reload();
+    for (const width of [390, 1280]) {
+      await page.setViewportSize({ width, height: width === 390 ? 844 : 900 });
+      await page.goto("./?tab=library&year=all");
+      await expect(page.getByRole("heading", { name: "Índice", exact: true })).toHaveCount(0);
+      const index = page.getByRole("navigation", { name: "Juegos de la Biblioteca" });
+      const box = (await index.boundingBox())!;
+      const start = await index.evaluate((node) => node.scrollTop);
+      await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+      await page.mouse.wheel(0, 600);
+      await expect.poll(() => index.evaluate((node) => node.scrollTop)).toBeGreaterThan(start);
+
+      const targetEntry = index.getByRole("button", { name: /Index fixture 28/ });
+      await targetEntry.scrollIntoViewIfNeeded();
+      const beforeSelection = await index.evaluate((node) => ({
+        scrollTop: node.scrollTop,
+        scrollHeight: node.scrollHeight,
+        clientHeight: node.clientHeight,
+      }));
+      await targetEntry.click();
+      await expect(page.locator(".library-notebook-page-heading")).toContainText("Index fixture 28");
+      if (width === 390)
+        await page.getByRole("button", { name: "← Biblioteca" }).click();
+      else
+        await expect(index).toBeVisible();
+      await expect(targetEntry).toHaveAttribute("aria-current", "page");
+      const afterReturn = await index.evaluate((node) => ({
+        scrollTop: node.scrollTop,
+        scrollHeight: node.scrollHeight,
+        clientHeight: node.clientHeight,
+      }));
+      const expectedPosition = Math.min(
+        beforeSelection.scrollTop,
+        afterReturn.scrollHeight - afterReturn.clientHeight,
+      );
+      await expect.poll(() => index.evaluate((node) => node.scrollTop)).toBe(expectedPosition);
+      await expect(targetEntry).toBeInViewport();
+      await page.screenshot({
+        path: join(tmpdir(), `notebook-index-${theme}-${width}.png`),
+        fullPage: true,
+        animations: "disabled",
+      });
+    }
+  }
 });
 
 test("discounted wishlist and released upcoming highlights follow the light theme", async ({

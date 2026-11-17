@@ -28,14 +28,10 @@ export function NotebookLibraryEntries({
 }) {
   const [selectedId, setSelectedId] = useState("");
   const [showingPage, setShowingPage] = useState(false);
-  const [pageSize, setPageSize] = useState(8);
-  const [currentPage, setCurrentPage] = useState(0);
   const indexNav = useRef<HTMLElement>(null);
   const inlineEdit = useContext(InlineEditContext);
   const selectedEntry = entries.find((entry) => (entry.id ?? entry.sourceKey) === selectedId) ?? entries[0];
   const entriesKey = entries.map((entry) => entry.id ?? entry.sourceKey).join("|");
-  const pageCount = Math.max(1, Math.ceil(entries.length / pageSize));
-  const pageEntries = entries.slice(currentPage * pageSize, (currentPage + 1) * pageSize);
 
   useLayoutEffect(() => {
     const nav = indexNav.current;
@@ -52,12 +48,6 @@ export function NotebookLibraryEntries({
       } else {
         spread.style.removeProperty("--library-spread-height");
       }
-      const firstRow = nav.querySelector<HTMLElement>("button");
-      if (!firstRow || nav.clientHeight <= 0) return;
-      const rowHeight = firstRow.getBoundingClientRect().height;
-      const gap = parseFloat(getComputedStyle(nav).rowGap) || 0;
-      const nextSize = Math.max(1, Math.floor((nav.clientHeight + gap) / (rowHeight + gap)));
-      setPageSize((current) => current === nextSize ? current : nextSize);
     };
     measure();
     const observer = new ResizeObserver(measure);
@@ -70,12 +60,6 @@ export function NotebookLibraryEntries({
     };
   }, [presentation]);
 
-  useEffect(() => setCurrentPage(0), [entriesKey]);
-
-  useEffect(() => {
-    setCurrentPage((page) => Math.min(page, pageCount - 1));
-  }, [pageCount]);
-
   useEffect(() => {
     if (!selectedEntry) {
       setSelectedId("");
@@ -87,20 +71,29 @@ export function NotebookLibraryEntries({
 
   useEffect(() => {
     if (!focusedEntry) return;
-    const focusedIndex = entries.findIndex((entry) => entry.id === focusedEntry);
-    if (focusedIndex < 0) return;
+    if (!entries.some((entry) => entry.id === focusedEntry)) return;
     setSelectedId(focusedEntry);
-    setCurrentPage(Math.floor(focusedIndex / pageSize));
     setShowingPage(true);
-  }, [entriesKey, focusedEntry, pageSize]);
+  }, [entriesKey, focusedEntry]);
+
+  useEffect(() => {
+    if (
+      showingPage ||
+      !focusedEntry ||
+      selectedEntry?.id !== focusedEntry
+    )
+      return;
+    const row = Array.from(indexNav.current?.querySelectorAll<HTMLButtonElement>("[data-entry-id]") ?? [])
+      .find((button) => button.dataset.entryId === focusedEntry);
+    row?.scrollIntoView({ block: "nearest" });
+  }, [entriesKey, focusedEntry, showingPage, selectedEntry]);
 
   if (view === "library" && presentation === "notebook") {
     return (
       <section className="library-notebook-spread" aria-label="Cuaderno de Biblioteca">
         <aside className={`library-notebook-index${showingPage ? " is-away" : ""}`}>
-          <h2>Índice</h2>
           <nav ref={indexNav} aria-label="Juegos de la Biblioteca">
-            {pageEntries.map((entry) => (
+            {entries.map((entry) => (
               <button
                 type="button"
                 key={entry.id ?? entry.sourceKey}
@@ -120,11 +113,6 @@ export function NotebookLibraryEntries({
               </button>
             ))}
           </nav>
-          {pageCount > 1 && <div className="library-notebook-pagination" role="group" aria-label="Paginación del índice">
-            <button type="button" aria-label="Página anterior" disabled={currentPage === 0 || !!inlineEdit?.dirty || !!inlineEdit?.saving} onClick={() => setCurrentPage((page) => Math.max(0, page - 1))}>Anterior</button>
-            <span aria-live="polite">Página {currentPage + 1} de {pageCount}</span>
-            <button type="button" aria-label="Página siguiente" disabled={currentPage >= pageCount - 1 || !!inlineEdit?.dirty || !!inlineEdit?.saving} onClick={() => setCurrentPage((page) => Math.min(pageCount - 1, page + 1))}>Siguiente</button>
-          </div>}
         </aside>
         <article className={`library-notebook-page${showingPage ? " is-current" : ""}`} data-entry-id={selectedEntry?.id} tabIndex={-1}>
           {selectedEntry ? (
