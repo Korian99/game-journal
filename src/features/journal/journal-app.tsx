@@ -24,6 +24,7 @@ import type {
 import type { JournalEntry } from "@/lib/journal/journal-types";
 import { disablePush } from "@/features/notifications/push-client";
 import { releaseHasArrived } from "@/lib/releases";
+import { UpcomingScreen, UpcomingScreenHeader } from "@/features/upcoming/upcoming-screen";
 import { browserClient } from "@/lib/supabase/client";
 import { emptyRecord } from "@/lib/types";
 import { useJournalCollection } from "./use-journal-collection";
@@ -63,16 +64,12 @@ import {
 import { useJournalColumns } from "./journal-columns";
 import {
   CollectionEmptyState,
-  JournalCollectionPanel,
   JournalCollectionSummary,
 } from "./journal-collection-panel";
 import { JournalToolbar } from "./journal-toolbar";
 import { HistoryScreen, HistoryScreenHeader } from "@/features/library/history/history-screen";
 import { LibraryScreen, LibraryScreenHeader } from "@/features/library/library-screen";
 import { LibrarySectionNav } from "@/features/library/library-section-nav";
-import {
-  NotebookCollectionHeading,
-} from "@/features/library/games/notebook-library-toolbar";
 import { Notebook } from "@/features/notebook/notebook-panel";
 import { NotificationDrawer } from "@/features/notifications/notification-drawer";
 import { StatisticsPanel } from "@/features/statistics/statistics-panel";
@@ -749,13 +746,10 @@ export function JournalApp({
               onAdd={addEntry}
             />
           ) : view === "upcoming" ? (
-            <div className="notebook-library-controls">
-              <NotebookCollectionHeading
-                title={title}
-                kicker={`${games.length} ${games.length === 1 ? "juego" : "juegos"}`}
-                onAdd={addEntry}
-              />
-            </div>
+            <UpcomingScreenHeader
+              resultsCount={games.length}
+              onAdd={addEntry}
+            />
           ) : (
             <div className="page-heading">
               <div>
@@ -1082,7 +1076,7 @@ export function JournalApp({
                   ) : view === "wishlist" ? (
                     <WishlistScreen collection={collection} />
                   ) : (
-                    <JournalCollectionPanel {...collection} view={view} />
+                    <UpcomingScreen collection={collection} />
                   )}
                 </>
               )}
