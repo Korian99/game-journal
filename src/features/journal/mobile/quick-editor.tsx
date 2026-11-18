@@ -1,6 +1,5 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
-import { LoaderCircle } from "lucide-react";
 import { Modal } from "@/components/ui/dialog";
 import {
   quickDraft,
@@ -9,8 +8,9 @@ import {
   type QuickFields,
 } from "@/lib/journal/quick-editing";
 import type { JournalEntry } from "@/lib/journal/journal-types";
-import { statuses } from "@/lib/types";
 import { useOverlayHistory } from "@/hooks/use-overlay-history";
+import { QuickEditorDiscardConfirmation } from "./quick-editor-discard-confirmation";
+import { QuickEditorForm, quickEditorFormMessages } from "./quick-editor-form";
 
 export function QuickEditor({
   entry,
@@ -86,7 +86,9 @@ export function QuickEditor({
       if (await onSave(entry, draft)) onClose();
     } catch (failure) {
       setError(
-        failure instanceof Error ? failure.message : "No se pudo guardar.",
+        failure instanceof Error
+          ? failure.message
+          : quickEditorFormMessages.saveError,
       );
     } finally {
       inFlight.current = false;
@@ -102,7 +104,9 @@ export function QuickEditor({
       if (await onSave(entry, draft)) onClose();
     } catch (failure) {
       setError(
-        failure instanceof Error ? failure.message : "No se pudo guardar.",
+        failure instanceof Error
+          ? failure.message
+          : quickEditorFormMessages.saveError,
       );
     } finally {
       inFlight.current = false;
@@ -118,7 +122,9 @@ export function QuickEditor({
       onFull(entry, draft);
     } catch (failure) {
       setError(
-        failure instanceof Error ? failure.message : "Revisá los valores.",
+        failure instanceof Error
+          ? failure.message
+          : quickEditorFormMessages.validationError,
       );
     }
   }
@@ -151,164 +157,28 @@ export function QuickEditor({
           </p>
         )}
         {confirmDiscard ? (
-          <section className="quick-discard">
-            <h3>Descartar cambios</h3>
-            <p>Tus cambios todavía no se guardaron.</p>
-            <div className="button-row">
-              <button
-                className="secondary"
-                ref={keepEditing}
-                onClick={() => setConfirmDiscard(false)}
-              >
-                Seguir editando
-              </button>
-              <button className="text-button danger" onClick={onClose}>
-                Descartar
-              </button>
-            </div>
-          </section>
+          <QuickEditorDiscardConfirmation
+            keepEditingRef={keepEditing}
+            onKeepEditing={() => setConfirmDiscard(false)}
+            onDiscard={onClose}
+          />
         ) : (
-          <form
-            onSubmit={(event) => {
-              event.preventDefault();
-              void save();
-            }}
-          >
-            <fieldset disabled={saving || !online || !!transitioningTo}>
-              <div className="quick-editor-numbers quick-editor-status-row">
-                <label>
-                  Estado
-                  <select
-                    aria-label="Estado"
-                    value={fields.status}
-                    onChange={(event) => update("status", event.target.value)}
-                  >
-                    {Object.entries(statuses).map(([value, label]) => (
-                      <option key={value} value={value}>
-                        {label}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-                <div>
-                  {canStart && (
-                    <button
-                      type="button"
-                      className="secondary"
-                      disabled={saving || !online || !!transitioningTo}
-                      aria-busy={transitioningTo === "playing"}
-                      onClick={() =>
-                        void saveStatusTransition("playing")
-                      }
-                    >
-                      {transitioningTo === "playing" && (
-                        <LoaderCircle size={15} className="save-spinner" />
-                      )}
-                      {transitioningTo === "playing"
-                        ? entry.status === "paused"
-                          ? "Retomando…"
-                          : "Empezando…"
-                        : entry.status === "paused"
-                          ? "Retomar"
-                          : "Empezar"}
-                    </button>
-                  )}
-                  {entry.status === "playing" && (
-                    <button
-                      type="button"
-                      className="secondary"
-                      disabled={saving || !online || !!transitioningTo}
-                      aria-busy={transitioningTo === "completed"}
-                      onClick={() =>
-                        void saveStatusTransition("completed")
-                      }
-                    >
-                      {transitioningTo === "completed" && (
-                        <LoaderCircle size={15} className="save-spinner" />
-                      )}
-                      {transitioningTo === "completed"
-                        ? "Terminando…"
-                        : "Terminar"}
-                    </button>
-                  )}
-                </div>
-              </div>
-              {played ? (
-                <div className="quick-editor-numbers">
-                  <label>
-                    Hs. jugadas
-                    <input
-                      type="number"
-                      min={0}
-                      step="any"
-                      value={fields.hours}
-                      onChange={(event) => update("hours", event.target.value)}
-                    />
-                  </label>
-                  <label>
-                    Reseña / 100
-                    <input
-                      type="number"
-                      min={0}
-                      max={100}
-                      step="any"
-                      value={fields.rating}
-                      onChange={(event) => update("rating", event.target.value)}
-                    />
-                  </label>
-                </div>
-              ) : (
-                <label>
-                  Prioridad
-                  <input
-                    type="text"
-                    value={fields.priority}
-                    maxLength={100}
-                    onChange={(event) => update("priority", event.target.value)}
-                  />
-                </label>
-              )}
-            </fieldset>
-            {(error || actionError) && (
-              <p className="error" role="alert">
-                {error || actionError}
-              </p>
-            )}
-            <div className="quick-editor-actions">
-              <button
-                type="button"
-                className="text-button"
-                disabled={saving || !!transitioningTo}
-                onClick={full}
-              >
-                Abrir formulario completo
-              </button>
-              <div className="button-row">
-                <button
-                  type="button"
-                  className="secondary"
-                  disabled={saving || !!transitioningTo}
-                  onClick={requestClose}
-                >
-                  Cancelar
-                </button>
-                <button
-                  type="submit"
-                  className="primary"
-                  disabled={saving || !!transitioningTo || !online || !dirty}
-                >
-                  {saving ? (
-                    <>
-                      <LoaderCircle size={15} className="save-spinner" />
-                      Guardando…
-                    </>
-                  ) : (
-                    "Guardar"
-                  )}
-                </button>
-              </div>
-            </div>
-          </form>
+          <QuickEditorForm
+            entryStatus={entry.status}
+            fields={fields}
+            played={played}
+            canStart={canStart}
+            online={online}
+            saving={saving}
+            dirty={dirty}
+            transitioningTo={transitioningTo}
+            error={error || actionError}
+            onFieldChange={update}
+            onStatusTransition={(status) => void saveStatusTransition(status)}
+            onSave={() => void save()}
+            onFull={full}
+            onCancel={requestClose}
+          />
         )}
       </div>
     </Modal>
