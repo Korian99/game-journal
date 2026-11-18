@@ -9,7 +9,9 @@ import {
   type SeriesRecord,
 } from "./series";
 import type { JournalEntry } from "@/lib/journal/journal-types";
-import { GameCover } from "@/features/entries/game-cover";
+import { SeriesEditorForm } from "./series-editor-form";
+import { SeriesList } from "./series-list";
+import { SeriesProgressPanel } from "./series-progress-panel";
 import styles from "./series-manager.module.css";
 
 export function SeriesManager({
@@ -217,69 +219,12 @@ export function SeriesManager({
           <div className={styles.layout}>
             {error && <p role="alert">{error}</p>}
             {!draft && !current ? (
-              series.length ? (
-                <div className={styles.tableWrap}>
-                  <table className={styles.seriesTable} aria-label="Tus series">
-                    <thead>
-                      <tr>
-                        <th scope="col">Serie</th>
-                        <th scope="col">Progreso</th>
-                        <th scope="col">Siguiente</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {seriesProgress.map(
-                        ({ item, progress: itemProgress }) => {
-                          const firstGame = item.gameIds[0]
-                            ? games.find((game) => game.id === item.gameIds[0])
-                            : undefined;
-                          return (
-                            <tr key={item.id}>
-                              <th scope="row">
-                                <button
-                                  className={styles.seriesName}
-                                  disabled={busy || disabled}
-                                  onClick={() => switchDraft(item.id)}
-                                  aria-label={`Abrir ${item.name}`}
-                                >
-                                  <span className={styles.seriesCover}>
-                                    {firstGame ? (
-                                      <GameCover
-                                        cover={firstGame.cover}
-                                        title={firstGame.title}
-                                        size="thumb"
-                                      />
-                                    ) : (
-                                      <span aria-hidden="true">—</span>
-                                    )}
-                                  </span>
-                                  <span>{item.name}</span>
-                                </button>
-                                <small className={styles.mobileProgress}>
-                                  {itemProgress.completed}/{itemProgress.total} terminados
-                                </small>
-                              </th>
-                              <td>
-                                {itemProgress.completed}/{itemProgress.total}{" "}
-                                juegos terminados
-                              </td>
-                              <td>
-                                {itemProgress.next
-                                  ? itemProgress.next.title
-                                  : itemProgress.total
-                                    ? "Serie completada"
-                                    : "Sin juegos todavía"}
-                              </td>
-                            </tr>
-                          );
-                        },
-                      )}
-                    </tbody>
-                  </table>
-                </div>
-              ) : (
-                <p>Creá una serie y agregá juegos en el orden que quieras.</p>
-              )
+              <SeriesList
+                rows={seriesProgress}
+                games={games}
+                disabled={busy || disabled}
+                onOpen={switchDraft}
+              />
             ) : (
               <div className={styles.editor}>
                 <div className={styles.detailHeading}>
@@ -299,190 +244,46 @@ export function SeriesManager({
                   </h2>
                 </div>
                 {draft ? (
-                  <>
-                    <label>
-                      Nombre
-                      <input
-                        autoFocus
-                        maxLength={80}
-                        disabled={busy}
-                        value={draft.name}
-                        onChange={(e) =>
-                          updateDraft((d) => ({ ...d, name: e.target.value }))
-                        }
-                      />
-                    </label>
-                    <p>Elegí juegos y ordenalos con los botones.</p>
-                    <ol>
-                      {draft.gameIds.map((id, index) => {
-                        const game = games.find((g) => g.id === id);
-                        return (
-                          <li key={id}>
-                            <span>{game?.title ?? "Juego no disponible"}</span>
-                            <button
-                              aria-label={
-                                "Mover " + (game?.title ?? "juego") + " arriba"
-                              }
-                              disabled={busy || index === 0}
-                              onClick={() =>
-                                updateDraft((d) => ({
-                                  ...d,
-                                  gameIds: reorderSeriesGames(
-                                    d.gameIds,
-                                    d.gameIds[index],
-                                    "up",
-                                  ),
-                                }))
-                              }
-                            >
-                              ↑
-                            </button>
-                            <button
-                              aria-label={
-                                "Mover " + (game?.title ?? "juego") + " abajo"
-                              }
-                              disabled={
-                                busy || index === draft.gameIds.length - 1
-                              }
-                              onClick={() =>
-                                updateDraft((d) => ({
-                                  ...d,
-                                  gameIds: reorderSeriesGames(
-                                    d.gameIds,
-                                    d.gameIds[index],
-                                    "down",
-                                  ),
-                                }))
-                              }
-                            >
-                              ↓
-                            </button>
-                            <button
-                              aria-label={"Quitar " + (game?.title ?? "juego")}
-                              disabled={busy}
-                              onClick={() =>
-                                updateDraft((d) => ({
-                                  ...d,
-                                  gameIds: d.gameIds.filter((x) => x !== id),
-                                }))
-                              }
-                            >
-                              Quitar
-                            </button>
-                          </li>
-                        );
-                      })}
-                    </ol>
-                    <label>
-                      Buscar juegos
-                      <input
-                        type="search"
-                        aria-label="Buscar juegos para agregar a la serie"
-                        disabled={busy}
-                        value={gameQuery}
-                        onChange={(e) => setGameQuery(e.target.value)}
-                      />
-                    </label>
-                    <label>
-                      Agregar juego
-                      <select
-                        value=""
-                        disabled={busy}
-                        onChange={(e) => {
-                          if (e.target.value)
-                            updateDraft((d) => ({
-                              ...d,
-                              gameIds: [...d.gameIds, e.target.value],
-                            }));
-                        }}
-                      >
-                        <option value="">Elegí un juego</option>
-                        {filteredGames.map((g) => (
-                          <option key={g.id} value={g.id}>
-                            {g.title}
-                          </option>
-                        ))}
-                      </select>
-                    </label>
-                    <div>
-                      <button
-                        className="primary"
-                        disabled={busy || !draft.name.trim()}
-                        onClick={() => void save()}
-                      >
-                        {busy ? "Guardando…" : "Guardar serie"}
-                      </button>
-                      {current && (
-                        <button
-                          className="secondary"
-                          disabled={busy}
-                          onClick={() => void remove()}
-                        >
-                          Eliminar serie
-                        </button>
-                      )}
-                    </div>
-                  </>
+                  <SeriesEditorForm
+                    draft={draft}
+                    busy={busy}
+                    canDelete={!!current}
+                    gameQuery={gameQuery}
+                    games={games}
+                    availableGames={filteredGames}
+                    onNameChange={(name) => updateDraft((d) => ({ ...d, name }))}
+                    onGameQueryChange={setGameQuery}
+                    onAddGame={(id) =>
+                      updateDraft((d) => ({
+                        ...d,
+                        gameIds: [...d.gameIds, id],
+                      }))
+                    }
+                    onMoveGame={(index, direction) =>
+                      updateDraft((d) => ({
+                        ...d,
+                        gameIds: reorderSeriesGames(
+                          d.gameIds,
+                          d.gameIds[index],
+                          direction,
+                        ),
+                      }))
+                    }
+                    onRemoveGame={(id) =>
+                      updateDraft((d) => ({
+                        ...d,
+                        gameIds: d.gameIds.filter((x) => x !== id),
+                      }))
+                    }
+                    onSave={() => void save()}
+                    onDelete={() => void remove()}
+                  />
                 ) : current ? (
-                  <>
-                    <div className={styles.progressSummary}>
-                      <strong>
-                        {progress.completed} de {progress.total} juegos
-                        terminados
-                      </strong>
-                      <progress
-                        aria-label="Progreso de la serie"
-                        value={progress.completed}
-                        max={progress.total || 1}
-                      />
-                      <p>
-                        Cada juego cuenta una vez si tiene una partida en
-                        Terminados o Recuerdo fuera de la papelera.
-                      </p>
-                    </div>
-                    <p className={styles.nextGame}>
-                      {progress.next
-                        ? `Siguiente: ${progress.next.title}`
-                        : progress.total
-                          ? "Serie completada"
-                          : "Agregá juegos para empezar esta serie."}
-                    </p>
-                    <ol
-                      className={styles.progressGames}
-                      aria-label="Juegos de la serie"
-                    >
-                      {progress.games.map((game, index) => (
-                        <li key={game.gameId}>
-                          <div className={styles.art} aria-hidden="true">
-                            {index + 1}
-                            <GameCover
-                              cover={game.cover}
-                              title={game.title}
-                              size="card"
-                            />
-                          </div>
-                          <div className={styles.gameInfo}>
-                            <strong>{game.title}</strong>
-                            <small>
-                              {game.completed ? "Terminado" : "Pendiente"}
-                            </small>
-                            {!game.available && (
-                              <small>
-                                Sin partidas activas; sigue en la serie.
-                              </small>
-                            )}
-                          </div>
-                        </li>
-                      ))}
-                    </ol>
-                    <button
-                      className="secondary"
-                      disabled={busy}
-                      onClick={() => setDraft(current)}
-                    >
-                      Editar serie
-                    </button>
-                  </>
+                  <SeriesProgressPanel
+                    progress={progress}
+                    busy={busy}
+                    onEdit={() => setDraft(current)}
+                  />
                 ) : null}
               </div>
             )}
