@@ -1,5 +1,5 @@
 "use client";
-import { ScoringGuideButton } from "@/features/settings/scoring-guide-panel";
+import { ScoringGuideButton } from "@/features/settings/scoring-guide-dialog";
 import type { EditorContext } from "./editor-context";
 export function ReviewTab({
   draft,

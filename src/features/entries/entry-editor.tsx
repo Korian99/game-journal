@@ -41,7 +41,7 @@ import {
   mergeProviderCover,
 } from "@/lib/covers";
 import { useEffect, useId, useRef, useState, type MutableRefObject, type ReactNode } from "react";
-import { ScoringGuideButton } from "@/features/settings/scoring-guide-panel";
+import { ScoringGuideButton } from "@/features/settings/scoring-guide-dialog";
 
 import {
   type PriceHistory,

@@ -6,7 +6,7 @@ import {
   scoringGuideSchema,
   type ScoringEntry,
 } from "./scoring-guide";
-import { Modal } from "@/components/ui/dialog";
+import { ScoringGuideForm, scoringGuideFormMessages } from "./scoring-guide-form";
 
 export function ScoringGuide({
   onDirtyChange,
@@ -62,6 +62,17 @@ export function ScoringGuide({
     setError("");
     setNotice("");
   }
+  function addScore() {
+    const score = Array.from({ length: 101 }, (_, i) => 100 - i).find(
+      (score) => !draft.some((entry) => entry.score_threshold === score),
+    );
+    if (score !== undefined)
+      setDraft((values) => [...values, { score_threshold: score, meaning: "" }]);
+  }
+  function restoreDefaultDraft() {
+    if (window.confirm(scoringGuideFormMessages.reset))
+      setDraft(defaultScoringGuide.map((entry) => ({ ...entry })));
+  }
   async function save() {
     const parsed = scoringGuideSchema.safeParse({ entries: draft });
     if (!parsed.success) {
@@ -84,14 +95,14 @@ export function ScoringGuide({
       setNotice("Guía guardada.");
     } catch (error) {
       setError(
-        error instanceof Error ? error.message : "No se pudo guardar la guía.",
+        error instanceof Error ? error.message : scoringGuideFormMessages.saveError,
       );
     } finally {
       setBusy(false);
     }
   }
   function cancel() {
-    if (dirty && !window.confirm("¿Descartar los cambios de la guía?")) return;
+    if (dirty && !window.confirm(scoringGuideFormMessages.discard)) return;
     setEditing(false);
     setError("");
     setNotice("");
@@ -147,146 +158,19 @@ export function ScoringGuide({
         </dl>
       )}
       {editing && (
-        <>
-          <div className="scoring-rows">
-            {draft.map((entry, index) => (
-              <div className="scoring-edit-row" key={index}>
-                <label>
-                  Puntaje
-                  <input
-                    aria-label={"Puntaje " + (index + 1)}
-                    type="number"
-                    min={0}
-                    max={100}
-                    step={1}
-                    value={
-                      Number.isNaN(entry.score_threshold)
-                        ? ""
-                        : entry.score_threshold
-                    }
-                    disabled={busy}
-                    onChange={(event) =>
-                      update(index, {
-                        score_threshold:
-                          event.target.value === ""
-                            ? NaN
-                            : event.target.valueAsNumber,
-                      })
-                    }
-                  />
-                </label>
-                <label>
-                  Significado
-                  <textarea
-                    aria-label={"Significado " + (index + 1)}
-                    rows={3}
-                    maxLength={2000}
-                    value={entry.meaning}
-                    disabled={busy}
-                    onChange={(event) =>
-                      update(index, { meaning: event.target.value })
-                    }
-                  />
-                </label>
-                <button
-                  type="button"
-                  className="text-button"
-                  aria-label={"Quitar puntaje " + (index + 1)}
-                  disabled={busy || draft.length === 1}
-                  onClick={() =>
-                    setDraft((values) => values.filter((_, i) => i !== index))
-                  }
-                >
-                  Quitar
-                </button>
-              </div>
-            ))}
-          </div>
-          <div className="button-row">
-            <button
-              type="button"
-              className="secondary"
-              disabled={busy || draft.length >= 101}
-              onClick={() => {
-                const score = Array.from(
-                  { length: 101 },
-                  (_, i) => 100 - i,
-                ).find(
-                  (score) =>
-                    !draft.some((entry) => entry.score_threshold === score),
-                );
-                if (score !== undefined)
-                  setDraft((values) => [
-                    ...values,
-                    { score_threshold: score, meaning: "" },
-                  ]);
-              }}
-            >
-              Añadir puntaje
-            </button>
-            <button
-              type="button"
-              className="text-button"
-              disabled={busy}
-              onClick={() => {
-                if (
-                  window.confirm(
-                    "¿Reemplazar el borrador por la guía inicial? Podés revisarlo antes de guardar.",
-                  )
-                )
-                  setDraft(defaultScoringGuide.map((entry) => ({ ...entry })));
-              }}
-            >
-              Usar guía inicial
-            </button>
-          </div>
-          <div className="button-row">
-            <button
-              type="button"
-              className="primary"
-              disabled={busy}
-              onClick={() => void save()}
-            >
-              {busy ? "Guardando…" : "Guardar guía"}
-            </button>
-            <button
-              type="button"
-              className="secondary"
-              disabled={busy}
-              onClick={cancel}
-            >
-              Cancelar
-            </button>
-          </div>
-        </>
+        <ScoringGuideForm
+          draft={draft}
+          busy={busy}
+          onUpdate={update}
+          onRemove={(index) =>
+            setDraft((values) => values.filter((_, i) => i !== index))
+          }
+          onAdd={addScore}
+          onReset={restoreDefaultDraft}
+          onSave={() => void save()}
+          onCancel={cancel}
+        />
       )}
     </section>
-  );
-}
-
-export function ScoringGuideButton() {
-  const [open, setOpen] = useState(false);
-  const [dirty, setDirty] = useState(false);
-  function close() {
-    if (!dirty || window.confirm("¿Descartar los cambios de la guía?")) {
-      setOpen(false);
-      setDirty(false);
-    }
-  }
-  return (
-    <>
-      <button
-        type="button"
-        className="text-button"
-        onClick={() => setOpen(true)}
-      >
-        Guía de reseñas
-      </button>
-      {open && (
-        <Modal open onClose={close} title="Guía de reseñas">
-          <ScoringGuide onDirtyChange={setDirty} />
-        </Modal>
-      )}
-    </>
   );
 }

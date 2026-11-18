@@ -3,17 +3,13 @@ import { useMemo, useState } from "react";
 import { LoaderCircle } from "lucide-react";
 import type { JournalEntry } from "@/lib/journal/journal-types";
 import type { useJournalLocation } from "@/features/journal/use-journal-location";
+import { DataCheckControls } from "./data-check-controls";
+import { DataCheckFindingsList } from "./data-check-findings-list";
 import { useDataCheckState } from "./use-data-check-state";
 import {
   dataChecks,
   findingEnabled,
   findingHidden,
-  findingLabels,
-  findingFilterKinds,
-  categoryLabels,
-  preferenceLabels,
-  type FindingFilterKind,
-  type FindingCategory,
 } from "./data-checks";
 export function DataCheckPanel({
   records,
@@ -111,172 +107,47 @@ export function DataCheckPanel({
           Guarda o cancela la edición actual antes de abrir otra partida.
         </p>
       )}
-      <fieldset className="data-check-preferences" disabled={disabled}>
-        <legend>Recordatorios opcionales</legend>
-        {(
-          Object.keys(preferenceLabels) as (keyof typeof preferenceLabels)[]
-        ).map((key) => (
-          <label key={key}>
-            <input
-              type="checkbox"
-              aria-label={preferenceLabels[key]}
-              checked={settings.preferences[key]}
-              onChange={(event) =>
-                void settings.update({
-                  action: "preference",
-                  key,
-                  enabled: event.target.checked,
-                })
-              }
-            />
-            {preferenceLabels[key]}
-          </label>
-        ))}
-      </fieldset>
-      <div className="data-check-counts">
-        {Object.entries(categoryLabels).map(([category, label]) => (
-          <span key={category}>
-            {label}:{" "}
-            <strong>
-              {
-                enabled.filter((f) => f.category === category && !hidden(f))
-                  .length
-              }
-            </strong>
-          </span>
-        ))}
-        <span>
-          Ocultos: <strong>{enabled.filter(hidden).length}</strong>
-        </span>
-      </div>
-      <div className="data-check-controls">
-        <label>
-          Categoría
-          <select
-            aria-label="Categoría de aviso"
-            value={checkCategory}
-            onChange={(e) =>
-              location.setCheckCategory(e.target.value as FindingCategory | "")
-            }
-          >
-            <option value="">Todas</option>
-            {Object.entries(categoryLabels).map(([key, label]) => (
-              <option key={key} value={key}>
-                {label}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label>
-          Tipo de aviso
-          <select
-            aria-label="Tipo de aviso"
-            value={checkKind}
-            onChange={(e) =>
-              location.setCheckKind(e.target.value as FindingFilterKind | "")
-            }
-          >
-            <option value="">Todos</option>
-            {findingFilterKinds.map((kind) => (
-              <option key={kind} value={kind}>
-                {findingLabels[kind]}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label className="data-check-hidden">
-          <input
-            type="checkbox"
-            checked={checkHidden}
-            onChange={(e) => location.setCheckHidden(e.target.checked)}
-          />
-          Mostrar ocultos
-        </label>
-      </div>
-      {!recordsReady ? (
-        <p role="status">
-          {recordsError
-            ? "No se pudieron cargar los juegos."
-            : "Cargando juegos…"}
-          <button className="text-button" disabled={!online} onClick={onReload}>
-            Reintentar juegos
-          </button>
-        </p>
-      ) : filtered.length ? (
-        <div className="data-check-list">
-          {filtered.slice(0, count).map((finding) => {
-            const isHidden = hidden(finding);
-            const { kind } = finding;
-            const title = finding.entry.title.trim() || "Juego sin nombre";
-            return (
-              <section
-                className={
-                  "data-check-finding " + (isHidden ? "is-hidden" : "")
-                }
-                key={finding.id}
-              >
-                <div>
-                  <span className="eyebrow">
-                    {categoryLabels[finding.category]}
-                    {isHidden ? " · Oculto" : ""}
-                  </span>
-                  <h3>{title}</h3>
-                  <strong>{findingLabels[finding.kind]}</strong>
-                  <p>{finding.message}</p>
-                </div>
-                <div className="data-check-actions">
-                  <button
-                    className="secondary"
-                    disabled={blocked || !!settings.command}
-                    aria-label={"Ver juego " + title}
-                    onClick={() => onView(finding.entry)}
-                  >
-                    Ver juego
-                  </button>
-                  <button
-                    className="secondary"
-                    disabled={blocked || !!settings.command}
-                    aria-label={"Editar " + title}
-                    onClick={() => onEdit(finding.entry)}
-                  >
-                    Editar
-                  </button>
-                  {kind !== "completion" && (
-                    <button
-                      className="text-button"
-                      disabled={disabled}
-                      aria-label={
-                        (isHidden ? "Mostrar aviso de " : "Ocultar aviso de ") +
-                        title
-                      }
-                      onClick={() =>
-                        void settings.update({
-                          action: isHidden ? "restore" : "dismiss",
-                          entryId: finding.entry.id!,
-                          kind,
-                          values: finding.values,
-                        })
-                      }
-                    >
-                      {isHidden ? "Volver a mostrar" : "Ocultar"}
-                    </button>
-                  )}
-                </div>
-              </section>
-            );
-          })}
-        </div>
-      ) : (
-        <p className="muted">No hay avisos con estos filtros.</p>
-      )}
-      {filtered.length > count && (
-        <button
-          className="secondary"
-          onClick={() => setPage({ key: filterKey, count: count + 50 })}
-        >
-          Mostrar más avisos ({filtered.length - count})
-        </button>
-      )}
+      <DataCheckControls
+        preferences={settings.preferences}
+        preferencesDisabled={disabled}
+        countCategory={(category) =>
+          enabled.filter((finding) => finding.category === category && !hidden(finding)).length
+        }
+        hiddenCount={enabled.filter(hidden).length}
+        category={checkCategory}
+        kind={checkKind}
+        showHidden={checkHidden}
+        onPreferenceChange={(key, enabled) =>
+          void settings.update({ action: "preference", key, enabled })
+        }
+        onCategoryChange={location.setCheckCategory}
+        onKindChange={location.setCheckKind}
+        onShowHiddenChange={location.setCheckHidden}
+      />
+      <DataCheckFindingsList
+        findings={filtered.slice(0, count)}
+        hidden={hidden}
+        moreCount={filtered.length - count}
+        recordsReady={recordsReady}
+        recordsError={recordsError}
+        online={online}
+        navigationDisabled={blocked || !!settings.command}
+        dismissalDisabled={disabled}
+        onView={onView}
+        onEdit={onEdit}
+        onReload={onReload}
+        onToggleDismissal={(finding, isHidden) => {
+          const { kind } = finding;
+          if (kind === "completion") return;
+          void settings.update({
+            action: isHidden ? "restore" : "dismiss",
+            entryId: finding.entry.id!,
+            kind,
+            values: finding.values,
+          });
+        }}
+        onShowMore={() => setPage({ key: filterKey, count: count + 50 })}
+      />
     </article>
   );
 }
