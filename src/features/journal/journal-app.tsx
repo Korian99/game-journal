@@ -30,6 +30,7 @@ import { useJournalCollection } from "./use-journal-collection";
 import { useJournalData } from "./use-journal-data";
 import { useJournalLocation } from "./use-journal-location";
 import { hasActiveDiscount } from "@/features/wishlist/wishlist-display";
+import { WishlistScreen, WishlistScreenHeader } from "@/features/wishlist/wishlist-screen";
 import {
   getCoreRowModel,
   getSortedRowModel,
@@ -194,6 +195,9 @@ export function JournalApp({
     setEditingDraft(undefined);
     setEditingEntry(entry);
   }, []);
+  function addEntry() {
+    openEntry({ ...emptyRecord, status: "wishlist" });
+  }
   function openLibraryListEntry(entry: JournalEntry) {
     if (inlineEditing.dirty || inlineEditing.saving || busy || savingEntry) {
       setNotice("Guardá o cancelá la edición actual antes de abrir otra.");
@@ -730,36 +734,26 @@ export function JournalApp({
                 platforms={platforms}
                 yearOptions={yearOptions}
                 resultsCount={games.length}
-                onAdd={() =>
-                  openEntry({
-                    ...emptyRecord,
-                    status: "wishlist",
-                  })
-                }
+                onAdd={addEntry}
               />
             ) : null
           ) : view === "journal" ? (
             <HistoryScreenHeader
               selectedYear={selectedYear}
               resultsCount={games.length}
-              onAdd={() =>
-                openEntry({
-                  ...emptyRecord,
-                  status: "wishlist",
-                })
-              }
+              onAdd={addEntry}
             />
-          ) : ["wishlist", "upcoming"].includes(view) ? (
+          ) : view === "wishlist" ? (
+            <WishlistScreenHeader
+              resultsCount={games.length}
+              onAdd={addEntry}
+            />
+          ) : view === "upcoming" ? (
             <div className="notebook-library-controls">
               <NotebookCollectionHeading
                 title={title}
                 kicker={`${games.length} ${games.length === 1 ? "juego" : "juegos"}`}
-                onAdd={() =>
-                  openEntry({
-                    ...emptyRecord,
-                    status: "wishlist",
-                  })
-                }
+                onAdd={addEntry}
               />
             </div>
           ) : (
@@ -775,12 +769,7 @@ export function JournalApp({
               ) && (
                 <button
                   className="primary"
-                  onClick={() =>
-                    openEntry({
-                      ...emptyRecord,
-                      status: "wishlist",
-                    })
-                  }
+                  onClick={addEntry}
                 >
                   <Plus size={17} />
                   Agregar juego
@@ -1090,6 +1079,8 @@ export function JournalApp({
                   />
                   {view === "journal" ? (
                     <HistoryScreen collection={collection} />
+                  ) : view === "wishlist" ? (
+                    <WishlistScreen collection={collection} />
                   ) : (
                     <JournalCollectionPanel {...collection} view={view} />
                   )}
