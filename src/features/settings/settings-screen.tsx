@@ -10,6 +10,18 @@ import { ScoringGuide } from "./scoring-guide-panel";
 import { ThemeSettings } from "./theme-settings";
 import { TrashPanel } from "./trash-panel";
 
+export function SettingsScreenHeader() {
+  return (
+    <div className="page-heading">
+      <div>
+        <h1>
+          Configuración<span className="accent">.</span>
+        </h1>
+      </div>
+    </div>
+  );
+}
+
 export function SettingsScreen({
   online,
   isAdmin,

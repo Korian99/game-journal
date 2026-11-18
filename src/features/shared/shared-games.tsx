@@ -1,15 +1,27 @@
-import type { ReactNode } from "react";
+import { CollectionEmptyState } from "@/features/journal/journal-collection-panel";
 import type { SharingData } from "@/lib/contracts";
 import { statuses, type Status } from "@/lib/types";
 
 type SharedGame = SharingData["shared"][number];
 
+export function SharedGamesHeader() {
+  return (
+    <div className="page-heading">
+      <div>
+        <h1>
+          Compartido conmigo<span className="accent">.</span>
+        </h1>
+      </div>
+    </div>
+  );
+}
+
 export function SharedGames({
   games,
-  emptyState,
+  sharingError,
 }: {
   games: SharedGame[];
-  emptyState: ReactNode;
+  sharingError: boolean;
 }) {
   return (
     <section className="panel">
@@ -30,7 +42,13 @@ export function SharedGames({
           </article>
         ))
       ) : (
-        emptyState
+        <CollectionEmptyState
+          title={
+            sharingError
+              ? "No se pudieron cargar los compartidos"
+              : "Sin juegos compartidos"
+          }
+        />
       )}
     </section>
   );

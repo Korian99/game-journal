@@ -1,10 +1,10 @@
 "use client";
-import { SettingsScreen } from "@/features/settings/settings-screen";
+import { SettingsScreen, SettingsScreenHeader } from "@/features/settings/settings-screen";
 import {
   SuggestionsPanel,
   SuggestionsPanelHeader,
 } from "@/features/suggestions/suggestions-panel";
-import { SharedGames } from "@/features/shared/shared-games";
+import { SharedGames, SharedGamesHeader } from "@/features/shared/shared-games";
 import { QuickEditor } from "./mobile/quick-editor";
 import { GlobalSearch } from "@/features/search/global-search";
 import { entryDestination } from "@/lib/journal/entry-destination";
@@ -49,7 +49,6 @@ import {
   Library,
   LogOut,
   Menu,
-  Plus,
   Settings,
   Users,
   X,
@@ -66,7 +65,6 @@ import {
 } from "@/features/imports/import-review-dialog";
 import { useJournalColumns } from "./journal-columns";
 import {
-  CollectionEmptyState,
   JournalCollectionSummary,
 } from "./journal-collection-panel";
 import { JournalToolbar } from "./journal-toolbar";
@@ -461,7 +459,6 @@ export function JournalApp({
     getCoreRowModel: getCoreRowModel(),
     getSortedRowModel: getSortedRowModel(),
   });
-  const title = nav.find((n) => n[0] === view)?.[1] ?? "Biblioteca";
   async function importSheet() {
     setBusy(true);
     try {
@@ -760,27 +757,11 @@ export function JournalApp({
             <SuggestionsPanelHeader />
           ) : view === "statistics" ? (
             <StatisticsPanelHeader />
-          ) : (
-            <div className="page-heading">
-              <div>
-                <h1>
-                  {title}
-                  {!title.endsWith("?") && <span className="accent">.</span>}
-                </h1>
-              </div>
-              {!["shared", "settings", "statistics", "suggestions"].includes(
-                view,
-              ) && (
-                <button
-                  className="primary"
-                  onClick={addEntry}
-                >
-                  <Plus size={17} />
-                  Agregar juego
-                </button>
-              )}
-            </div>
-          )}
+          ) : view === "shared" ? (
+            <SharedGamesHeader />
+          ) : view === "settings" ? (
+            <SettingsScreenHeader />
+          ) : null}
           {!online && (
             <div className="banner" role="status">
               Sin conexión. Los precios pueden estar desactualizados.
@@ -995,15 +976,7 @@ export function JournalApp({
           ) : view === "shared" ? (
             <SharedGames
               games={sharing.shared}
-              emptyState={
-                <CollectionEmptyState
-                  title={
-                    resourceStates.sharing.error
-                      ? "No se pudieron cargar los compartidos"
-                      : "Sin juegos compartidos"
-                  }
-                />
-              }
+              sharingError={!!resourceStates.sharing.error}
             />
           ) : (
             <>

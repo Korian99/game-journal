@@ -1,7 +1,7 @@
 "use client";
 import { apiRequest } from "@/lib/api-client";
 
-import { Share2 } from "lucide-react";
+import { EntrySharingPanel } from "./entry-sharing-panel";
 
 import { ReleaseField } from "../release-field";
 import type { EditorContext } from "./editor-context";
@@ -107,74 +107,29 @@ export function MoreTab({
 
           {entry.id && (
             <>
-              <section className="editor-section">
-                <h3>
-                  <Share2 size={16} />
-                  Compartir esta entrada
-                </h3>
-                <p className="muted">
-                  Se comparten la partida, las horas, las puntuaciones y las
-                  impresiones. Motivos y comentarios: privados.
-                </p>
-                {grants.map((g) => (
-                  <div className="button-row" key={g.id}>
-                    <span>
-                      {members.find((m) => m.id === g.recipient_id)
-                        ?.display_name ?? "Persona invitada"}
-                    </span>
-                    <button
-                      className="text-button"
-                      disabled={!online}
-                      onClick={() =>
-                        runAction(
-                          () =>
-                            apiRequest("/api/sharing", "DELETE", {
-                              id: g.id,
-                            }),
-                          "Acceso revocado.",
-                        )
-                      }
-                    >
-                      Revocar acceso
-                    </button>
-                  </div>
-                ))}
-                <div className="inline-form">
-                  <select
-                    disabled={!online}
-                    aria-label="Compartir con"
-                    value={recipientId}
-                    onChange={(e) => setRecipientId(e.target.value)}
-                  >
-                    <option value="">Elegí una persona</option>
-                    {members
-                      .filter(
-                        (m) => !grants.some((g) => g.recipient_id === m.id),
-                      )
-                      .map((m) => (
-                        <option key={m.id} value={m.id}>
-                          {m.display_name}
-                        </option>
-                      ))}
-                  </select>
-                  <button
-                    className="secondary"
-                    disabled={!recipientId || !online}
-                    onClick={() =>
-                      runAction(
-                        () =>
-                          apiRequest("/api/sharing", "POST", {
-                            entry_id: entry.id,
-                            recipient_id: recipientId,
-                          }),
-                        "Entrada compartida.",
-                      )
-                    }
-                  >
-                    Compartir
-                  </button>
-                </div>
-              </section>
+              <EntrySharingPanel
+                online={online}
+                members={members}
+                grants={grants}
+                recipientId={recipientId}
+                onRecipientChange={setRecipientId}
+                onRevoke={(grantId) =>
+                  runAction(
+                    () => apiRequest("/api/sharing", "DELETE", { id: grantId }),
+                    "Acceso revocado.",
+                  )
+                }
+                onShare={() =>
+                  runAction(
+                    () =>
+                      apiRequest("/api/sharing", "POST", {
+                        entry_id: entry.id,
+                        recipient_id: recipientId,
+                      }),
+                    "Entrada compartida.",
+                  )
+                }
+              />
               <div className="editor-extra-actions">
                 {entry.id && (
                   <button
