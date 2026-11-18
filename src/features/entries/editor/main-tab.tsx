@@ -5,9 +5,9 @@ import { apiRequest } from "@/lib/api-client";
 import { priceHistorySchema } from "@/lib/contracts";
 import { statuses } from "@/lib/types";
 
-import { formatDateTime } from "@/lib/journal/view-config";
-import { ExternalLink, Trash2 } from "lucide-react";
-import { OfferEditor } from "@/features/stores/offer-editor";
+import type { FormEvent } from "react";
+import { EntryPagesPanel } from "./entry-pages-panel";
+import { entryPageFallbackError } from "./entry-page-form";
 import { getOwnershipInfo, ownershipOptions } from "../ownership-badge";
 import { PlatformPicker } from "../platform-picker";
 
@@ -52,6 +52,18 @@ export function MainTab({
   | "busy"
   | "activeTab"
 > & { omitSummaryFields?: boolean; bookFields?: boolean }) {
+  function addPage(event: FormEvent) {
+    event.preventDefault();
+    const pages = pagesSchema.safeParse([...(draft.pages ?? []), pageUrl]);
+    if (!pages.success) {
+      setPageError(pages.error.issues[0]?.message ?? entryPageFallbackError);
+      return;
+    }
+    updateDraftField("pages", pages.data);
+    setPageUrl("");
+    setPageError("");
+  }
+
   return (
     <>
       {activeTab === "main" && (
@@ -123,118 +135,40 @@ export function MainTab({
             {renderField("priority", "Prioridad")}
             {!omitSummaryFields && renderField("estimated", "Horas estimadas")}
           </div>
-          <section className="editor-section">
-            <h3>
-              Páginas <span className="muted">· opcional</span>
-            </h3>
-            {offers.map((offer) => (
-              <OfferEditor
-                key={offer.id}
-                disabled={!online || busy}
-                offer={offer}
-                target={
-                  targetDrafts[offer.id] ??
-                  (offer.target_price == null ? "" : String(offer.target_price))
-                }
-                onTargetChange={(value) => setTargetDraft(offer.id, value)}
-                formId={formId}
-                runAction={runAction}
-                showHistory={async () =>
-                  setPriceHistory(
-                    await apiRequest(
-                      "/api/offers?id=" + offer.id,
-                      "GET",
-                      undefined,
-                      priceHistorySchema,
-                    ),
-                  )
-                }
-              />
-            ))}
-            {(draft.pages ?? []).length > 0 && (
-              <ul className="draft-pages" aria-label="Páginas del juego">
-                {draft.pages?.map((page) => (
-                  <li key={page}>
-                    <a href={page} target="_blank" rel="noopener noreferrer">
-                      {page}
-                      <ExternalLink size={13} />
-                    </a>
-                    <button
-                      type="button"
-                      className="icon-button danger"
-                      aria-label={"Quitar página " + page}
-                      disabled={busy}
-                      onClick={() =>
-                        updateDraftField(
-                          "pages",
-                          draft.pages?.filter((value) => value !== page),
-                        )
-                      }
-                    >
-                      <Trash2 size={15} />
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            )}
-            <form
-              className="inline-form"
-              onSubmit={(event) => {
-                event.preventDefault();
-                const pages = pagesSchema.safeParse([
-                  ...(draft.pages ?? []),
-                  pageUrl,
-                ]);
-                if (!pages.success) {
-                  setPageError(
-                    pages.error.issues[0]?.message ?? "Revisá el enlace.",
-                  );
-                  return;
-                }
-                updateDraftField("pages", pages.data);
-                setPageUrl("");
-                setPageError("");
-              }}
-            >
-              <input
-                type="url"
-                aria-label="Enlace de página"
-                placeholder="https://…"
-                value={pageUrl}
-                onChange={(event) => {
-                  setPageUrl(event.target.value);
-                  setPageError("");
-                }}
-                required
-                disabled={busy}
-              />
-              <button className="secondary" disabled={busy}>
-                Agregar
-              </button>
-            </form>
-            {pageError && (
-              <p className="error" role="alert">
-                {pageError}
-              </p>
-            )}
-            <p className="fine-print">
-              Precios: Steam y Nintendo. Otras páginas: referencia.
-            </p>
-            {priceHistory && (
-              <div className="history">
-                {priceHistory.length ? (
-                  priceHistory.map((quote) => (
-                    <p key={quote.id}>
-                      {formatDateTime(quote.created_at)} · {quote.currency}{" "}
-                      {quote.price} · {quote.discount}% OFF
-                    </p>
-                  ))
-                ) : (
-                  <p>Todavía no hay cambios de precio registrados.</p>
-                )}
-              </div>
-            )}
-          </section>
+          <EntryPagesPanel
+            online={online}
+            offers={offers}
+            targetDrafts={targetDrafts}
+            setTargetDraft={setTargetDraft}
+            formId={formId}
+            runAction={runAction}
+            busy={busy}
+            pages={draft.pages}
+            pageUrl={pageUrl}
+            pageError={pageError}
+            priceHistory={priceHistory}
+            onAddPage={addPage}
+            onPageUrlChange={(value) => {
+              setPageUrl(value);
+              setPageError("");
+            }}
+            onRemovePage={(page) =>
+              updateDraftField(
+                "pages",
+                draft.pages?.filter((value) => value !== page),
+              )
+            }
+            onShowHistory={async (offerId) =>
+              setPriceHistory(
+                await apiRequest(
+                  "/api/offers?id=" + offerId,
+                  "GET",
+                  undefined,
+                  priceHistorySchema,
+                ),
+              )
+            }
+          />
         </>
       )}
     </>
