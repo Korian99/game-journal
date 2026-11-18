@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { ArrowRight, LoaderCircle, Search } from "lucide-react";
 import { z } from "zod";
 import { apiRequest } from "@/lib/api-client";
 import {
@@ -10,7 +9,8 @@ import {
 } from "@/features/stores/store-preview-contract";
 import { coverSchema } from "@/lib/covers";
 import type { StoreSearchResult } from "@/features/stores/store-search";
-import { GameCover } from "../game-cover";
+import { StoreSearchForm } from "./store-search-form";
+import { StoreSearchResults } from "./store-search-results";
 
 const searchSchema = z.object({
   results: z.array(
@@ -91,6 +91,20 @@ export function StoreSearch({
     userChangedSearch.current = true;
     cancelRequests();
     setStore(nextStore);
+    setResults([]);
+    setError("");
+    setSearched(false);
+  }
+
+  function changeQuery(value: string) {
+    activeSearch.current?.abort();
+    activePreview.current?.abort();
+    activeSearch.current = null;
+    activePreview.current = null;
+    setSearching(false);
+    setPreviewing(false);
+    setQuery(value);
+    userChangedSearch.current = true;
     setResults([]);
     setError("");
     setSearched(false);
@@ -196,124 +210,26 @@ export function StoreSearch({
       className="store-search"
       aria-label="Buscar juegos en Steam o Nintendo"
     >
-      <form
-        className="store-search-form"
+      <StoreSearchForm
+        online={online}
+        store={store}
+        query={query}
+        searching={searching}
+        previewing={previewing}
         onSubmit={submit}
-        aria-busy={searching || previewing}
-      >
-        <label htmlFor="store-provider">Tienda de búsqueda</label>
-        <select
-          id="store-provider"
-          aria-label="Tienda de búsqueda"
-          value={store}
-          disabled={!online}
-          onChange={(event) =>
-            changeStore(event.target.value as "steam" | "nintendo")
-          }
-        >
-          <option value="steam">Steam</option>
-          <option value="nintendo">Nintendo (Argentina)</option>
-        </select>
-        <label htmlFor="store-title-search">
-          Buscar por título en {store === "steam" ? "Steam" : "Nintendo"}
-        </label>
-        <div className="store-search-controls">
-          <input
-            id="store-title-search"
-            type="search"
-            minLength={2}
-            maxLength={100}
-            placeholder={store === "steam" ? "Ej.: Portal 2" : "Ej.: Zelda"}
-            value={query}
-            disabled={!online}
-            onChange={(event) => {
-              activeSearch.current?.abort();
-              activePreview.current?.abort();
-              activeSearch.current = null;
-              activePreview.current = null;
-              setSearching(false);
-              setPreviewing(false);
-              setQuery(event.target.value);
-              userChangedSearch.current = true;
-              setResults([]);
-              setError("");
-              setSearched(false);
-            }}
-          />
-          <button
-            className="primary"
-            disabled={!online || query.trim().length < 2}
-          >
-            {searching || previewing ? (
-              <LoaderCircle size={16} className="spin" />
-            ) : (
-              <Search size={16} />
-            )}
-            {searching || previewing ? "Nueva búsqueda" : "Buscar"}
-          </button>
-        </div>
-      </form>
-      {error && (
-        <p className="error" role="alert">
-          {error}
-        </p>
-      )}
-      {searching && (
-        <p className="store-search-status" role="status" aria-live="polite">
-          Buscando en {store === "steam" ? "Steam" : "Nintendo"}… Podés seguir
-          escribiendo mientras tanto.
-        </p>
-      )}
-      {previewing && (
-        <p className="store-search-status" role="status" aria-live="polite">
-          Cargando los datos del juego…
-        </p>
-      )}
-      {searched &&
-        !searching &&
-        !previewing &&
-        !error &&
-        results.length === 0 && (
-          <p className="fine-print" role="status" aria-live="polite">
-            No encontramos juegos con ese título.
-          </p>
-        )}
-      {results.length > 0 && (
-        <div className="store-search-result-panel" aria-live="polite">
-          <p className="store-search-results-heading">
-            {results.length}{" "}
-            {results.length === 1 ? "juego encontrado" : "juegos encontrados"}
-          </p>
-          <ul
-            className="store-search-results"
-            aria-label="Resultados de tienda"
-          >
-            {results.map((result) => (
-              <li key={`${result.store}:${result.id}`}>
-                <button
-                  type="button"
-                  disabled={!online || previewing}
-                  onClick={() => void select(result)}
-                >
-                  <GameCover
-                    cover={result.cover}
-                    title={result.title}
-                    size="thumb"
-                  />
-                  <span className="store-search-result-title">
-                    {result.title}
-                  </span>
-                  <small>
-                    {result.store === "steam" ? "Steam" : "Nintendo"} ·{" "}
-                    {result.platform ?? "Juego"}
-                  </small>
-                  <ArrowRight size={16} aria-hidden="true" />
-                </button>
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
+        onStoreChange={changeStore}
+        onQueryChange={changeQuery}
+      />
+      <StoreSearchResults
+        online={online}
+        store={store}
+        results={results}
+        searching={searching}
+        previewing={previewing}
+        error={error}
+        searched={searched}
+        onSelect={select}
+      />
       {editing && onBack && (
         <button type="button" className="text-button" onClick={onBack}>
           Volver a la edición

@@ -1,12 +1,13 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
-import { ArrowRight, LoaderCircle, PenLine } from "lucide-react";
+import { ArrowRight, PenLine } from "lucide-react";
 import { apiRequest } from "@/lib/api-client";
 import {
   storePreviewSchema,
   type StorePreview,
 } from "@/features/stores/store-preview-contract";
 import { StoreSearch } from "./store-search";
+import { StorePageLookupForm } from "./store-page-lookup-form";
 
 export function EntryStart({
   step,
@@ -94,58 +95,22 @@ export function EntryStart({
           onBack={onManual}
         />
       ) : (
-        <form
-          className="entry-start-form"
+        <StorePageLookupForm
+          url={url}
+          loading={loading}
+          online={online}
+          editing={editing}
+          error={error}
           onSubmit={lookup}
-          aria-busy={loading}
-        >
-          <label>
-            Página de Steam o Nintendo
-            <input
-              type="url"
-              required
-              maxLength={2000}
-              autoFocus
-              placeholder="https://…"
-              value={url}
-              disabled={loading}
-              onChange={(event) => {
-                setUrl(event.target.value);
-                setError("");
-              }}
-            />
-          </label>
-          <p className="fine-print">
-            {editing
-              ? "Se completarán los datos de este juego. Revisalos antes de guardar."
-              : "Una página por consulta. Después podés revisar los datos y agregar otras páginas."}
-          </p>
-          {error && (
-            <p className="error" role="alert">
-              {error}
-            </p>
-          )}
-          <div className="button-row">
-            <button
-              type="button"
-              className="text-button"
-              onClick={() => {
-                activeRequest.current?.abort();
-                onManual();
-              }}
-            >
-              {editing ? "Volver a la edición" : "Completar manualmente"}
-            </button>
-            <button className="primary" disabled={loading || !online}>
-              {loading ? (
-                <LoaderCircle size={16} className="spin" />
-              ) : (
-                <ArrowRight size={16} />
-              )}
-              {loading ? "Buscando…" : "Traer datos"}
-            </button>
-          </div>
-        </form>
+          onUrlChange={(value) => {
+            setUrl(value);
+            setError("");
+          }}
+          onManual={() => {
+            activeRequest.current?.abort();
+            onManual();
+          }}
+        />
       )}
       {!online && (
         <p className="fine-print">
