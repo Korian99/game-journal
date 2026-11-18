@@ -36,6 +36,7 @@ export function statusAfterDateEdits(
   draft: DatedEntry,
   original?: DatedEntry,
 ): Status {
+  if (draft.status === "remembered") return draft.status;
   const started = dateOrder(draft.started);
   const finished = dateOrder(draft.finished);
   const startChanged =

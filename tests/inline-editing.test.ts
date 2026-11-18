@@ -99,3 +99,17 @@ it("recognizes unchanged display values and equivalent field formatting without 
   expect(inlineUnchanged(saved, "rating", "bad")).toBe(false);
   expect(inlineUnchanged(saved, "started", "31/02/2026")).toBe(false);
 });
+
+
+it("keeps Recuerdo through inline play date edits while deriving the period", () => {
+  const remembered = { ...entry, status: "remembered" as const };
+  const started = inlineCandidate(remembered, "started", "31/12/2025");
+  expect(started).toMatchObject({ status: "remembered", period: "2025" });
+  const finished = inlineCandidate(started, "finished", "01/01/2026");
+  expect(finished).toMatchObject({ status: "remembered", period: "2025-2026" });
+  const corrected = inlineCandidate(finished, "finished", "02/01/2026");
+  expect(corrected.status).toBe("remembered");
+  expect(inlineCandidate(corrected, "finished", "").status).toBe("remembered");
+  const wishlist = inlineCandidate(corrected, "status", "wishlist");
+  expect(inlineCandidate(wishlist, "finished", "03/01/2026").status).toBe("completed");
+});

@@ -1,7 +1,6 @@
 import type { ComponentProps, ReactNode } from "react";
 import { Check, LoaderCircle } from "lucide-react";
 import { coverSchema } from "@/lib/covers";
-import { statusAfterDateEdits } from "@/lib/journal/entry-status";
 import type { JournalEntry } from "@/lib/journal/journal-types";
 import { pagesSchema, releaseSchema } from "@/lib/validation";
 import { PlayDateInput } from "../play-date-input";
@@ -35,6 +34,7 @@ export function EntryEditorForm({
   saving,
   actionError,
   targetError,
+  rawPlayDates,
   fields,
   cover,
   lookup,
@@ -50,6 +50,7 @@ export function EntryEditorForm({
   saving: boolean;
   actionError?: string;
   targetError: string;
+  rawPlayDates: Pick<JournalEntry, "started" | "finished">;
   fields: Omit<EditorContext, "setDraft" | "formId" | "renderField">;
   cover: Pick<
     PrincipalProps["cover"],
@@ -179,8 +180,8 @@ export function EntryEditorForm({
           setPageError("");
           void onSave({
             ...draft,
+            ...rawPlayDates,
             pages: pages.data,
-            status: statusAfterDateEdits(draft, entry),
           });
         }}
       />

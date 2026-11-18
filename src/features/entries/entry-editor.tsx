@@ -25,7 +25,7 @@ import {
   storeCoverSourcePages,
 } from "@/features/stores/restore-store-cover";
 import { periodAfterDateEdits } from "@/lib/journal/entry-period";
-import { defaultNewEntryStatus } from "@/lib/journal/entry-status";
+import { datesAfterStatusChange, defaultNewEntryStatus, statusAfterDateEdits } from "@/lib/journal/entry-status";
 import { parseRelease } from "@/lib/releases";
 import { upcomingReleaseUpdate } from "@/features/stores/upcoming-release";
 import type { JournalView } from "@/lib/journal/journal-location";
@@ -101,11 +101,23 @@ export function EntryEditor({
   });
   const draftRef = useRef(draft);
   const baselineRef = useRef(entry);
+  const dateStatusBaseline = useRef(entry);
+  // Keep previews separate from manual dates; the server assigns automatic dates on save.
+  const displayedStatus = statusAfterDateEdits(draft, dateStatusBaseline.current);
+  const displayedDraft = {
+    ...draft,
+    status: displayedStatus,
+    ...datesAfterStatusChange(
+      { ...draft, status: displayedStatus },
+      entry.id ? entry : undefined,
+    ),
+  };
   draftRef.current = draft;
   useEffect(() => {
     if (!embedded) return;
     if (JSON.stringify(draftRef.current) === JSON.stringify(baselineRef.current)) {
       baselineRef.current = entry;
+      dateStatusBaseline.current = entry;
       setDraft(entry);
     }
   }, [entry, embedded]);
@@ -338,7 +350,10 @@ export function EntryEditor({
     setActiveTab(id);
   }
   const updateDraftField = (key: keyof JournalEntry, value: unknown) => {
-    if (key === "status") statusExplicitlyChosen.current = true;
+    if (key === "status") {
+      statusExplicitlyChosen.current = true;
+      dateStatusBaseline.current = draft;
+    }
     setDraft((current) => {
       const next = { ...current, [key]: value };
       if (key === "started" || key === "finished")
@@ -398,9 +413,10 @@ export function EntryEditor({
       saving={saving}
       actionError={actionError}
       targetError={targetError}
+      rawPlayDates={{ started: draft.started, finished: draft.finished }}
       fields={{
         entry,
-        draft,
+        draft: displayedDraft,
         online,
         dirty,
         busy,

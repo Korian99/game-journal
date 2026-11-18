@@ -137,3 +137,21 @@ describe("status defaults for new games", () => {
     ).toBe("paused");
   });
 });
+
+
+describe("remembered entries do not infer status from dates", () => {
+  const remembered = { ...emptyRecord, status: "remembered" as const, started: "2025-10-01", finished: "2025-10-02" };
+  it.each([
+    { started: "2025-09-30", finished: remembered.finished },
+    { started: remembered.started, finished: "2025-10-03" },
+    { started: "", finished: "" },
+    { started: "2026-01-01", finished: "" },
+  ])("keeps Recuerdo for saved and new drafts with %j", (dates) => {
+    const draft = { ...remembered, ...dates };
+    expect(statusAfterDateEdits(draft, remembered)).toBe("remembered");
+    expect(statusAfterDateEdits(draft)).toBe("remembered");
+  });
+  it("resumes date inference after explicitly leaving Recuerdo", () => {
+    expect(statusAfterDateEdits({ ...remembered, status: "wishlist", finished: "2025-10-03" }, remembered)).toBe("completed");
+  });
+});
