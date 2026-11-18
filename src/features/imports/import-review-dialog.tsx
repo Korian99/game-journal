@@ -1,11 +1,8 @@
 "use client";
 
 import { apiRequest } from "@/lib/api-client";
-import {
-  importConflictLabel,
-  importConflictValue,
-  type ImportBatch,
-} from "./contracts";
+import type { ImportBatch } from "./contracts";
+import { ImportReviewList } from "./import-review-list";
 export type { ImportBatch } from "./contracts";
 import type { PerformJournalAction } from "@/lib/journal/journal-types";
 import { Modal } from "@/components/ui/dialog";
@@ -35,72 +32,19 @@ export function ImportReviewDialog({
           {batch.plan.filter((p) => p.kind === "conflict").length} con
           conflictos
         </p>
-        {batch.plan
-          .filter((p) => p.kind !== "unchanged")
-          .map((p, i) => (
-            <article className="import-item" key={i}>
-              <strong>{p.incoming.title}</strong>
-              {p.conflicts.includes("trash") && (
-                <p className="error">
-                  Esta entrada está en Papelera. Restaurala desde Configuración
-                  antes de actualizarla.
-                </p>
-              )}
-              <span className="muted">
-                {" "}
-                ·{" "}
-                {
-                  {
-                    add: "Nueva",
-                    update: "Cambios",
-                    conflict: "Requiere revisión",
-                    unchanged: "Sin cambios",
-                  }[p.kind]
-                }
-              </span>
-              {Object.keys(p.changes).length > 0 && (
-                <p className="fine-print">
-                  Campos:{" "}
-                  {Object.keys(p.changes)
-                    .filter((k) => !["raw", "links"].includes(k))
-                    .map(importConflictLabel)
-                    .join(", ")}
-                </p>
-              )}
-              {p.conflicts.map((field) => (
-                <label key={field}>
-                  {importConflictLabel(field)}
-                  <select
-                    value={resolutions[p.incoming.sourceKey]?.[field] ?? ""}
-                    onChange={(e) =>
-                      setResolutions({
-                        ...resolutions,
-                        [p.incoming.sourceKey]: {
-                          ...resolutions[p.incoming.sourceKey],
-                          [field]: e.target.value,
-                        },
-                      })
-                    }
-                  >
-                    <option value="">Elegí qué conservar</option>
-                    {["duplicate", "trash"].includes(field) ? (
-                      <option value="skip">Omitir y revisar en la app</option>
-                    ) : (
-                      <>
-                        <option value="app">
-                          Conservar lo editado en la app
-                        </option>
-                        <option value="sheet">
-                          Usar planilla:{" "}
-                          {importConflictValue(p.incoming, field)}
-                        </option>
-                      </>
-                    )}
-                  </select>
-                </label>
-              ))}
-            </article>
-          ))}
+        <ImportReviewList
+          plan={batch.plan}
+          resolutions={resolutions}
+          onResolveConflict={(sourceKey, field, value) =>
+            setResolutions({
+              ...resolutions,
+              [sourceKey]: {
+                ...resolutions[sourceKey],
+                [field]: value,
+              },
+            })
+          }
+        />
         <button
           className="primary"
           disabled={
