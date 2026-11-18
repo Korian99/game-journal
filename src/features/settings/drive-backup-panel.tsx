@@ -9,7 +9,7 @@ import {
 } from "@/lib/backups/status";
 import { formatDateTime } from "@/lib/journal/view-config";
 import { createResource } from "@/lib/resource";
-import { Modal } from "@/components/ui/dialog";
+import { DriveDisconnectDialog } from "./drive-disconnect-dialog";
 import styles from "../../app/(public)/public.module.css";
 export function DriveBackupPanel({
   details = true,
@@ -223,35 +223,11 @@ export function DriveBackupPanel({
         </p>
       )}
       {confirmDisconnect && (
-        <Modal
-          open
-          title="Desconectar Google Drive"
-          onClose={() => !busy && setConfirmDisconnect(false)}
-        >
-          <div className="modal-body">
-            <p>
-              Se detendrán las copias automáticas. Los archivos que ya están en
-              Drive se conservan.
-            </p>
-            <div className="button-row">
-              <button
-                autoFocus
-                className="secondary"
-                disabled={busy}
-                onClick={() => setConfirmDisconnect(false)}
-              >
-                Cancelar
-              </button>
-              <button
-                className="danger"
-                disabled={busy}
-                onClick={() => void disconnect()}
-              >
-                Confirmar desconexión
-              </button>
-            </div>
-          </div>
-        </Modal>
+        <DriveDisconnectDialog
+          busy={busy}
+          onCancel={() => setConfirmDisconnect(false)}
+          onConfirm={() => void disconnect()}
+        />
       )}
     </article>
   );
