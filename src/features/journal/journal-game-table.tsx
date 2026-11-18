@@ -165,7 +165,7 @@ export function JournalGameTable({
                     <JournalReview record={r} />
                   </div>
                 )}
-                {commentsBelow && r.notes.trim() && <GameComments entry={r} />}
+                {commentsBelow && r.review_details.trim() && <GameComments entry={r} />}
               </div>
             </article>
           ))
@@ -212,7 +212,7 @@ export function JournalGameTable({
             ))}
           </thead>
           {table.getRowModel().rows.map((r) => {
-            const hasComments = commentsBelow && !!r.original.notes.trim();
+            const hasComments = commentsBelow && !!r.original.review_details.trim();
             return (
               <tbody
                 key={r.original.id ?? r.id}

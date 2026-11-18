@@ -98,7 +98,7 @@ test("the library keeps its filters and editor in a responsive notebook layout",
       estimated: "55",
       reason: "The ending made the long journey worth it.",
       impression: "A warm story with a memorable final chapter.",
-      notes:
+      review_details:
         "Red XIII made me cry. The narrative is warm, the cast is memorable, and the materia system kept every fight interesting.",
       rating: 92,
       cover: {

@@ -1,11 +1,11 @@
-import { emptyRecord } from "../../src/lib/types";
+import { emptyRecord, toRecordStorage } from "../../src/lib/types";
 export const backupOwner = "12121212-1212-4212-8212-121212121212";
 export const gameId = "23232323-2323-4323-8323-232323232323";
 export const recordId = "34343434-3434-4434-8434-343434343434";
 export const runId = "45454545-4545-4545-8545-454545454545";
 export function backupFixture() {
   const record = {
-    ...emptyRecord,
+    ...toRecordStorage(emptyRecord),
     id: recordId,
     gameId,
     title: "Recovery fixture",

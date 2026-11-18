@@ -11,16 +11,16 @@ for (const view of ["library", "journal"]) {
       const records = [
         {
           title: "FINAL FANTASY VII",
-          notes: longComment,
+          review_details: longComment,
           cover: {
             provider: "nintendo",
             providerUrl:
               "https://assets.nintendo.com/image/upload/comments.jpg",
           },
         },
-        { title: "Alfa fixture", notes: "A — Un comentario breve." },
-        { title: "Sin comentarios", notes: "" },
-        { title: "Solo espacios", notes: "  \n  " },
+        { title: "Alfa fixture", review_details: "A — Un comentario breve." },
+        { title: "Sin comentarios", review_details: "" },
+        { title: "Solo espacios", review_details: "  \n  " },
       ].map((value, index) => ({
         ...emptyRecord,
         ...value,

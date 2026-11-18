@@ -84,18 +84,28 @@ export const recordSchema = z
     focus: z.string().max(100),
     replay: z.string().max(100),
     reason: z.string().max(20000),
-    notes: z.string().max(50000),
+    notes: z.string().max(50000).optional(),
+    review_details: z.string().max(50000).optional(),
     reminder: z.string().max(5000).optional(),
     sourceKey: z.string().max(1000),
     pages: pagesSchema.optional(),
     updated_at: z.string().optional(),
   })
-  .transform((record) => {
+  .transform(({ notes, review_details, ...record }, ctx) => {
+    const reviewDetails = review_details ?? notes;
+    if (reviewDetails === undefined) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["notes"],
+        message: "Completá los comentarios adicionales.",
+      });
+      return z.NEVER;
+    }
     if (record.release !== undefined) {
       const release = parseRelease(record.release);
       record.year = "year" in release ? release.year : null;
     }
-    return record;
+    return { ...record, review_details: reviewDetails };
   });
 export async function bodyJson(request: Request) {
   const length = Number(request.headers.get("content-length") ?? 0);

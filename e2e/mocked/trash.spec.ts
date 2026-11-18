@@ -12,7 +12,7 @@ for (const failRefresh of [false, true]) {
         title: "Recovery UI fixture",
         status: "playing",
         started: "2026-10-01",
-        notes: "Review to preserve",
+        review_details: "Review to preserve",
         updated_at: "2026-10-21T10:00:00Z",
       };
       let records = [entry],
@@ -127,7 +127,7 @@ for (const failRefresh of [false, true]) {
       await page.getByRole("tab", { name: "Reseña", exact: true }).click();
       await expect(
         page.getByLabel("Comentarios adicionales · privados"),
-      ).toHaveValue(entry.notes);
+      ).toHaveValue(entry.review_details);
     },
   );
 }

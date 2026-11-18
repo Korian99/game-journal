@@ -26,11 +26,11 @@ it("validates and normalizes inline values without dropping the revision", () =>
   expect(() => inlineCandidate(entry, "started", "31/02/2026")).toThrow();
 });
 it("edits a private next-session reminder independently from review comments", () => {
-  const reviewed = { ...entry, notes: "Review comment", reminder: "" };
+  const reviewed = { ...entry, review_details: "Review comment", reminder: "" };
   const saved = inlineCandidate(reviewed, "reminder", "Try the alternate route");
-  expect(saved).toMatchObject({ reminder: "Try the alternate route", notes: "Review comment" });
+  expect(saved).toMatchObject({ reminder: "Try the alternate route", review_details: "Review comment" });
   const restored = undoCandidate(saved, inlineChange(reviewed, saved, "Recordatorio"));
-  expect(restored).toMatchObject({ reminder: "", notes: "Review comment" });
+  expect(restored).toMatchObject({ reminder: "", review_details: "Review comment" });
 });
 it("keeps automatic dates/status/period behavior for inline edits", () => {
   const started = inlineCandidate(entry, "started", "31/12/2025");
@@ -47,12 +47,12 @@ it("undo restores only changed values, including derived fields, while retaining
   };
   const change = inlineChange(entry, saved, "Empecé");
   expect(
-    undoCandidate({ ...saved, notes: "Keep later notes" }, change),
+    undoCandidate({ ...saved, review_details: "Keep later notes" }, change),
   ).toMatchObject({
     started: "",
     period: "",
     status: "wishlist",
-    notes: "Keep later notes",
+    review_details: "Keep later notes",
     updated_at: saved.updated_at,
   });
   expect(() =>

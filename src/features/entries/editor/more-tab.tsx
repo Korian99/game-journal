@@ -194,7 +194,7 @@ export function MoreTab({
                         rating: null,
                         memorability: null,
                         impression: "",
-                        notes: "",
+                        review_details: "",
                         reason: "",
                       })
                     }

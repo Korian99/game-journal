@@ -10,7 +10,7 @@ const record = {
   title: "Touch fixture",
   status: "completed",
   period: "2026",
-  notes: "Original review",
+  review_details: "Original review",
   reason: "Keep reason",
   updated_at: "2026-11-17T10:00:00Z",
 };
@@ -21,9 +21,9 @@ async function setup(page: Page, longNotes = false) {
   );
   let saved = {
     ...record,
-    notes: longNotes
+    review_details: longNotes
       ? Array.from({ length: 18 }, (_, index) => `Review line ${index + 1}`).join("\n")
-      : record.notes,
+      : record.review_details,
   };
   const posts: Record<string, unknown>[] = [];
   await page.route("**/api/**", async (route: Route) => {
@@ -110,7 +110,7 @@ test("the first touch marks a field and a delayed second tap opens and saves onc
   await page.getByRole("button", { name: "Guardar celda", exact: true }).click();
   await expect.poll(() => posts.length).toBe(1);
   expect(posts[0]).toMatchObject({
-    notes: "Updated review",
+    review_details: "Updated review",
     reason: "Keep reason",
     updated_at: record.updated_at,
   });

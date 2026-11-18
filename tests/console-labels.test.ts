@@ -23,20 +23,20 @@ it.each([
       title: "Fixture",
       device,
       platforms: "PC; " + device,
-      notes: "Me gustó jugar con emulación",
+      review_details: "Me gustó jugar con emulación",
       impression: "Emulation worked well",
     };
     const saved = recordSchema.parse(input);
     expect(saved).toMatchObject({
       device: "Emulador",
       platforms: "PC; Emulador",
-      notes: input.notes,
+      review_details: input.review_details,
       impression: input.impression,
     });
     expect(journalEntrySchema.parse(input)).toMatchObject({
       device: "Emulador",
       platforms: "PC; Emulador",
-      notes: input.notes,
+      review_details: input.review_details,
     });
   },
 );
@@ -108,13 +108,13 @@ it("canonicalizes Switch aliases across saved, loaded and imported console field
     title: "Switch fixture",
     device: "Nintendo Switch 2",
     platforms: "PC; Nintendo Switch; Switch; Nintendo Switch 2; Switch 2",
-    notes: "Nintendo Switch review",
+    review_details: "Nintendo Switch review",
   };
   for (const schema of [recordSchema, journalEntrySchema]) {
     expect(schema.parse(input)).toMatchObject({
       device: "Switch 2",
       platforms: "PC; Switch; Switch 2",
-      notes: input.notes,
+      review_details: input.review_details,
     });
   }
   const imported = parseWorkbook([

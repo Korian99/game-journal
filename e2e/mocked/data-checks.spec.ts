@@ -241,7 +241,7 @@ test("hiding persists across unrelated edits, restores explicitly and returns fo
   await expect(panel.locator(".data-check-finding")).toHaveCount(0);
   f.change({
     title: "Renamed",
-    notes: "Unrelated",
+    review_details: "Unrelated",
     updated_at: "2026-10-26T13:00:00Z",
   });
   await page.reload();

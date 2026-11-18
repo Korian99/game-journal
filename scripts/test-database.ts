@@ -53,7 +53,7 @@ await disposableDatabase(async (sql: (input: string) => string) => {
   snapshotData.trash.push({
     ...snapshotData.records[0],
     id: deletedId,
-    notes: "PRIVATE TRASH",
+    review_details: "PRIVATE TRASH",
     deleted_at: deletedAt,
   });
   snapshotData.sourceTables.playthroughs.push({

@@ -268,6 +268,61 @@ export function JournalApp({
     }
     return true;
   };
+  async function appendNotebookNote(id: string, text: string) {
+    const entry = getRecord(id);
+    if (!entry?.updated_at || entry.status !== "playing")
+      throw Error("Esta partida ya no está en curso.");
+    if (!navigator.onLine)
+      throw Error("Necesitás conexión para guardar.");
+    if (
+      busy ||
+      savingEntry ||
+      inlineEditing.saving ||
+      (detailDraftDirty && detailEntryId === id) ||
+      (inlineEditing.dirty && inlineEditing.active?.entry.id === id)
+    )
+      throw Error(
+        "Guardá o cancelá la edición actual antes de agregar la nota.",
+      );
+
+    const reminder = entry.reminder ? `${entry.reminder}\n\n${text}` : text;
+    const candidate = recordSchema.safeParse({ ...entry, reminder });
+    if (!candidate.success) {
+      if (candidate.error.issues.some((issue) => issue.path[0] === "reminder"))
+        throw Error(
+          "El recordatorio admite hasta 5.000 caracteres. Acortá el texto.",
+        );
+      throw Error("No se pudo guardar la nota en esta partida.");
+    }
+    try {
+      const { record } = await apiRequest(
+        "/api/records",
+        "POST",
+        candidate.data,
+        saveResponseSchema,
+      );
+      if (record?.id !== id || !record.updated_at || record.reminder !== reminder)
+        throw new ApiRequestError(
+          "No se pudo confirmar la nota. Volvé a intentarlo.",
+          200,
+          "INVALID_RESPONSE",
+        );
+      acceptRecord(record);
+    } catch (failure) {
+      if (failure instanceof ApiRequestError) {
+        if (["CONFLICT", "NETWORK", "INVALID_RESPONSE"].includes(failure.code)) {
+          await reloadRecords();
+          if (getRecord(id)?.reminder === reminder) return;
+        }
+        if (failure.code === "CONFLICT")
+          throw Error(
+            "La partida cambió. Revisá la selección y volvé a intentarlo.",
+            { cause: failure },
+          );
+      }
+      throw failure;
+    }
+  }
   const saveInFlight = useRef(false);
   async function saveEntry(
     candidate: JournalEntry,
@@ -613,7 +668,7 @@ export function JournalApp({
             }}
           />
           <span className="topbar-right">
-            <Notebook />
+            <Notebook records={records} onAppendToGame={appendNotebookNote} />
             <button
               className="notification-count"
               aria-label="Ver notificaciones"

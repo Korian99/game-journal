@@ -17,11 +17,11 @@ export function GameComments({
     >
       <span className="game-comments-label">Comentarios adicionales</span>
       {inlineView ? (
-        <InlineField entry={entry} view={inlineView} field="notes">
-          <span className="game-comments-text">{entry.notes}</span>
+        <InlineField entry={entry} view={inlineView} field="review_details">
+          <span className="game-comments-text">{entry.review_details}</span>
         </InlineField>
       ) : (
-        <span className="game-comments-text">{entry.notes}</span>
+        <span className="game-comments-text">{entry.review_details}</span>
       )}
     </span>
   );

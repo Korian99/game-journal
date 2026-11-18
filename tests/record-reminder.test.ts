@@ -1,6 +1,5 @@
 import { expect, it } from "vitest";
 import { reminderForSave } from "../src/lib/journal/record-reminder";
-import { emptyRecord } from "../src/lib/types";
 import { journalEntrySchema, sharedEntrySchema } from "../src/lib/contracts";
 
 it("preserves a saved reminder for older clients but accepts an explicit clear", () => {
@@ -10,8 +9,12 @@ it("preserves a saved reminder for older clients but accepts an explicit clear",
 });
 
 it("does not backfill reminders from legacy review comments or include reminders in shared records", () => {
-  const legacy = journalEntrySchema.parse({ ...emptyRecord, notes: "Old review" });
-  expect(legacy).toMatchObject({ notes: "Old review", reminder: "" });
+  const legacy = journalEntrySchema.parse({
+    title: "Old game",
+    status: "playing",
+    notes: "Old review",
+  });
+  expect(legacy).toMatchObject({ review_details: "Old review", reminder: "" });
   const shared = sharedEntrySchema.parse({
     shareId: "share",
     owner: "Owner",

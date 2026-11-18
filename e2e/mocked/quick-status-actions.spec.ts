@@ -96,7 +96,7 @@ test("Empezar saves playing and preserves typed quick fields while the server fi
   expect(fixture.submissions[0]).toMatchObject({
     status: "playing",
     priority: "Alta",
-    notes: base.notes,
+    review_details: base.review_details,
     updated_at: base.updated_at,
   });
   expect(fixture.getSaved().started).toBe("2026-11-11");

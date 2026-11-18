@@ -521,7 +521,7 @@ body:has(.notebook-app) .notebook-notes-label {
 
 body:has(.notebook-app) #notebook-notes {
   width: 100%;
-  min-height: min(56vh, 520px);
+  min-height: min(44dvh, 440px);
   resize: vertical;
   padding: 14px;
   border: 1px solid var(--line);
@@ -539,6 +539,28 @@ body:has(.notebook-app) .notebook-notes-label + #notebook-notes:focus-visible {
 body:has(.notebook-app) .notebook-save-row {
   display: flex;
   justify-content: flex-end;
+}
+
+.notebook-game-note {
+  display: grid;
+  gap: 6px;
+}
+
+.notebook-game-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.notebook-game-controls select {
+  flex: 1 1 160px;
+  min-width: 0;
+  min-height: 44px;
+  padding: 8px;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  background: var(--raised);
+  color: var(--text);
 }
 
 body:has(.notebook-app) .notebook-message {

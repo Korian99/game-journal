@@ -1,5 +1,5 @@
 import { normalizeConsoleLabels } from "./journal/console-labels";
-import { emptyRecord, type JournalRecord } from "./types";
+import { emptyRecord, toRecordStorage, type JournalRecord } from "./types";
 import { parseCoverImageUrl, type Cover } from "./covers";
 import { parseStoreUrl } from "@/features/stores/price-parser";
 export { parseStoreUrl, parseSteam, parseNintendo } from "@/features/stores/price-parser";
@@ -54,12 +54,14 @@ function cleanTitle(v: unknown) {
     .trim();
 }
 export type WorkbookTab = { name: string; values: unknown[][] };
-export type ImportRecord = JournalRecord & {
+export type ImportRecord = Omit<JournalRecord, "review_details"> & {
+  notes: string;
   links?: string[];
   raw?: Record<string, unknown>;
 };
 export function parseWorkbook(tabs: WorkbookTab[]): ImportRecord[] {
   const result: ImportRecord[] = [];
+  const emptyImportRecord = toRecordStorage(emptyRecord);
   const sheetCover = (value: unknown): Cover | undefined => {
     const providerUrl = parseCoverImageUrl(value);
     return providerUrl ? { providerUrl } : undefined;
@@ -140,7 +142,7 @@ export function parseWorkbook(tabs: WorkbookTab[]): ImportRecord[] {
           }
           const key = "Tablas:" + mode + ":" + norm(title);
           result.push({
-            ...emptyRecord,
+            ...emptyImportRecord,
             title,
             status: mode,
             ...(cover ? { cover } : {}),
@@ -178,7 +180,7 @@ export function parseWorkbook(tabs: WorkbookTab[]): ImportRecord[] {
                 ? "abandoned"
                 : "wishlist";
       result.push({
-        ...emptyRecord,
+        ...emptyImportRecord,
         title,
         ...(cover ? { cover } : {}),
         year: num(get("Salio en")),
@@ -242,6 +244,7 @@ export function makeImportPlan(
   incoming: ImportRecord[],
   existing: (Partial<JournalRecord> & {
     gameId?: string;
+    notes?: string;
     source_key?: string;
     source_snapshot?: Record<string, unknown>;
     deleted_at?: string | null;
@@ -319,6 +322,8 @@ export function makeImportPlan(
     );
     if (newLinks.length) changes.links = newLinks;
     for (const field of fields) {
+      const current =
+        field === "notes" ? old.review_details ?? old.notes : old[field];
       const normalize = (value: unknown) =>
         (field === "device" || field === "platforms") &&
         typeof value === "string"
@@ -326,13 +331,13 @@ export function makeImportPlan(
           : value;
       const merged = mergeField(
         normalize(baseline[field]),
-        normalize(old[field]),
+        normalize(current),
         normalize(row[field]),
       );
       if (merged.conflict) conflicts.push(field);
       if (
         JSON.stringify(merged.value ?? null) !==
-        JSON.stringify(old[field] ?? null)
+        JSON.stringify(current ?? null)
       )
         changes[field] = merged.value;
     }

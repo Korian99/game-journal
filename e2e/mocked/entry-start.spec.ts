@@ -527,7 +527,7 @@ test("a page lookup updates the existing entry and clearly identifies the edit",
     status: "wishlist",
     priority: 3,
     updated_at: "2026-10-22T09:00:00Z",
-    notes: "Keep my review",
+    review_details: "Keep my review",
     pages: ["https://example.org/old-page"],
   };
   const { saves } = await fixture(
@@ -569,7 +569,7 @@ test("a page lookup updates the existing entry and clearly identifies the edit",
     updated_at: existing.updated_at,
     title: "Portal 2",
     priority: 3,
-    notes: "Keep my review",
+    review_details: "Keep my review",
     pages: ["https://example.org/old-page", url],
     cover: {
       provider: "steam",
@@ -590,7 +590,7 @@ test("store search completes the existing entry and carries its game cover", asy
     status: "playing",
     started: "2026-10-01",
     priority: 3,
-    notes: "Keep my review",
+    review_details: "Keep my review",
     updated_at: "2026-10-22T09:00:00Z",
     pages: ["https://example.org/old-page"],
   };
@@ -652,7 +652,7 @@ test("store search completes the existing entry and carries its game cover", asy
     status: "playing",
     started: "01/10/2026",
     priority: 3,
-    notes: existing.notes,
+    review_details: existing.review_details,
     cover: {
       provider: "steam",
       providerUrl:
@@ -919,7 +919,7 @@ test("a conflicting page on a playing entry offers updating that entry instead o
     status: "playing",
     started: "2026-10-01",
     hours: 12,
-    notes: "Keep my current playthrough",
+    review_details: "Keep my current playthrough",
     updated_at: "2026-10-22T09:00:00Z",
   };
   const match: JournalEntry = {
@@ -1009,7 +1009,7 @@ test("a conflicting page on a playing entry offers updating that entry instead o
       status: "playing",
       started: "01/10/2026",
       hours: 12,
-      notes: playing.notes,
+      review_details: playing.review_details,
       updated_at: playing.updated_at,
       pages: [url],
     });
@@ -1026,7 +1026,7 @@ test("saving a provider date from Próximos keeps the entry open and its playthr
     status: "upcoming",
     release: "2027",
     year: 2027,
-    notes: "Keep my notes",
+    review_details: "Keep my notes",
     updated_at: "2026-10-22T12:00:00Z",
   };
   const { saves } = await fixture(page, metadata, existing, "upcoming");
@@ -1043,7 +1043,7 @@ test("saving a provider date from Próximos keeps the entry open and its playthr
     status: "upcoming",
     release: "2011-04-18",
     year: 2011,
-    notes: "Keep my notes",
+    review_details: "Keep my notes",
     updated_at: existing.updated_at,
   });
   await expect(page.getByRole("heading", { name: "Tu partida" })).toBeVisible();

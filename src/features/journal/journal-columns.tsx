@@ -35,10 +35,10 @@ import { WishlistPrice } from "@/features/wishlist/wishlist-price";
 export const libraryTextFields = [
   { key: "reason", label: "Por qué" },
   { key: "impression", label: "Impresiones" },
-  { key: "notes", label: "Comentarios adicionales" },
+  { key: "review_details", label: "Comentarios adicionales" },
 ] as const;
 export const journalTextFields = libraryTextFields.filter(
-  ({ key }) => key === "notes",
+  ({ key }) => key === "review_details",
 );
 
 export function useJournalColumns({
@@ -195,6 +195,7 @@ export function useJournalColumns({
           accessorFn: (record) => record.rating ?? undefined,
         },
         ...libraryTextFields.map(({ key, label }): ColumnDef<JournalEntry> => ({
+          id: key === "review_details" ? "notes" : key,
           accessorKey: key,
           header: label,
           cell: ({ getValue, row }) =>
@@ -234,6 +235,7 @@ export function useJournalColumns({
           cell: ({ row }) => <JournalReview record={row.original} inline />,
         },
         ...journalTextFields.map(({ key, label }): ColumnDef<JournalEntry> => ({
+          id: "notes",
           accessorKey: key,
           header: label,
           cell: ({ getValue }) => (

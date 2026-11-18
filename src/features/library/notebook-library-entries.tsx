@@ -96,7 +96,7 @@ export function NotebookLibraryEntries({
 
           {(entry.reason.trim() ||
             entry.impression.trim() ||
-            entry.notes.trim()) && (
+            entry.review_details.trim()) && (
             <details className="notebook-entry-reflections">
               <summary>
                 <span className="notebook-reflection-closed">
@@ -119,7 +119,7 @@ export function NotebookLibraryEntries({
                     <p>{entry.impression}</p>
                   </section>
                 )}
-                {entry.notes.trim() && <GameComments entry={entry} />}
+                {entry.review_details.trim() && <GameComments entry={entry} />}
               </div>
             </details>
           )}

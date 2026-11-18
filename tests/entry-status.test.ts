@@ -37,7 +37,7 @@ describe("status when saving play dates", () => {
     "preserves %s when dates are unchanged",
     (status) => {
       const original = { ...emptyRecord, status, started: "2026-10-01" };
-      const draft = { ...original, notes: "Updated review" };
+      const draft = { ...original, review_details: "Updated review" };
       expect(statusAfterDateEdits(draft, original)).toBe(status);
     },
   );

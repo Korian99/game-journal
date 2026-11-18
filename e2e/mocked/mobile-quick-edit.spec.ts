@@ -12,7 +12,7 @@ const base = {
   period: "2026",
   hours: 10,
   rating: 80,
-  notes: "Long review kept",
+  review_details: "Long review kept",
   updated_at: "2026-10-26T12:00:00Z",
 };
 async function setup(page: Page, status = "playing") {
@@ -73,7 +73,7 @@ async function setup(page: Page, status = "playing") {
     remoteUpdate() {
       record = {
         ...record,
-        notes: "Remote review",
+        review_details: "Remote review",
         updated_at: "2026-10-26T14:00:00Z",
       };
     },
@@ -141,7 +141,7 @@ test("quick saves show progress, preserve other fields and can be undone", async
     status: "paused",
     hours: 12.5,
     rating: 0,
-    notes: base.notes,
+    review_details: base.review_details,
     updated_at: base.updated_at,
   });
   await f.succeed(0);
@@ -155,7 +155,7 @@ test("quick saves show progress, preserve other fields and can be undone", async
     status: "playing",
     hours: 10,
     rating: 80,
-    notes: base.notes,
+    review_details: base.review_details,
   });
   await f.succeed(1);
 });

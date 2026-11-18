@@ -23,6 +23,7 @@ export const importBatchSchema = z.object({
 export type ImportBatch = z.infer<typeof importBatchSchema>;
 
 export function importConflictLabel(field: string) {
+  if (field === "notes") return "Comentarios adicionales";
   return field === "cover" ? "Portada" : field;
 }
 
@@ -31,7 +32,8 @@ export function importConflictValue(
   field: string,
 ) {
   const record = incoming as Record<string, unknown>;
-  const value = record[field];
+  const value =
+    field === "notes" ? record.review_details ?? record.notes : record[field];
   if (field === "cover") {
     if (value && typeof value === "object" && "providerUrl" in value)
       return String((value as { providerUrl: unknown }).providerUrl);

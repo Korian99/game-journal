@@ -37,7 +37,7 @@ it("uses one complete snapshot for JSON and Excel and verifies their exact bytes
   expect(restored.sourceTables.playthroughs[0].source_snapshot).toEqual({
     original: "kept",
   });
-  expect(restored.records[0].notes).toBe("PRIVATE REVIEW");
+  expect(restored.records[0].review_details).toBe("PRIVATE REVIEW");
   expect(restored.records[0].reminder).toBe("PRIVATE REMINDER");
   expect(restored.sourceTables.playthroughs[0].data.reminder).toBe("PRIVATE REMINDER");
   const book = new ExcelJS.Workbook();

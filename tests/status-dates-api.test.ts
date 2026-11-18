@@ -5,6 +5,7 @@ vi.mock("@/lib/auth", async () => {
   return { authorized: auth, apiError: errorResponse };
 });
 import { POST } from "../src/app/api/records/route";
+import { journalEntrySchema } from "../src/lib/contracts";
 import { emptyRecord, type Status } from "../src/lib/types";
 
 const original = {
@@ -57,6 +58,34 @@ function expectSaved(dates: { started: string; finished: string }) {
     }),
   );
 }
+it("round-trips legacy review comments through the canonical record model", async () => {
+  const { review_details: _reviewDetails, ...legacyRecord } = original;
+  const legacy = { ...legacyRecord, notes: "Persisted review" };
+  const entry = journalEntrySchema.parse(legacy);
+  expect(entry).toHaveProperty("review_details", "Persisted review");
+  expect(entry).not.toHaveProperty("notes");
+
+  const response = await POST(
+    new Request("http://fixture/api/records", {
+      method: "POST",
+      body: JSON.stringify({ ...legacy, notes: "Older client edit" }),
+    }),
+  );
+  expect(response.status).toBe(200);
+  expect(await response.json()).toMatchObject({
+    record: { notes: "Older client edit" },
+  });
+
+  const updated = await save({ ...entry, review_details: "Canonical edit" });
+  expect(updated.status).toBe(200);
+  const payload = await updated.json();
+  expect(payload.record).toHaveProperty("notes", "Canonical edit");
+  expect(payload.record).not.toHaveProperty("review_details");
+  expect(journalEntrySchema.parse(payload.record)).toHaveProperty(
+    "review_details",
+    "Canonical edit",
+  );
+});
 it.each(["", null, "   "])(
   "dates the transition to playing when started is %j",
   async (started) => {
@@ -101,7 +130,7 @@ it.each(["playing", "completed"] as const)(
   "does not backfill unchanged %s records",
   async (status) => {
     existing = [{ ...original, status }];
-    expect((await save({ status, notes: "Review edit" })).status).toBe(200);
+    expect((await save({ status, review_details: "Review edit" })).status).toBe(200);
     expectSaved({ started: "", finished: "" });
   },
 );
@@ -166,7 +195,7 @@ it("keeps an approximate period when only editing a review", async () => {
       await save({
         started: "2025-01-01",
         period: "2024-2025",
-        notes: "Edited review",
+        review_details: "Edited review",
       })
     ).status,
   ).toBe(200);

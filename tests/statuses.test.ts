@@ -14,13 +14,13 @@ it("reads legacy pending entries as wishlist without losing their data", () => {
     ...emptyRecord,
     title: "Old game",
     status: "backlog",
-    notes: "My review",
+    review_details: "My review",
     priority: 2,
   });
   expect(entry).toMatchObject({
     title: "Old game",
     status: "wishlist",
-    notes: "My review",
+    review_details: "My review",
     priority: 2,
   });
 });

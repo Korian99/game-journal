@@ -82,7 +82,7 @@ beforeEach(() => {
     priority: "Migui",
     hype: "Hyper",
     reason: "Una explicación",
-    notes: 'Reseña con ñ, comillas " y\nsalto de línea',
+    review_details: 'Reseña con ñ, comillas " y\nsalto de línea',
     focus: "Ambos",
     replay: "Sí",
     ownership: "En Familia",
@@ -171,7 +171,7 @@ it("exports every playthrough and review field in a real Excel workbook", async 
     ["Hype", "Hyper"],
     ["Horas estimadas", "8 - 12 - 20"],
     ["Por qué", "Una explicación"],
-    ["Comentarios adicionales", records[0].notes],
+    ["Comentarios adicionales", records[0].review_details],
     ["Historia, gameplay o ambos", "Ambos"],
     ["Rejugaría", "Sí"],
     ["Comprado / Acceso familiar", "En Familia"],
@@ -196,7 +196,7 @@ it("includes current store prices, reference pages and full price history", asyn
 });
 it("keeps long review text intact by splitting Excel cell continuations", async () => {
   const notes = "a".repeat(32766) + "🎮" + "ñ".repeat(18000);
-  records[0].notes = notes;
+  records[0].review_details = notes;
   const { book } = await workbook();
   const sheet = book.getWorksheet("Juegos")!;
   const headers = sheet.getRow(1).values as unknown[];

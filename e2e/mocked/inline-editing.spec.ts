@@ -12,7 +12,7 @@ async function setup(page: Page, status = "completed") {
     period: "2026",
     started: "2026-01-01",
     finished: "",
-    notes: "Original comment",
+    review_details: "Original comment",
     rating: 80,
     updated_at: "2026-10-23T12:00:00Z",
   };
@@ -363,7 +363,7 @@ test("Ctrl+Z undoes saved edits in order without replacing native text undo", as
   await page.keyboard.press("Control+z");
   await expect.poll(() => f.pending.length).toBe(3);
   expect(f.pending[2].request().postDataJSON()).toMatchObject({
-    notes: "Original comment",
+    review_details: "Original comment",
     hours: 12.5,
   });
   await f.succeed(2);
@@ -374,7 +374,7 @@ test("Ctrl+Z undoes saved edits in order without replacing native text undo", as
   await page.keyboard.press("Control+z");
   await expect.poll(() => f.pending.length).toBe(4);
   expect(f.pending[3].request().postDataJSON()).toMatchObject({
-    notes: "Original comment",
+    review_details: "Original comment",
     hours: null,
   });
   await f.succeed(3);

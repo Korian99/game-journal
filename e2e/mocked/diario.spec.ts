@@ -50,7 +50,7 @@ test("Diario combines reviews, includes played states, and persists its status f
     period: "2024",
     device: index === 0 ? "Nintendo Switch 2" : "PC",
     hours: 12,
-    notes: "Comentarios privados " + index,
+    review_details: "Comentarios privados " + index,
   }));
   await page.route("**/api/**", async (route) => {
     const path = new URL(route.request().url()).pathname;

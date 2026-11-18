@@ -36,7 +36,7 @@ export function NotebookSummary({ entry }: { entry: JournalEntry }) {
                 <section><h4>Impresiones</h4><InlineField entry={entry} field="impression" view="library"><span className="library-notebook-writing">{entry.impression || "Agregar"}</span></InlineField></section>
                 </div>
                 <section><h4>Por qué</h4><InlineField entry={entry} field="reason" view="library"><span className="library-notebook-writing">{entry.reason || "Agregar"}</span></InlineField></section>
-                <section><h4>Comentarios adicionales</h4><InlineField entry={entry} field="notes" view="library"><span className="library-notebook-writing">{entry.notes || "Agregar"}</span></InlineField></section>
+                <section><h4>Comentarios adicionales</h4><InlineField entry={entry} field="review_details" view="library"><span className="library-notebook-writing">{entry.review_details || "Agregar"}</span></InlineField></section>
               </div>
           </div>
   );

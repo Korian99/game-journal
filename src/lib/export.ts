@@ -84,7 +84,7 @@ function gameTable(data: ExportData): Table {
         r.memorability,
         r.impression,
         r.reason,
-        r.notes,
+        r.review_details,
         r.focus,
         r.replay,
         r.priority,

@@ -28,8 +28,8 @@ export function ReviewTab({
             <textarea
               form={formId}
               rows={5}
-              value={draft.notes}
-              onChange={(e) => updateDraftField("notes", e.target.value)}
+              value={draft.review_details}
+              onChange={(e) => updateDraftField("review_details", e.target.value)}
             />
           </label>}
         </>

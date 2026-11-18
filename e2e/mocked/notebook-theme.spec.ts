@@ -657,7 +657,7 @@ async function mockApp(page: Page, paginationFixture = false, reviewFixture = fa
       updated_at: "2026-10-18T10:00:00Z",
     },
   ];
-  if (reviewFixture) records[0].notes = "Existing review comment";
+  if (reviewFixture) records[0].review_details = "Existing review comment";
   if (paginationFixture) {
     records.push(...Array.from({ length: 28 }, (_, index) => ({
       ...emptyRecord,

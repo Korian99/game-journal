@@ -104,7 +104,7 @@ it("fingerprints only values relevant to the finding, not title, notes or revisi
     findingValues(finding.kind, {
       ...original,
       title: "Renamed",
-      notes: "Unrelated",
+      review_details: "Unrelated",
       updated_at: "new",
     }),
   ).toEqual(finding.values);

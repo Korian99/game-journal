@@ -2809,7 +2809,7 @@ tbody.game-entry-group + tbody.game-entry-group > tr:first-child > td {
   padding: 5px 9px;
   font-size: 11px;
 }
-.game-comments .inline-notes {
+.game-comments .inline-review_details {
   width: 100%;
   align-items: flex-start;
 }

@@ -8,6 +8,7 @@ import { parseStoreUrl } from "@/lib/domain";
 import { periodAfterDateEdits } from "@/lib/journal/entry-period";
 import { datesAfterStatusChange } from "@/lib/journal/entry-status";
 import { reminderForSave } from "@/lib/journal/record-reminder";
+import { toRecordStorage } from "@/lib/types";
 export const dynamic = "force-dynamic";
 export async function GET(request?: Request) {
   try {
@@ -83,7 +84,7 @@ export async function POST(request: Request) {
         {
           error: "Este juego podría estar repetido.",
           code: "DUPLICATE",
-          details: { matches },
+          details: { matches: matches.map(toRecordStorage) },
         },
         { status: 409 },
       );
@@ -101,7 +102,7 @@ export async function POST(request: Request) {
       ];
     }
     const { data, error } = await db.rpc("save_record_result", {
-      input: recordSchema.parse(input),
+      input: toRecordStorage(recordSchema.parse(input)),
       record_id: input.id ?? null,
       expected: input.updated_at ?? null,
     });

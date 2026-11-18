@@ -45,13 +45,18 @@ export const journalEntrySchema = z
     replay: text.optional(),
     reason: text.optional(),
     notes: text.optional(),
+    review_details: text.optional(),
     reminder: text.optional(),
     sourceKey: text.optional(),
     sourceSnapshot: z.record(text, z.unknown()).optional(),
     updated_at: text.optional(),
     pages: z.array(text).optional(),
   })
-  .transform((entry): JournalEntry => ({ ...emptyRecord, ...entry }));
+  .transform(({ notes, review_details, ...entry }): JournalEntry => ({
+    ...emptyRecord,
+    ...entry,
+    review_details: review_details ?? notes ?? emptyRecord.review_details,
+  }));
 export const offerSchema = z.object({
   id: text,
   game_id: text,
