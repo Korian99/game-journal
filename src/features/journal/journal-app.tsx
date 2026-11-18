@@ -1,6 +1,9 @@
 "use client";
 import { SettingsScreen } from "@/features/settings/settings-screen";
-import { SuggestionsPanel } from "@/features/suggestions/suggestions-panel";
+import {
+  SuggestionsPanel,
+  SuggestionsPanelHeader,
+} from "@/features/suggestions/suggestions-panel";
 import { SharedGames } from "@/features/shared/shared-games";
 import { QuickEditor } from "./mobile/quick-editor";
 import { GlobalSearch } from "@/features/search/global-search";
@@ -750,6 +753,8 @@ export function JournalApp({
               resultsCount={games.length}
               onAdd={addEntry}
             />
+          ) : view === "suggestions" ? (
+            <SuggestionsPanelHeader />
           ) : (
             <div className="page-heading">
               <div>
