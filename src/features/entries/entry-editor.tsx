@@ -1,11 +1,20 @@
 "use client";
-import { PlayDateInput } from "./play-date-input";
 import {
   offerTargetChanges,
   type OfferTargetUpdate,
 } from "@/features/stores/target-draft";
-import { EntrySaveStatus } from "./entry-save-status";
-import { EntryStart } from "./editor/entry-start";
+import { renderDiscardEntryChangesDialog } from "./editor/discard-entry-changes-dialog";
+import {
+  deleteEntryErrorMessage,
+  renderDeleteEntryDialog,
+} from "./editor/delete-entry-dialog";
+import { renderEntryEditorDialog } from "./editor/entry-editor-dialog";
+import {
+  EntryEditorForm,
+  entryEditorTabs,
+  invalidOfferTargetMessage,
+} from "./editor/entry-editor-form";
+import { renderEntryStartDialog } from "./editor/entry-start-dialog";
 import {
   storePreviewSchema,
   type StorePreview,
@@ -15,16 +24,8 @@ import {
   restoreStoreCover,
   storeCoverSourcePages,
 } from "@/features/stores/restore-store-cover";
-import { PrincipalPage } from "./editor/principal-page";
-import { PlaythroughTab } from "./editor/playthrough-tab";
-import { ReviewTab } from "./editor/review-tab";
-import { MoreTab } from "./editor/more-tab";
-
 import { periodAfterDateEdits } from "@/lib/journal/entry-period";
-import {
-  defaultNewEntryStatus,
-  statusAfterDateEdits,
-} from "@/lib/journal/entry-status";
+import { defaultNewEntryStatus } from "@/lib/journal/entry-status";
 import { parseRelease } from "@/lib/releases";
 import { upcomingReleaseUpdate } from "@/features/stores/upcoming-release";
 import type { JournalView } from "@/lib/journal/journal-location";
@@ -33,20 +34,15 @@ import type {
   PerformJournalAction,
 } from "@/lib/journal/journal-types";
 
-import { statuses, type Offer } from "@/lib/types";
-import { pagesSchema, releaseSchema } from "@/lib/validation";
-import { formatDate } from "@/lib/journal/view-config";
+import type { Offer } from "@/lib/types";
 import {
   coverImageUrlSchema,
   coverSchema,
   mergeProviderCover,
 } from "@/lib/covers";
-import { Check, LoaderCircle, Trash2 } from "lucide-react";
 import { useEffect, useId, useRef, useState, type MutableRefObject, type ReactNode } from "react";
-import { EntryActionsMenu } from "./entry-actions-menu";
 import { ScoringGuideButton } from "@/features/settings/scoring-guide-panel";
 
-import { Modal } from "@/components/ui/dialog";
 import {
   type PriceHistory,
   type SharingMember,
@@ -123,9 +119,7 @@ export function EntryEditor({
   async function saveDraft(candidate: JournalEntry) {
     if (busy || saving || coverRestoreBusy) return;
     if (targetChanges.invalidOfferId) {
-      setTargetError(
-        "Revisá el Objetivo: usá un precio igual o mayor que cero.",
-      );
+      setTargetError(invalidOfferTargetMessage);
       setActiveTab("main");
       requestAnimationFrame(() =>
         document
@@ -330,26 +324,14 @@ export function EntryEditor({
     deleting.current = true;
     setDeleteError("");
     try {
-      if (!(await onDelete()))
-        setDeleteError(
-          "No se pudo eliminar la entrada. Podés volver a intentarlo.",
-        );
+      if (!(await onDelete())) setDeleteError(deleteEntryErrorMessage);
     } catch {
-      setDeleteError(
-        "No se pudo eliminar la entrada. Podés volver a intentarlo.",
-      );
+      setDeleteError(deleteEntryErrorMessage);
     } finally {
       deleting.current = false;
     }
   }
-  const formId = editorId + "-form";
-  const tabs = [
-    ...(embedded ? [{ id: "summary", label: "Resumen" }] : []),
-    { id: "main", label: "Principal" },
-    ...(!embedded ? [{ id: "playthrough", label: "Partida" }] : []),
-    ...(!embedded ? [{ id: "review", label: "Reseña" }] : []),
-    { id: "more", label: "Más" },
-  ];
+  const tabs = entryEditorTabs(embedded);
   function selectTab(id: string) {
     if (inlineBlocked || busy || saving || (embedded && dirty && id === "summary"))
       return;
@@ -374,286 +356,91 @@ export function EntryEditor({
       return next;
     });
   };
-  const renderField = (
-    key: keyof JournalEntry,
-    label: string,
-    type = "text",
-  ) => (
-    <label key={key}>
-      {label}
-      {key === "started" || key === "finished" ? (
-        <PlayDateInput
-          id={editorId + "-" + key}
-          form={formId}
-          value={String(draft[key] ?? "")}
-          placeholder="dd/mm/aa o dd/mm/aaaa"
-          onChange={(value) => updateDraftField(key, value)}
-        />
-      ) : (
-        <input
-          id={editorId + "-" + key}
-          form={formId}
-          type={type}
-          required={key === "title"}
-          value={String(draft[key] ?? "")}
-          onChange={(event) =>
-            updateDraftField(
-              key,
-              type === "number"
-                ? event.target.value === ""
-                  ? null
-                  : Number(event.target.value)
-                : event.target.value,
-            )
-          }
-          step={type === "number" ? "any" : undefined}
-        />
-      )}
-    </label>
-  );
+  // Keep the same Modal instance across dialog steps and confirmations.
   if (confirmDiscard)
-    return (
-      <Modal
-        open
-        title="Descartar cambios"
-        onClose={() => setConfirmDiscard(false)}
-      >
-        <div className="modal-body">
-          <p>Tenés cambios sin guardar.</p>
-          <div className="button-row">
-            <button
-              className="secondary"
-              autoFocus
-              onClick={() => setConfirmDiscard(false)}
-            >
-              Seguir editando
-            </button>
-            <button className="danger" onClick={onClose}>
-              Descartar cambios
-            </button>
-          </div>
-        </div>
-      </Modal>
-    );
+    return renderDiscardEntryChangesDialog({
+      onKeepEditing: () => setConfirmDiscard(false),
+      onDiscard: onClose,
+    });
   if (confirmDelete && entry.id)
-    return (
-      <Modal
-        open
-        title="Eliminar entrada"
-        onClose={() => {
-          if (!busy) setConfirmDelete(false);
-        }}
-      >
-        <div className="modal-body delete-entry-confirmation">
-          <p>
-            ¿Querés eliminar esta entrada de <strong>{entry.title}</strong>?
-          </p>
-          <p className="muted delete-entry-context">
-            {[
-              statuses[entry.status],
-              entry.device,
-              entry.started ? "Empecé: " + formatDate(entry.started) : "",
-            ]
-              .filter(Boolean)
-              .join(" · ")}
-          </p>
-          <p className="fine-print">
-            Las demás partidas de este juego se conservan. Podés restaurarla
-            desde Papelera durante 30 días.
-          </p>
-          {dirty && (
-            <p className="error">
-              Los cambios sin guardar de este formulario se descartarán al
-              eliminar la entrada.
-            </p>
-          )}
-          {deleteError && (
-            <p className="delete-entry-error" role="alert">
-              {deleteError}
-            </p>
-          )}
-          <div className="delete-entry-buttons">
-            <button
-              ref={cancelDelete}
-              type="button"
-              className="secondary"
-              disabled={busy}
-              onClick={() => setConfirmDelete(false)}
-            >
-              Cancelar
-            </button>
-            <button
-              type="button"
-              className="danger delete-entry-confirm"
-              disabled={busy}
-              onClick={deleteEntry}
-            >
-              <Trash2 size={16} />
-              {busy ? "Eliminando…" : "Confirmar eliminación"}
-            </button>
-          </div>
-        </div>
-      </Modal>
-    );
+    return renderDeleteEntryDialog({
+      entry,
+      dirty,
+      busy,
+      error: deleteError,
+      cancelButtonRef: cancelDelete,
+      onCancel: () => setConfirmDelete(false),
+      onConfirm: deleteEntry,
+    });
   if (step !== "editor")
-    return (
-      <Modal
-        open
-        onClose={requestClose}
-        title={
-          step === "choose"
-            ? "¿Cómo querés cargar el juego?"
-            : step === "search"
-              ? "Completar desde el buscador"
-              : entry.id
-                ? "Actualizar datos de " + entry.title
-                : "Completar desde una página"
-        }
-      >
-        <EntryStart
-          step={step}
-          editing={!!entry.id}
-          online={online}
-          url={pageUrl}
-          setUrl={setPageUrl}
-          onManual={() => setStep("editor")}
-          onLoaded={applyStorePreview}
-          initialQuery={draft.title}
-          initialUrl={
-            draft.pages?.find((url) =>
-              url.toLowerCase().includes("nintendo"),
-            ) ?? draft.pages?.[0]
-          }
-        />
-      </Modal>
-    );
+    return renderEntryStartDialog({
+      entryTitle: entry.title,
+      onClose: requestClose,
+      step,
+      editing: !!entry.id,
+      online,
+      url: pageUrl,
+      setUrl: setPageUrl,
+      onManual: () => setStep("editor"),
+      onLoaded: applyStorePreview,
+      initialQuery: draft.title,
+      initialUrl:
+        draft.pages?.find((url) => url.toLowerCase().includes("nintendo")) ??
+        draft.pages?.[0],
+    });
   const editorBody = (
-      <div className="modal-body entry-editor">
-        <form
-          id={formId}
-          onSubmit={(e) => {
-            e.preventDefault();
-            if (busy || saving || coverRestoreBusy) return;
-            if (draft.cover && !coverSchema.safeParse(draft.cover).success) {
-              setActiveTab("main");
-              requestAnimationFrame(() =>
-                document.getElementById(editorId + "-cover-url")?.focus(),
-              );
-              return;
-            }
-            if (!draft.title.trim()) {
-              setActiveTab("main");
-              requestAnimationFrame(() => {
-                const name = document.getElementById(
-                  editorId + "-title",
-                ) as HTMLInputElement | null;
-                name?.focus();
-                name?.reportValidity();
-              });
-              return;
-            }
-            const release = releaseSchema.safeParse(draft.release ?? "");
-            if (!release.success) {
-              setReleaseError(release.error.issues[0].message);
-              setActiveTab("more");
-              return;
-            }
-            setReleaseError("");
-            const pages = pagesSchema.safeParse([
-              ...(draft.pages ?? []),
-              ...(pageUrl.trim() ? [pageUrl] : []),
-            ]);
-            if (!pages.success) {
-              setPageError(
-                pages.error.issues[0]?.message ?? "Revisá las páginas.",
-              );
-              setActiveTab("main");
-              return;
-            }
-            setPageError("");
-            void saveDraft({
-              ...draft,
-              pages: pages.data,
-              status: statusAfterDateEdits(draft, entry),
-            });
-          }}
-        />
-        <fieldset
-          className="entry-editor-fields"
-          disabled={saving || coverRestoreBusy}
-          aria-busy={saving || coverRestoreBusy}
-        >
-          <div
-            className="editor-tabs"
-            role="tablist"
-            aria-label="Secciones del juego"
-            onKeyDown={(event) => {
-              if (inlineBlocked || !["ArrowLeft", "ArrowRight", "Home", "End"].includes(event.key))
-                return;
-              event.preventDefault();
-              const index = tabs.findIndex((tab) => tab.id === activeTab);
-              const next = event.key === "Home" ? 0 : event.key === "End" ? tabs.length - 1 : (index + (event.key === "ArrowRight" ? 1 : -1) + tabs.length) % tabs.length;
-              selectTab(tabs[next].id);
-              document.getElementById(editorId + "-tab-" + tabs[next].id)?.focus();
-            }}
-          >
-            {tabs.map((tab) => (
-              <button
-                key={tab.id}
-                type="button"
-                role="tab"
-                id={editorId + "-tab-" + tab.id}
-                aria-controls={editorId + "-panel-" + tab.id}
-                aria-selected={activeTab === tab.id}
-                tabIndex={activeTab === tab.id ? 0 : -1}
-                disabled={inlineBlocked || busy || saving || (embedded && dirty && tab.id === "summary")}
-                onClick={() => selectTab(tab.id)}
-              >
-                {tab.label}
-              </button>
-            ))}
-          </div>
-          {embedded && (
-            <section className="editor-panel" role="tabpanel" id={editorId + "-panel-summary"} aria-labelledby={editorId + "-tab-summary"} hidden={activeTab !== "summary"}>
-              {summaryContent}
-            </section>
-          )}
-          <section
-            className="editor-panel"
-            role="tabpanel"
-            id={editorId + "-panel-main"}
-            aria-labelledby={editorId + "-tab-main"}
-            hidden={activeTab !== "main"}
-          >
-            <PrincipalPage
-              main={{ online, draft, updateDraftField, renderField, formId, offers, targetDrafts, setTargetDraft, runAction, priceHistory, setPriceHistory, pageUrl, setPageUrl, pageError, setPageError, busy, activeTab, omitSummaryFields: embedded, bookFields: embedded }}
-              cover={{ cover: draft.cover, title: draft.title, inputId: editorId + "-cover-url", formId, disabled: busy || saving || coverRestoreBusy, onChange: (cover) => updateDraftField("cover", cover), onRestore: () => void resetCover(), restoring: coverRestoreBusy, restoreError: coverRestoreError, restoreStatus: coverRestoreStatus }}
-              storePreview={storePreview}
-              releaseSaveError={releaseSaveError}
-              onLookupPage={() => setStep("page")}
-              onLookupSearch={() => setStep("search")}
-            />
-          </section>
-          {!embedded && <section className="editor-panel" role="tabpanel" id={editorId + "-panel-playthrough"} aria-labelledby={editorId + "-tab-playthrough"} hidden={activeTab !== "playthrough"}>
-            <PlaythroughTab draft={draft} updateDraftField={updateDraftField} renderField={renderField} formId={formId} activeTab={activeTab} />
-          </section>}
-          {!embedded && <section className="editor-panel" role="tabpanel" id={editorId + "-panel-review"} aria-labelledby={editorId + "-tab-review"} hidden={activeTab !== "review"}>
-            <ReviewTab draft={draft} updateDraftField={updateDraftField} renderField={renderField} formId={formId} activeTab={activeTab} omitSummaryFields={embedded} />
-          </section>}
-          <section className="editor-panel" role="tabpanel" id={editorId + "-panel-more"} aria-labelledby={editorId + "-tab-more"} hidden={activeTab !== "more"}>
-            <MoreTab online={online} dirty={dirty} entry={entry} draft={draft} updateDraftField={updateDraftField} renderField={renderField} formId={formId} runAction={runAction} members={members} grants={grants} recipientId={recipientId} setRecipientId={setRecipientId} busy={busy} onSave={saveDraft} releaseError={releaseError} setReleaseError={setReleaseError} activeTab={activeTab} hideMovedFields={embedded} />
-          </section>
-        </fieldset>
-        {!online && <p className="fine-print">Necesitás conexión para guardar. El formulario se conserva mientras siga abierto.</p>}
-        {(targetError || actionError) && <p className="error" role="alert">{targetError || actionError}</p>}
-        <div className="entry-editor-actions">
-          {(!embedded || activeTab !== "main") && <button type="button" className="text-button" onClick={requestClose} disabled={busy}>Cancelar</button>}
-          {(!embedded || activeTab === "main" || activeTab === "more") && <button type="submit" form={formId} className="primary" disabled={busy || saving || coverRestoreBusy}>
-            {saving ? "Guardando…" : "Guardar entrada"}{saving ? <LoaderCircle size={16} className="save-spinner" aria-hidden="true" /> : <Check size={16} aria-hidden="true" />}
-          </button>}
-        </div>
-      </div>
-    );
+    <EntryEditorForm
+      editorId={editorId}
+      tabs={tabs}
+      embedded={embedded}
+      summaryContent={summaryContent}
+      inlineBlocked={inlineBlocked}
+      saving={saving}
+      actionError={actionError}
+      targetError={targetError}
+      fields={{
+        entry,
+        draft,
+        online,
+        dirty,
+        busy,
+        activeTab,
+        updateDraftField,
+        offers,
+        targetDrafts,
+        setTargetDraft,
+        runAction,
+        priceHistory,
+        setPriceHistory,
+        pageUrl,
+        setPageUrl,
+        pageError,
+        setPageError,
+        members,
+        grants,
+        recipientId,
+        setRecipientId,
+        onSave: saveDraft,
+        releaseError,
+        setReleaseError,
+      }}
+      cover={{
+        restoring: coverRestoreBusy,
+        restoreError: coverRestoreError,
+        restoreStatus: coverRestoreStatus,
+        onRestore: () => void resetCover(),
+      }}
+      lookup={{
+        storePreview,
+        releaseSaveError,
+        onLookupPage: () => setStep("page"),
+        onLookupSearch: () => setStep("search"),
+      }}
+      onSelectTab={selectTab}
+      onValidationTab={setActiveTab}
+      onCancel={requestClose}
+    />
+  );
   if (embedded)
     return (
       <section
@@ -695,35 +482,16 @@ export function EntryEditor({
         {editorBody}
       </section>
     );
-  return (
-    <Modal
-      open
-      onClose={requestClose}
-      title={entry.id ? "Tu partida" : "Agregar un juego"}
-      headerStatus={saving ? <EntrySaveStatus /> : undefined}
-      onEscapeKeyDown={(event) => {
-        const trigger = document.getElementById(editorId + "-options");
-        const menu = trigger?.closest("details");
-        if (menu?.open) {
-          event.preventDefault();
-          menu.open = false;
-          trigger?.focus();
-        }
-      }}
-      headerActions={
-        entry.id ? (
-          <EntryActionsMenu
-            triggerId={editorId + "-options"}
-            busy={busy || !online}
-            onDeleteRequest={() => {
-              setDeleteError("");
-              setConfirmDelete(true);
-            }}
-          />
-        ) : undefined
-      }
-    >
-      {editorBody}
-    </Modal>
-  );
+  return renderEntryEditorDialog({
+    editing: !!entry.id,
+    saving,
+    optionsId: editorId + "-options",
+    deleteDisabled: busy || !online,
+    onClose: requestClose,
+    onDeleteRequest: () => {
+      setDeleteError("");
+      setConfirmDelete(true);
+    },
+    children: editorBody,
+  });
 }
