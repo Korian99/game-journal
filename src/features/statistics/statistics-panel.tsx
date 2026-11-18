@@ -5,12 +5,27 @@ import { RecapBuilder } from "./recaps/recap-builder";
 import { statistics, estimateTargets } from "./statistics";
 import { viewYears } from "@/lib/journal/view-config";
 import type { useJournalLocation } from "@/features/journal/use-journal-location";
+import { ConsoleStatisticsTable } from "./console-statistics-table";
+import { StatisticsFilters } from "./statistics-filters";
 const number = (value: number | null, suffix = "") =>
   value == null
     ? "—"
     : new Intl.NumberFormat("es-AR", { maximumFractionDigits: 1 }).format(
         value,
       ) + suffix;
+
+export function StatisticsPanelHeader() {
+  return (
+    <div className="page-heading">
+      <div>
+        <h1>
+          Estadísticas<span className="accent">.</span>
+        </h1>
+      </div>
+    </div>
+  );
+}
+
 export function StatisticsPanel({
   records,
   location,
@@ -88,60 +103,18 @@ export function StatisticsPanel({
           Crear resumen
         </button>
       </div>
-      <div className="stats-controls panel">
-        <label>
-          Año
-          <select
-            value={year}
-            onChange={(event) => setYear(event.target.value)}
-          >
-            {years.map((value) => (
-              <option key={value}>{value}</option>
-            ))}
-          </select>
-        </label>
-        <label>
-          Comparar con
-          <select
-            value={compareYear}
-            onChange={(event) => setCompareYear(event.target.value)}
-          >
-            <option value="">Sin comparación</option>
-            {years.map((value) => (
-              <option key={value}>{value}</option>
-            ))}
-          </select>
-        </label>
-        <label>
-          Objetivo estimado
-          <select
-            value={estimateTarget}
-            onChange={(event) =>
-              setEstimateTarget(
-                event.target.value as keyof typeof estimateTargets,
-              )
-            }
-          >
-            {Object.entries(estimateTargets).map(([key, label]) => (
-              <option key={key} value={key}>
-                {label}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label>
-          Consola / plataforma
-          <select
-            value={platform}
-            onChange={(event) => setPlatform(event.target.value)}
-          >
-            <option value="">Todas</option>
-            {platforms.map((value) => (
-              <option key={value}>{value}</option>
-            ))}
-          </select>
-        </label>
-      </div>
+      <StatisticsFilters
+        year={year}
+        compareYear={compareYear}
+        estimateTarget={estimateTarget}
+        platform={platform}
+        years={years}
+        platforms={platforms}
+        onYearChange={setYear}
+        onCompareYearChange={setCompareYear}
+        onTargetChange={setEstimateTarget}
+        onPlatformChange={setPlatform}
+      />
       <div className="stats-metrics">
         {metrics.map((metric) => (
           <article className="panel stats-metric" key={metric.key}>
@@ -170,30 +143,11 @@ export function StatisticsPanel({
         / partidas seleccionadas.
       </p>
       <div className="stats-details">
-        <article className="panel">
-          <h2>Por consola</h2>
-          <table>
-            <thead>
-              <tr>
-                <th>Consola</th>
-                <th>Partidas</th>
-                <th>Horas registradas</th>
-              </tr>
-            </thead>
-            <tbody>
-              {current.consoles.map((item) => (
-                <tr key={item.name}>
-                  <td>{item.name}</td>
-                  <td>{item.count}</td>
-                  <td>{number(item.hours, " h")}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-          {!current.total && (
-            <p className="muted">Sin partidas para este año.</p>
-          )}
-        </article>
+        <ConsoleStatisticsTable
+          consoles={current.consoles}
+          empty={!current.total}
+          formatNumber={number}
+        />
         <article className="panel">
           <h2>Datos utilizados</h2>
           <p>

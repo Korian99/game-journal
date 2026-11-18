@@ -2,8 +2,10 @@
 import { useEffect, useMemo, useState } from "react";
 import type { JournalEntry } from "@/lib/journal/journal-types";
 import { calculateRecap, type RecapPeriod } from "../recaps";
-import { createRecapPng, recapMonthName } from "../recap-export";
+import { createRecapPng } from "../recap-export";
 import { viewYears } from "@/lib/journal/view-config";
+import { RecapExportForm, recapPreviewErrorMessage } from "./recap-export-form";
+import { RecapPeriodControls } from "./recap-period-controls";
 import styles from "./recap-builder.module.css";
 
 const currentArgentinaPeriod = (): Extract<RecapPeriod, { type: "month" }> => {
@@ -18,11 +20,6 @@ const currentArgentinaPeriod = (): Extract<RecapPeriod, { type: "month" }> => {
     month: Number(parts.find((part) => part.type === "month")!.value),
   };
 };
-
-const monthOptions = Array.from({ length: 12 }, (_, index) => ({
-  value: index + 1,
-  label: recapMonthName(index + 1),
-}));
 
 export function RecapBuilder({
   records,
@@ -139,8 +136,7 @@ export function RecapBuilder({
         setPng(blob);
       })
       .catch(() => {
-        if (active)
-          setError("No se pudo generar la vista previa. Probá de nuevo.");
+        if (active) setError(recapPreviewErrorMessage);
       })
       .finally(() => active && setLoading(false));
     return () => {
@@ -208,136 +204,37 @@ export function RecapBuilder({
               que ya estaban cargados.
             </p>
           )}
-          <div className={styles.controls}>
-            <label>
-              Período
-              <select
-                value={periodType}
-                onChange={(event) => {
-                  setIncludeNote(false);
-                  setPeriodType(event.target.value as "month" | "year");
-                }}
-              >
-                <option value="month">Mes</option>
-                <option value="year">Año</option>
-              </select>
-            </label>
-            {selectedPeriod.type === "month" && (
-              <label>
-                Mes del resumen
-                <select
-                  aria-label="Mes del resumen"
-                  value={selectedPeriod.month}
-                  onChange={(event) => setMonth(Number(event.target.value))}
-                >
-                  {monthOptions.map((month) => (
-                    <option key={month.value} value={month.value}>
-                      {month.label}
-                    </option>
-                  ))}
-                </select>
-              </label>
-            )}
-            <label>
-              Año del resumen
-              <select
-                aria-label="Año del resumen"
-                value={selectedPeriod.year}
-                onChange={(event) => setYear(Number(event.target.value))}
-              >
-                {yearOptions.map((year) => (
-                  <option key={year}>{year}</option>
-                ))}
-              </select>
-            </label>
-          </div>
+          <RecapPeriodControls
+            period={selectedPeriod}
+            yearOptions={yearOptions}
+            onTypeChange={(type) => {
+              setIncludeNote(false);
+              setPeriodType(type);
+            }}
+            onMonthChange={setMonth}
+            onYearChange={setYear}
+          />
           <div className={styles.layout}>
-            <div className={styles.form}>
-              <section className="panel">
-                <span className={styles.kicker}>DATOS DEL PERÍODO</span>
-                <p>
-                  <strong>{summary.finishedPlaythroughs}</strong> partidas
-                  terminadas
-                </p>
-                <p>
-                  <strong>{summary.uniqueGamesFinished}</strong> juegos únicos
-                  terminados
-                </p>
-                <p>
-                  {summary.excludedCompletedWithoutFullFinishDate}{" "}
-                  {summary.excludedCompletedWithoutFullFinishDate === 1
-                    ? "partida terminada excluida"
-                    : "partidas terminadas excluidas"}{" "}
-                  por fecha ausente, incompleta, aproximada o inválida en la
-                  colección completa; no se puede asignar a un período.
-                </p>
-                <details>
-                  <summary>Ver exclusiones</summary>
-                  <p>
-                    Faltantes: {summary.excludedFinishDateReasons.missing} ·
-                    Parciales: {summary.excludedFinishDateReasons.partial} ·
-                    Aproximadas: {summary.excludedFinishDateReasons.approximate}{" "}
-                    · Inválidas: {summary.excludedFinishDateReasons.invalid}
-                  </p>
-                </details>
-                <p className="fine-print">
-                  Los inicios cuentan fechas registradas en el período; no
-                  confirman actividad. Inicio registrado:{" "}
-                  {summary.recordedStarts}.
-                </p>
-              </section>
-              <label>
-                Juego destacado
-                <select
-                  value={highlightId}
-                  onChange={(event) => {
-                    setHighlightId(event.target.value);
-                    setIncludeNote(false);
-                  }}
-                >
-                  <option value="">Sin juego destacado</option>
-                  {highlights.map((record) => (
-                    <option
-                      key={record.gameId || record.id}
-                      value={record.gameId || record.id}
-                    >
-                      {record.title}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <label>
-                Nota (opcional)
-                <textarea
-                  value={note}
-                  maxLength={500}
-                  onChange={(event) => {
-                    setNote(event.target.value);
-                    setIncludeNote(false);
-                  }}
-                  rows={4}
-                  placeholder="Agregá un recuerdo para acompañar el resumen"
-                />
-              </label>
-              <label className={styles.checkbox}>
-                <input
-                  type="checkbox"
-                  checked={includeNote}
-                  onChange={(event) => setIncludeNote(event.target.checked)}
-                />
-                Incluir la nota en este PNG
-              </label>
-              <button
-                type="button"
-                className="primary"
-                onClick={download}
-                disabled={!png || loading || !!error}
-              >
-                Descargar PNG
-              </button>
-              {loading && <p role="status">Preparando la vista previa…</p>}
-              {error && <p role="alert">{error}</p>}
-            </div>
+            <RecapExportForm
+              summary={summary}
+              highlights={highlights}
+              highlightId={highlightId}
+              note={note}
+              includeNote={includeNote}
+              loading={loading}
+              error={error}
+              downloadDisabled={!png || loading || !!error}
+              onHighlightChange={(value) => {
+                setHighlightId(value);
+                setIncludeNote(false);
+              }}
+              onNoteChange={(value) => {
+                setNote(value);
+                setIncludeNote(false);
+              }}
+              onIncludeNoteChange={setIncludeNote}
+              onDownload={download}
+            />
             <div className={styles.preview}>
               <span className={styles.kicker}>
                 VISTA PREVIA · PNG 1080 × 1350

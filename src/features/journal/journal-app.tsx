@@ -75,7 +75,10 @@ import { LibraryScreen, LibraryScreenHeader } from "@/features/library/library-s
 import { LibrarySectionNav } from "@/features/library/library-section-nav";
 import { Notebook } from "@/features/notebook/notebook-panel";
 import { NotificationDrawer } from "@/features/notifications/notification-drawer";
-import { StatisticsPanel } from "@/features/statistics/statistics-panel";
+import {
+  StatisticsPanel,
+  StatisticsPanelHeader,
+} from "@/features/statistics/statistics-panel";
 import { SeriesManager } from "@/features/library/series/series-manager";
 import "@/features/library/notebook-library.css";
 import "./notebook-theme.css";
@@ -755,6 +758,8 @@ export function JournalApp({
             />
           ) : view === "suggestions" ? (
             <SuggestionsPanelHeader />
+          ) : view === "statistics" ? (
+            <StatisticsPanelHeader />
           ) : (
             <div className="page-heading">
               <div>
