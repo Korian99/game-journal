@@ -6,6 +6,8 @@ import { BookOpen } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { Modal } from "@/components/ui/dialog";
 import type { JournalEntry } from "@/lib/journal/journal-types";
+import { NotebookForm, notebookFormMessages } from "./notebook-form";
+import { notebookReminderMessages } from "./notebook-game-reminder-picker";
 
 export function Notebook({
   records,
@@ -59,7 +61,7 @@ export function Notebook({
       setError(
         failure instanceof Error
           ? failure.message
-          : "No se pudo cargar el cuaderno. Volvé a intentarlo.",
+          : notebookFormMessages.loadError,
       );
     } finally {
       loadInFlight.current = false;
@@ -90,12 +92,12 @@ export function Notebook({
       setContent(result.content);
       draft.current = false;
       setLoaded(true);
-      setSaved("Guardado");
+      setSaved(notebookFormMessages.saved);
     } catch (failure) {
       setError(
         failure instanceof Error
           ? failure.message
-          : "No se pudo guardar el cuaderno. Volvé a intentarlo.",
+          : notebookFormMessages.saveError,
       );
     } finally {
       saveInFlight.current = false;
@@ -112,12 +114,12 @@ export function Notebook({
     try {
       await onAppendToGame(game.id, content);
       setGameId("");
-      setSaved(`Nota agregada al recordatorio de ${game.title}.`);
+      setSaved(notebookReminderMessages.saved(game.title));
     } catch (failure) {
       setError(
         failure instanceof Error
           ? failure.message
-          : "No se pudo agregar la nota al juego. Volvé a intentarlo.",
+          : notebookReminderMessages.saveError,
       );
     } finally {
       saveInFlight.current = false;
@@ -141,87 +143,34 @@ export function Notebook({
         title="Cuaderno"
         closeDisabled={saving !== null}
       >
-        <div className="modal-body notebook-modal-body">
-          <label className="notebook-notes-label" htmlFor="notebook-notes">
-            Notas
-          </label>
-          <textarea
-            id="notebook-notes"
-            aria-label="Notas"
-            maxLength={100000}
-            value={content}
-            disabled={disabled}
-            onChange={(event) => {
-              draft.current = true;
-              setContent(event.target.value);
+        <NotebookForm
+          content={content}
+          disabled={disabled}
+          saving={saving === "notebook"}
+          loadError={loadError}
+          error={error}
+          saved={saved}
+          onContentChange={(value) => {
+            draft.current = true;
+            setContent(value);
+            setError("");
+            setSaved("");
+          }}
+          onRetry={() => void load()}
+          onSave={() => void save()}
+          reminder={{
+            games: playing,
+            selectedId: game?.id ?? "",
+            canAppend: !!game && !!content.trim(),
+            appending: saving === "game",
+            onSelect: (id) => {
+              setGameId(id);
               setError("");
               setSaved("");
-            }}
-          />
-          <div className="notebook-game-note">
-            <label className="notebook-notes-label" htmlFor="notebook-game">
-              Juego en curso
-            </label>
-            <p className="notebook-message" id="notebook-game-description">
-              {playing.length
-                ? "Agregá todo este texto al recordatorio privado del juego."
-                : "Acá aparecen los juegos marcados como Jugando."}
-            </p>
-            <div className="notebook-game-controls">
-              <select
-                id="notebook-game"
-                aria-describedby="notebook-game-description"
-                disabled={disabled || !playing.length}
-                value={game?.id ?? ""}
-                onChange={(event) => {
-                  setGameId(event.target.value);
-                  setError("");
-                  setSaved("");
-                }}
-              >
-                <option value="">Elegí un juego</option>
-                {playing.map((record) => (
-                  <option key={record.id} value={record.id}>
-                    {[record.title, record.device, record.period]
-                      .filter(Boolean)
-                      .join(" · ")}
-                  </option>
-                ))}
-              </select>
-              <button
-                className="secondary"
-                disabled={disabled || !game || !content.trim()}
-                onClick={() => void addToGame()}
-              >
-                {saving === "game" ? "Agregando…" : "Agregar al recordatorio"}
-              </button>
-            </div>
-          </div>
-          {error && (
-            <p className="notebook-message" role="alert">
-              {error}
-            </p>
-          )}
-          {saved && (
-            <p className="notebook-message notebook-saved" role="status">
-              {saved}
-            </p>
-          )}
-          {loadError && (
-            <button className="secondary" onClick={() => void load()}>
-              Reintentar carga
-            </button>
-          )}
-          <div className="notebook-save-row">
-            <button
-              className="primary"
-              disabled={disabled}
-              onClick={() => void save()}
-            >
-              {saving === "notebook" ? "Guardando…" : "Guardar"}
-            </button>
-          </div>
-        </div>
+            },
+            onAppend: () => void addToGame(),
+          }}
+        />
       </Modal>
     </>
   );
