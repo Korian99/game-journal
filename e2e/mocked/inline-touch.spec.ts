@@ -219,6 +219,14 @@ test("keyboard and mouse activation remain available on a touch device", async (
   await expect(page.getByRole("textbox", { name: "Comentarios adicionales", exact: true })).toBeFocused();
   await page.getByRole("button", { name: "Cancelar celda", exact: true }).click();
   await trigger.click();
-  await expect(page.getByRole("textbox", { name: "Comentarios adicionales", exact: true })).toBeFocused();
+  const input = page.getByRole("textbox", { name: "Comentarios adicionales", exact: true });
+  await expect(input).toBeFocused();
+  await page.keyboard.press("ControlOrMeta+A");
+  await page.keyboard.type("Touch keyboard typing", { delay: 30 });
+  await expect(input).toBeFocused();
+  await expect(input).toHaveValue("Touch keyboard typing");
   expect(posts).toHaveLength(0);
+  await page.getByRole("button", { name: "Guardar celda", exact: true }).click();
+  await expect.poll(() => posts.length).toBe(1);
+  expect(posts[0]).toMatchObject({ review_details: "Touch keyboard typing", updated_at: record.updated_at });
 });

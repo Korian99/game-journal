@@ -425,16 +425,23 @@ export function JournalApp({
       return "wishlist-discounted";
     return undefined;
   }
+  // Preserve table cell component identities while calling the current navigation guards.
+  const openColumnEntryRef = useRef<(entry: JournalEntry) => void>(() => {});
+  openColumnEntryRef.current = (entry) => {
+    if (view === "library") openLibraryListEntry(entry);
+    else openEntry(entry);
+  };
+  const openColumnEntry = useCallback(
+    (entry: JournalEntry) => openColumnEntryRef.current(entry),
+    [],
+  );
   const columns = useJournalColumns({
     view,
     offers,
     sort,
     releaseNow,
     refreshing: refreshingPrices,
-    onEdit: (entry) => {
-      if (view === "library") openLibraryListEntry(entry);
-      else openEntry(entry);
-    },
+    onEdit: openColumnEntry,
   });
   const table = useReactTable({
     data: games,

@@ -643,3 +643,31 @@ test("inline short years normalize on blur and save with the full year", async (
     }),
   ).toHaveText("02/01/2026");
 });
+
+
+for (const detail of [false, true]) {
+  for (const [label, text, field, saved] of [
+    ["Nombre", "Keyboard title", "title", "Keyboard title"],
+    ["Empecé", "02/01/26", "started", "02/01/2026"],
+  ]) {
+    test(`keyboard typing retains every character in ${label} on ${detail ? "embedded detail" : "desktop list"}`, async ({ page }) => {
+      const f = await setup(page);
+      await page.goto("./?tab=library&year=all");
+      if (detail) await page.getByRole("button", { name: "Ver detalles de Inline fixture", exact: true }).click();
+      await page.getByRole("button", { name: `Editar ${label} de Inline fixture`, exact: true }).click();
+      const input = page.getByRole("textbox", { name: label, exact: true });
+      await expect(input).toBeFocused();
+      const original = await input.elementHandle();
+      await page.keyboard.press("ControlOrMeta+A");
+      await page.keyboard.type(text, { delay: 30 });
+      expect(await original!.evaluate((node) => node.isConnected), "Typing must retain the active input").toBe(true);
+      await expect(input).toBeFocused();
+      await expect(input).toHaveValue(text, { timeout: 1000 });
+      await page.keyboard.press("Enter");
+      await expect.poll(() => f.pending.length).toBe(1);
+      expect(f.pending[0].request().postDataJSON()).toMatchObject({ [field]: saved, updated_at: f.record.updated_at });
+      await f.succeed(0);
+      await expect(input).toHaveCount(0);
+    });
+  }
+}
