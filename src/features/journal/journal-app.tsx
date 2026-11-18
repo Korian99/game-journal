@@ -6,7 +6,6 @@ import { QuickEditor } from "./mobile/quick-editor";
 import { GlobalSearch } from "@/features/search/global-search";
 import { entryDestination } from "@/lib/journal/entry-destination";
 import { useInlineEditing } from "./use-inline-editing";
-import { InlineEditContext } from "./inline/inline-context";
 import { InlineEditBar } from "./inline/inline-edit-bar";
 import type { OfferTargetUpdate } from "@/features/stores/target-draft";
 import { useNotificationNavigation } from "@/features/notifications/use-notification-navigation";
@@ -41,7 +40,6 @@ import {
   ChartNoAxesCombined,
   Bell,
   CalendarDays,
-  Gamepad2,
   Heart,
   Library,
   LogOut,
@@ -62,12 +60,16 @@ import {
   type ImportResolutions,
 } from "@/features/imports/import-review-dialog";
 import { useJournalColumns } from "./journal-columns";
-import { JournalGameTable } from "./journal-game-table";
-import { JournalSummary } from "@/features/library/journal-summary";
+import {
+  CollectionEmptyState,
+  JournalCollectionPanel,
+  JournalCollectionSummary,
+} from "./journal-collection-panel";
 import { JournalToolbar } from "./journal-toolbar";
+import { LibraryScreen, LibraryScreenHeader } from "@/features/library/library-screen";
+import { LibrarySectionNav } from "@/features/library/library-section-nav";
 import {
   NotebookCollectionHeading,
-  NotebookLibraryToolbar,
 } from "@/features/library/games/notebook-library-toolbar";
 import { Notebook } from "@/features/notebook/notebook-panel";
 import { NotificationDrawer } from "@/features/notifications/notification-drawer";
@@ -480,6 +482,38 @@ export function JournalApp({
     setSidebarOpen(false);
   }
   const seriesActive = view === "library" && librarySection === "series";
+  const collection = {
+    loading,
+    resultsCount: games.length,
+    hasRecords: records.length > 0,
+    recordsError: !!resourceStates.records.error,
+    inlineEditing:
+      detailEntryId && detailDraftDirty
+        ? { ...inlineEditing, canEdit: false }
+        : inlineEditing,
+    tableProps: {
+      table,
+      offers,
+      releaseNow,
+      refreshing: refreshingPrices,
+      entryRowClass,
+      focusedEntry: journalLocation.focusedEntry,
+      onQuickEdit: (entry: JournalEntry) => {
+        if (inlineEditing.dirty || inlineEditing.saving || busy || savingEntry) {
+          setNotice(
+            "Guardá o cancelá la edición actual antes de abrir otra.",
+          );
+          return;
+        }
+        inlineEditing.cancel();
+        if (view === "library") {
+          openLibraryListEntry(entry);
+          return;
+        }
+        setQuickEntry({ ...entry });
+      },
+    },
+  };
   return (
     <div
       className={
@@ -683,70 +717,17 @@ export function JournalApp({
           }
         >
           {["library", "journal"].includes(view) && (
-            <nav
-              className="library-section-nav"
-              aria-label="Secciones de Biblioteca"
-            >
-              <a
-                href="/?tab=library"
-                aria-current={
-                  view === "library" && librarySection === "games"
-                    ? "page"
-                    : undefined
-                }
-                onClick={(event) => {
-                  if (
-                    event.metaKey ||
-                    event.ctrlKey ||
-                    event.shiftKey ||
-                    event.altKey
-                  )
-                    return;
-                  event.preventDefault();
-                  journalLocation.setLibrarySection("games");
-                }}
-              >
-                Biblioteca
-              </a>
-              <a
-                href="/?tab=library&section=series"
-                aria-current={seriesActive ? "page" : undefined}
-                onClick={(event) => {
-                  if (
-                    event.metaKey ||
-                    event.ctrlKey ||
-                    event.shiftKey ||
-                    event.altKey
-                  )
-                    return;
-                  event.preventDefault();
-                  journalLocation.setLibrarySection("series");
-                }}
-              >
-                Series
-              </a>
-              <a
-                href="/?tab=journal"
-                aria-current={view === "journal" ? "page" : undefined}
-                onClick={(event) => {
-                  if (
-                    event.metaKey ||
-                    event.ctrlKey ||
-                    event.shiftKey ||
-                    event.altKey
-                  )
-                    return;
-                  event.preventDefault();
-                  setView("journal");
-                }}
-              >
-                Histórico
-              </a>
-            </nav>
+            <LibrarySectionNav
+              current={view === "journal" ? "history" : librarySection}
+              onNavigate={(section) => {
+                if (section === "history") setView("journal");
+                else journalLocation.setLibrarySection(section);
+              }}
+            />
           )}
           {view === "library" ? (
             librarySection === "games" ? (
-              <NotebookLibraryToolbar
+              <LibraryScreenHeader
                 location={journalLocation}
                 platforms={platforms}
                 yearOptions={yearOptions}
@@ -1017,7 +998,7 @@ export function JournalApp({
             <SharedGames
               games={sharing.shared}
               emptyState={
-                <Empty
+                <CollectionEmptyState
                   title={
                     resourceStates.sharing.error
                       ? "No se pudieron cargar los compartidos"
@@ -1028,139 +1009,89 @@ export function JournalApp({
             />
           ) : (
             <>
-              {view !== "library" && (
-                <JournalToolbar
-                  location={journalLocation}
-                  platforms={platforms}
-                  yearOptions={yearOptions}
-                  busy={busy}
-                  refreshing={refreshingPrices}
-                  onRefresh={async () => {
-                    if (busy || refreshInFlight.current) return;
-                    refreshInFlight.current = true;
-                    setRefreshingPrices(true);
-                    try {
-                      await performAction(
-                        () => apiRequest("/api/refresh", "POST", {}),
-                        "Precios consultados.",
-                      );
-                    } finally {
-                      refreshInFlight.current = false;
-                      setRefreshingPrices(false);
-                    }
-                  }}
+              {view === "library" ? (
+                <LibraryScreen
+                  collection={collection}
+                  detailEntryId={detailEntryId}
+                  detail={
+                    detailEntry
+                      ? {
+                          entry: detailEntry,
+                          revision: detailEditorRevision,
+                          saving: savingEntry || inlineEditing.saving,
+                          actionError: error,
+                          offers: offers.filter((o) => o.game_id === detailEntry.gameId),
+                          members: sharing.members,
+                          grants: sharing.grants.filter((g) => g.entry_id === detailEntry.id),
+                          busy,
+                          online,
+                          inlineBlocked: inlineEditing.dirty || inlineEditing.saving,
+                          onDirtyChange: setDetailDraftDirty,
+                          backRequestRef: detailBackRequest,
+                          onClose: closeLibraryDetail,
+                          onSave: async (entry, targets) => {
+                            await saveEntry(entry, false, targets);
+                          },
+                          onDelete: async () => {
+                            if (!online) {
+                              setError("Eliminar requiere conexión.");
+                              return false;
+                            }
+                            const current = getRecord(detailEntryId) ?? detailEntry;
+                            const removed = await performAction(async () => {
+                              await apiRequest("/api/records", "DELETE", {
+                                id: current.id,
+                                expected: current.updated_at,
+                              });
+                              removeRecord(current.id!);
+                            }, "Entrada movida a Papelera.");
+                            if (removed) {
+                              setUndoEntry({
+                                id: current.id!,
+                                expires: Date.now() + 10000,
+                              });
+                              setEditingEntry(null);
+                              setDetailEntryId("");
+                            }
+                            return removed;
+                          },
+                          runAction: performAction,
+                        }
+                      : undefined
+                  }
                 />
-              )}
-              <div className={"collection-layout"}>
-                <section className="table-panel">
-                  <div className="table-caption">
-                    <span>
-                      {loading
-                        ? "Cargando…"
-                        : games.length +
-                          " " +
-                          (games.length === 1 ? "juego" : "juegos")}
-                    </span>
-                  </div>
-                  {!loading && games.length === 0 && !detailEntry ? (
-                    <Empty
-                      title={
-                        resourceStates.records.error && !records.length
-                          ? "No se pudieron cargar los juegos"
-                          : "No hay juegos"
+              ) : (
+                <>
+                  <JournalToolbar
+                    location={journalLocation}
+                    platforms={platforms}
+                    yearOptions={yearOptions}
+                    busy={busy}
+                    refreshing={refreshingPrices}
+                    onRefresh={async () => {
+                      if (busy || refreshInFlight.current) return;
+                      refreshInFlight.current = true;
+                      setRefreshingPrices(true);
+                      try {
+                        await performAction(
+                          () => apiRequest("/api/refresh", "POST", {}),
+                          "Precios consultados.",
+                        );
+                      } finally {
+                        refreshInFlight.current = false;
+                        setRefreshingPrices(false);
                       }
-                      text={
-                        resourceStates.records.error && !records.length
-                          ? "Reintentá la carga cuando vuelva la conexión."
-                          : records.length
-                            ? "Cambiá los filtros o agregá un juego."
-                            : "Agregá un juego o importá desde Configuración."
-                      }
-                    />
-                  ) : (
-                    <InlineEditContext.Provider value={
-                      detailEntryId && detailDraftDirty
-                        ? { ...inlineEditing, canEdit: false }
-                        : inlineEditing
-                    }>
-                      <JournalGameTable
-                        table={table}
-                        view={view}
-                        offers={offers}
-                        releaseNow={releaseNow}
-                        refreshing={refreshingPrices}
-                        onQuickEdit={(entry) => {
-                          if (
-                            inlineEditing.dirty ||
-                            inlineEditing.saving ||
-                            busy ||
-                            savingEntry
-                          ) {
-                            setNotice(
-                              "Guardá o cancelá la edición actual antes de abrir otra.",
-                            );
-                            return;
-                          }
-                          inlineEditing.cancel();
-                          if (view === "library") {
-                            openLibraryListEntry(entry);
-                            return;
-                          }
-                          setQuickEntry({ ...entry });
-                        }}
-                        entryRowClass={entryRowClass}
-                        focusedEntry={journalLocation.focusedEntry}
-                        detailEntryId={view === "library" ? detailEntryId : ""}
-                        detailEntry={detailEntry}
-                        detailEditor={(summary) => detailEntry ? (
-                          <EntryEditor
-                            key={`${detailEntry.id}-${detailEditorRevision}`}
-                            entry={detailEntry}
-                            saving={savingEntry || inlineEditing.saving}
-                            actionError={error}
-                            offers={offers.filter((o) => o.game_id === detailEntry.gameId)}
-                            members={sharing.members}
-                        grants={sharing.grants.filter((g) => g.entry_id === detailEntry.id)}
-                            busy={busy}
-                            online={online}
-                            embedded
-                            summaryContent={summary}
-                            inlineBlocked={inlineEditing.dirty || inlineEditing.saving}
-                            onDirtyChange={setDetailDraftDirty}
-                            backRequestRef={detailBackRequest}
-                            onClose={closeLibraryDetail}
-                            onSave={async (entry, targets) => { await saveEntry(entry, false, targets); }}
-                            onDelete={async () => {
-                              if (!online) { setError("Eliminar requiere conexión."); return false; }
-                              const current = getRecord(detailEntryId) ?? detailEntry;
-                              const removed = await performAction(async () => {
-                                await apiRequest("/api/records", "DELETE", { id: current.id, expected: current.updated_at });
-                                removeRecord(current.id!);
-                              }, "Entrada movida a Papelera.");
-                              if (removed) { setUndoEntry({ id: current.id!, expires: Date.now() + 10000 }); setEditingEntry(null); setDetailEntryId(""); }
-                              return removed;
-                            }}
-                            runAction={performAction}
-                            view={view}
-                            onReleaseFound={async () => null}
-                          />
-                        ) : summary}
-                      />
-                    </InlineEditContext.Provider>
-                  )}
-                </section>
-              </div>
-              {["library", "journal"].includes(view) && (
-                <details className="notebook-library-summary">
-                  <summary>
-                    Ver resumen de {selectedYear || "todos los años"}
-                  </summary>
-                  <JournalSummary
-                    summary={summary}
-                    view={view}
-                    selectedYear={selectedYear}
+                    }}
                   />
-                </details>
+                  <JournalCollectionPanel {...collection} view={view} />
+                </>
+              )}
+              {["library", "journal"].includes(view) && (
+                <JournalCollectionSummary
+                  summary={summary}
+                  view={view}
+                  selectedYear={selectedYear}
+                />
               )}
             </>
           )}
@@ -1337,15 +1268,6 @@ export function JournalApp({
           onClose={() => setBatch(null)}
         />
       )}
-    </div>
-  );
-}
-function Empty({ title, text }: { title: string; text?: string }) {
-  return (
-    <div className="empty">
-      <Gamepad2 size={34} />
-      <h2>{title}</h2>
-      {text && <p>{text}</p>}
     </div>
   );
 }
