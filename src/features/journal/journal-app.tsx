@@ -66,6 +66,7 @@ import {
   JournalCollectionSummary,
 } from "./journal-collection-panel";
 import { JournalToolbar } from "./journal-toolbar";
+import { HistoryScreen, HistoryScreenHeader } from "@/features/library/history/history-screen";
 import { LibraryScreen, LibraryScreenHeader } from "@/features/library/library-screen";
 import { LibrarySectionNav } from "@/features/library/library-section-nav";
 import {
@@ -453,10 +454,7 @@ export function JournalApp({
     getCoreRowModel: getCoreRowModel(),
     getSortedRowModel: getSortedRowModel(),
   });
-  const title =
-    view === "journal"
-      ? "Histórico"
-      : (nav.find((n) => n[0] === view)?.[1] ?? "Biblioteca");
+  const title = nav.find((n) => n[0] === view)?.[1] ?? "Biblioteca";
   async function importSheet() {
     setBusy(true);
     try {
@@ -740,15 +738,22 @@ export function JournalApp({
                 }
               />
             ) : null
-          ) : ["journal", "wishlist", "upcoming"].includes(view) ? (
+          ) : view === "journal" ? (
+            <HistoryScreenHeader
+              selectedYear={selectedYear}
+              resultsCount={games.length}
+              onAdd={() =>
+                openEntry({
+                  ...emptyRecord,
+                  status: "wishlist",
+                })
+              }
+            />
+          ) : ["wishlist", "upcoming"].includes(view) ? (
             <div className="notebook-library-controls">
               <NotebookCollectionHeading
                 title={title}
-                kicker={
-                  view === "journal"
-                    ? `${selectedYear || "Todos los años"} · ${games.length} ${games.length === 1 ? "juego" : "juegos"}`
-                    : `${games.length} ${games.length === 1 ? "juego" : "juegos"}`
-                }
+                kicker={`${games.length} ${games.length === 1 ? "juego" : "juegos"}`}
                 onAdd={() =>
                   openEntry({
                     ...emptyRecord,
@@ -1083,7 +1088,11 @@ export function JournalApp({
                       }
                     }}
                   />
-                  <JournalCollectionPanel {...collection} view={view} />
+                  {view === "journal" ? (
+                    <HistoryScreen collection={collection} />
+                  ) : (
+                    <JournalCollectionPanel {...collection} view={view} />
+                  )}
                 </>
               )}
               {["library", "journal"].includes(view) && (
