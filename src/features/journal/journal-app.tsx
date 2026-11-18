@@ -1,6 +1,5 @@
 "use client";
-import { DataCheckPanel } from "@/features/settings/data-check-panel";
-import { ThemeSettings } from "@/features/settings/theme-settings";
+import { SettingsScreen } from "@/features/settings/settings-screen";
 import { SuggestionsPanel } from "@/features/suggestions/suggestions-panel";
 import { SharedGames } from "@/features/shared/shared-games";
 import { QuickEditor } from "./mobile/quick-editor";
@@ -11,7 +10,6 @@ import { InlineEditContext } from "./inline/inline-context";
 import { InlineEditBar } from "./inline/inline-edit-bar";
 import type { OfferTargetUpdate } from "@/features/stores/target-draft";
 import { useNotificationNavigation } from "@/features/notifications/use-notification-navigation";
-import { notificationHref } from "@/features/notifications/navigation";
 import { ApiRequestError } from "@/lib/api-client";
 import { findDuplicates } from "@/lib/journal/duplicates";
 import { DuplicateWarning } from "@/features/entries/duplicate-warning";
@@ -32,7 +30,6 @@ import { emptyRecord } from "@/lib/types";
 import { useJournalCollection } from "./use-journal-collection";
 import { useJournalData } from "./use-journal-data";
 import { useJournalLocation } from "./use-journal-location";
-import { formatDateTime } from "@/lib/journal/view-config";
 import { hasActiveDiscount } from "@/features/wishlist/wishlist-display";
 import {
   getCoreRowModel,
@@ -44,7 +41,6 @@ import {
   ChartNoAxesCombined,
   Bell,
   CalendarDays,
-  Download,
   Gamepad2,
   Heart,
   Library,
@@ -57,10 +53,7 @@ import {
 } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { saveResponseSchema } from "@/lib/contracts";
-import { ScoringGuide } from "@/features/settings/scoring-guide-panel";
-import { AdminInvite } from "@/features/settings/admin-invite";
 import { DriveBackupPanel } from "@/features/settings/drive-backup-panel";
-import { TrashPanel } from "@/features/settings/trash-panel";
 import { BackupStatus } from "@/features/settings/backup-status";
 import { EntryEditor } from "@/features/entries/entry-editor";
 import {
@@ -80,7 +73,6 @@ import { Notebook } from "@/features/notebook/notebook-panel";
 import { NotificationDrawer } from "@/features/notifications/notification-drawer";
 import { StatisticsPanel } from "@/features/statistics/statistics-panel";
 import { SeriesManager } from "@/features/library/series/series-manager";
-import { NotificationSettings } from "@/features/settings/notification-settings";
 import "@/features/library/notebook-library.css";
 import "./notebook-theme.css";
 
@@ -889,212 +881,83 @@ export function JournalApp({
             />
           </div>
           {seriesActive ? null : view === "settings" ? (
-            <div className="settings-groups">
-              <section
-                className="settings-group"
-                aria-labelledby="settings-appearance-title"
-              >
-                <div className="settings-group-heading">
-                  <p className="eyebrow">LECTURA</p>
-                  <h2 id="settings-appearance-title">
-                    Apariencia y preferencias
-                  </h2>
-                </div>
-                <div className="settings-grid">
-                  <ThemeSettings />
-                  <article className="panel">
-                    <h2>Avisos y alertas</h2>
-                    <NotificationSettings onChanged={reloadJournal} />
-                  </article>
-                </div>
-              </section>
-              {online && (
-                <section
-                  className="settings-group"
-                  aria-labelledby="settings-backup-title"
-                >
-                  <div className="settings-group-heading">
-                    <p className="eyebrow">COPIAS</p>
-                    <h2 id="settings-backup-title">Respaldos</h2>
-                  </div>
-                  <div className="settings-grid">
-                    <BackupStatus details />
-                    <DriveBackupPanel details />
-                  </div>
-                </section>
-              )}
-              <section
-                className="settings-group"
-                aria-labelledby="settings-data-title"
-              >
-                <div className="settings-group-heading">
-                  <p className="eyebrow">ARCHIVO</p>
-                  <h2 id="settings-data-title">Datos y biblioteca</h2>
-                </div>
-                <div className="settings-grid">
-                  <DataCheckPanel
-                    records={records}
-                    recordsReady={resourceStates.records.checkedAt !== null}
-                    recordsError={!!resourceStates.records.error}
-                    online={online}
-                    blocked={
-                      busy ||
-                      savingEntry ||
-                      inlineEditing.saving ||
-                      inlineEditing.dirty
-                    }
-                    dirty={inlineEditing.dirty}
-                    location={journalLocation}
-                    onReload={() => void reloadRecords()}
-                    onView={(entry) => {
-                      if (
-                        inlineEditing.dirty ||
-                        inlineEditing.saving ||
-                        busy ||
-                        savingEntry
-                      )
-                        return;
-                      const current = getRecord(entry.id ?? "");
-                      if (!current) {
-                        setNotice("La partida ya no está disponible.");
-                        return;
-                      }
-                      inlineEditing.cancel();
-                      const destination = entryDestination(current);
-                      journalLocation.revealEntry(
-                        destination.view,
-                        destination.entryId,
-                      );
-                    }}
-                    onEdit={(entry) => {
-                      if (
-                        inlineEditing.dirty ||
-                        inlineEditing.saving ||
-                        busy ||
-                        savingEntry
-                      )
-                        return;
-                      const current = getRecord(entry.id ?? "");
-                      if (!current) {
-                        setNotice("La partida ya no está disponible.");
-                        return;
-                      }
-                      inlineEditing.cancel();
-                      openEntry({ ...current });
-                    }}
-                  />
-                  <TrashPanel
-                    onChanged={async () => {
-                      setUndoEntry(null);
-                      await reloadJournal();
-                    }}
-                  />
-                  <article className="panel">
-                    <h2>Datos</h2>
-                    <p>Revisá los cambios antes de importar.</p>
-                    <button
-                      className="primary"
-                      disabled={busy || !online}
-                      onClick={importSheet}
-                    >
-                      <Download size={16} />
-                      Importar desde Google Sheets
-                    </button>
-                    <div className="button-row">
-                      <a className="secondary" href="/api/export?format=xlsx">
-                        Exportar Excel
-                      </a>
-                      <a className="secondary" href="/api/export">
-                        Respaldo JSON
-                      </a>
-                      <a className="secondary" href="/api/export?format=csv">
-                        Exportar CSV
-                      </a>
-                    </div>
-                    <p className="fine-print">
-                      Excel y JSON incluyen todos tus juegos, páginas e
-                      historial de precios. CSV incluye los juegos. Guardá una
-                      copia fuera de la app.
-                    </p>
-                  </article>
-                </div>
-              </section>
-              <section
-                className="settings-group"
-                aria-labelledby="settings-activity-title"
-              >
-                <div className="settings-group-heading">
-                  <p className="eyebrow">SEGUIMIENTO</p>
-                  <h2 id="settings-activity-title">Actividad y referencias</h2>
-                </div>
-                <div className="settings-grid">
-                  <article className="panel">
-                    <ScoringGuide />
-                  </article>
-                  {member?.role === "admin" && (
-                    <article className="panel">
-                      <h2>Invitaciones privadas</h2>
-                      <p>Acceso solo por invitación.</p>
-                      <AdminInvite onError={setError} />
-                    </article>
-                  )}
-                  <article className="panel">
-                    <div className="notification-heading">
-                      <h2>Últimas novedades</h2>
-                      {notifications.some((n) => !n.read_at) && (
-                        <button
-                          className="text-button"
-                          disabled={
-                            notificationReadsPending ||
-                            !online ||
-                            !notificationPageCheckedAt
-                          }
-                          onClick={() =>
-                            void readNotifications(
-                              { allBefore: notificationPageCheckedAt },
-                              unreadCount ?? 0,
-                            ).catch(() => undefined)
-                          }
-                        >
-                          Marcar como leídas
-                        </button>
-                      )}
-                    </div>
-                    {notifications.length ? (
-                      notifications.slice(0, 10).map((n) => (
-                        <div className="notification" key={n.id}>
-                          <a
-                            className="notification-link"
-                            href={notificationHref(n)}
-                            onClick={(event) => {
-                              if (
-                                event.metaKey ||
-                                event.ctrlKey ||
-                                event.shiftKey ||
-                                event.altKey
-                              )
-                                return;
-                              event.preventDefault();
-                              openNotification(n);
-                            }}
-                          >
-                            <strong>{n.title}</strong>
-                            <p>{n.body}</p>
-                            <small>{formatDateTime(n.created_at)}</small>
-                          </a>
-                        </div>
-                      ))
-                    ) : (
-                      <p className="muted">
-                        {resourceStates.notifications.error
-                          ? "No se pudieron cargar las alertas."
-                          : "Sin alertas."}
-                      </p>
-                    )}
-                  </article>
-                </div>
-              </section>
-            </div>
+            <SettingsScreen
+              online={online}
+              isAdmin={member?.role === "admin"}
+              onNotificationSettingsChanged={reloadJournal}
+              onTrashChanged={async () => {
+                setUndoEntry(null);
+                await reloadJournal();
+              }}
+              onInviteError={setError}
+              dataChecks={{
+                records,
+                recordsReady: resourceStates.records.checkedAt !== null,
+                recordsError: !!resourceStates.records.error,
+                blocked:
+                  busy ||
+                  savingEntry ||
+                  inlineEditing.saving ||
+                  inlineEditing.dirty,
+                dirty: inlineEditing.dirty,
+                location: journalLocation,
+                onReload: () => void reloadRecords(),
+                onView: (entry) => {
+                  if (
+                    inlineEditing.dirty ||
+                    inlineEditing.saving ||
+                    busy ||
+                    savingEntry
+                  )
+                    return;
+                  const current = getRecord(entry.id ?? "");
+                  if (!current) {
+                    setNotice("La partida ya no está disponible.");
+                    return;
+                  }
+                  inlineEditing.cancel();
+                  const destination = entryDestination(current);
+                  journalLocation.revealEntry(
+                    destination.view,
+                    destination.entryId,
+                  );
+                },
+                onEdit: (entry) => {
+                  if (
+                    inlineEditing.dirty ||
+                    inlineEditing.saving ||
+                    busy ||
+                    savingEntry
+                  )
+                    return;
+                  const current = getRecord(entry.id ?? "");
+                  if (!current) {
+                    setNotice("La partida ya no está disponible.");
+                    return;
+                  }
+                  inlineEditing.cancel();
+                  openEntry({ ...current });
+                },
+              }}
+              importExport={{
+                importDisabled: busy || !online,
+                onImport: importSheet,
+              }}
+              recentNotifications={{
+                notifications,
+                loadError: !!resourceStates.notifications.error,
+                markReadDisabled:
+                  notificationReadsPending ||
+                  !online ||
+                  !notificationPageCheckedAt,
+                onMarkRead: () =>
+                  void readNotifications(
+                    { allBefore: notificationPageCheckedAt },
+                    unreadCount ?? 0,
+                  ).catch(() => undefined),
+                onOpenNotification: openNotification,
+              }}
+            />
           ) : view === "suggestions" ? (
             <SuggestionsPanel
               records={records}
