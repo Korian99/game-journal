@@ -20,6 +20,122 @@ const expandedScreenshot = join(
   "notebook-library-mobile-expanded.png",
 );
 
+test("library cards preview the first impression line and omit empty finish dates", async ({
+  browser,
+  page,
+}) => {
+  const firstLine =
+    "El mundo se va abriendo poco a poco y siempre encuentra una nueva razón para que quieras recorrerlo con calma.";
+  const secondLine = "La última zona tiene mi música favorita.";
+  const impression = `  \r\n\t\r\n  ${firstLine}  \r\n${secondLine}`;
+  const records = [
+    {
+      ...emptyRecord,
+      id: "20000000-0000-4000-8000-000000000041",
+      title: "En recorrido",
+      status: "playing",
+      device: "Steam Deck",
+      impression,
+    },
+    {
+      ...emptyRecord,
+      id: "20000000-0000-4000-8000-000000000042",
+      title: "Recorrido completo",
+      status: "completed",
+      finished: "2025-10-16",
+      impression: " \r\n\t ",
+    },
+  ];
+  async function mockLibrary(target: Page) {
+    await target.route("**/api/**", (route) =>
+      route.fulfill({
+        json:
+          new URL(route.request().url()).pathname === "/api/records"
+            ? { records, member: { role: "member", display_name: "Fixture" } }
+            : [],
+      }),
+    );
+  }
+  const playingCard = (target: Page) =>
+    target.getByRole("article").filter({
+      has: target.getByRole("heading", { name: "En recorrido", exact: true }),
+    });
+  await mockLibrary(page);
+  await page.goto("./?tab=library&year=all");
+  const libraryUrl = page.url();
+  await expect(page.getByRole("table")).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: "Editar Terminé de En recorrido" }),
+  ).toHaveText("—");
+  await expect(
+    page.getByRole("button", { name: "Editar Impresiones de En recorrido" }),
+  ).toHaveText(`${firstLine} ${secondLine}`);
+  await expect(page.getByRole("article")).toHaveCount(0);
+
+  for (const width of [390, 360]) {
+    await page.setViewportSize({ width, height: 844 });
+    await expect(page.getByRole("table")).toBeHidden();
+    const playing = playingCard(page);
+    const preview = playing.getByText(firstLine, { exact: true });
+    await expect(preview).toBeVisible();
+    expect((await preview.boundingBox())!.y).toBeGreaterThan(
+      (await playing.getByText("Steam Deck", { exact: true }).boundingBox())!.y,
+    );
+    expect(
+      await preview.evaluate((element) => ({
+        clipped: element.scrollWidth > element.clientWidth,
+        oneLine:
+          Math.abs(
+            element.clientHeight -
+              parseFloat(getComputedStyle(element).lineHeight),
+          ) < 1,
+        ellipsis: getComputedStyle(element).textOverflow,
+      })),
+    ).toEqual({ clipped: true, oneLine: true, ellipsis: "ellipsis" });
+    await expect(playing.getByText("Terminé:", { exact: true })).toHaveCount(0);
+    const comments = playing.getByText(`${firstLine} ${secondLine}`, {
+      exact: true,
+    });
+    await expect(comments).toBeHidden();
+    await playing.getByText("Leer comentarios", { exact: true }).click();
+    await expect(comments).toBeVisible();
+    await playing.getByText("Ocultar comentarios", { exact: true }).click();
+
+    const completed = page.getByRole("article").filter({
+      has: page.getByRole("heading", {
+        name: "Recorrido completo",
+        exact: true,
+      }),
+    });
+    await expect(completed.getByText("16/10/2025")).toBeVisible();
+    await expect(completed.getByText("Leer comentarios")).toHaveCount(0);
+  }
+
+  await page.goto("./?tab=journal&year=all");
+  const history = playingCard(page);
+  await expect(history.getByText("Terminé:", { exact: true })).toBeVisible();
+  await expect(history.getByText(firstLine, { exact: true })).toHaveCount(0);
+
+  const touchPage = await browser.newPage({
+    hasTouch: true,
+    isMobile: true,
+    viewport: { width: 1280, height: 900 },
+  });
+  try {
+    await mockLibrary(touchPage);
+    await touchPage.goto(libraryUrl);
+    expect(
+      await touchPage.evaluate(() => matchMedia("(pointer: coarse)").matches),
+    ).toBe(true);
+    await expect(touchPage.getByRole("table")).toBeHidden();
+    const playing = playingCard(touchPage);
+    await expect(playing.getByText(firstLine, { exact: true })).toBeVisible();
+    await expect(playing.getByText("Terminé:", { exact: true })).toHaveCount(0);
+  } finally {
+    await touchPage.close();
+  }
+});
+
 async function expectDesktopToolbarAligned(page: Page) {
   const searchBox = await page
     .locator(".notebook-library-search")
