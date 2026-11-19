@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { mockMemberAppearance } from "./mock-member-appearance";
 
 test("the journal palette previews safely and persists per member in both modes", async ({ page }, testInfo) => {
   let memberId = "10000000-0000-4000-8000-000000000001";
@@ -12,6 +13,7 @@ test("the journal palette previews safely and persists per member in both modes"
     }
     return route.fulfill({ json: [] });
   });
+  await mockMemberAppearance(page, () => memberId);
   const appearance = page.getByRole("heading", { name: "Apariencia", exact: true });
   const customize = page.getByRole("button", { name: "Personalizar colores", exact: true });
   const dialog = page.getByRole("dialog", { name: "Colores del diario" });
@@ -61,7 +63,7 @@ test("the journal palette previews safely and persists per member in both modes"
   memberId = "10000000-0000-4000-8000-000000000002";
   await page.reload();
   await expect(customize).toBeVisible();
-  await expect(pageBackground).toHaveCSS("background-color", "rgb(237, 229, 216)");
+  await expect(pageBackground).toHaveCSS("background-color", "rgb(34, 35, 38)");
   memberId = originalMember;
   await page.reload();
   await expect(pageBackground).toHaveCSS("background-color", "rgb(237, 243, 233)");

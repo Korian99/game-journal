@@ -2,6 +2,7 @@ import { expect, test, type Locator, type Page } from "@playwright/test";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { emptyRecord } from "../../src/lib/types";
+import { mockMemberAppearance } from "./mock-member-appearance";
 
 const views = [
   ["library", "Biblioteca"],
@@ -43,9 +44,6 @@ test("appearance settings apply and persist both notebook palettes", async ({
     fullPage: false,
     animations: "disabled",
   });
-  expect(await page.evaluate(() => localStorage.getItem("journal-theme"))).toBe(
-    "light",
-  );
 
   await page.reload();
   await expect(lightButton).toHaveAttribute("aria-pressed", "true");
@@ -67,9 +65,6 @@ test("appearance settings apply and persist both notebook palettes", async ({
     fullPage: true,
     animations: "disabled",
   });
-  expect(await page.evaluate(() => localStorage.getItem("journal-theme"))).toBe(
-    "dark",
-  );
 
   for (const [theme, button] of [
     ["dark", darkButton],
@@ -621,6 +616,7 @@ test("discounted wishlist and released upcoming highlights follow the light them
 });
 
 async function mockApp(page: Page, paginationFixture = false, reviewFixture = false) {
+  const memberId = "10000000-0000-4000-8000-000000000001";
   const records = [
     {
       ...emptyRecord,
@@ -684,7 +680,7 @@ async function mockApp(page: Page, paginationFixture = false, reviewFixture = fa
     }
     if (pathname === "/api/records")
       return route.fulfill({
-        json: { records, member: { display_name: "Fixture", role: "member" } },
+        json: { records, member: { id: memberId, display_name: "Fixture", role: "member" } },
       });
     if (pathname === "/api/notifications")
       return route.fulfill({
@@ -725,6 +721,7 @@ async function mockApp(page: Page, paginationFixture = false, reviewFixture = fa
       });
     return route.fulfill({ json: [] });
   });
+  await mockMemberAppearance(page, () => memberId);
 }
 
 test("history, wishlist, and upcoming share the Biblioteca collection header", async ({

@@ -1,27 +1,12 @@
 "use client";
 
-import { useEffect, useState } from "react";
-
 type Theme = "light" | "dark";
 
-export function ThemeSettings({ onCustomizePalette }: {
+export function ThemeSettings({ theme, onThemeChange, onCustomizePalette }: {
+  theme: Theme;
+  onThemeChange?: (theme: Theme) => void;
   onCustomizePalette?: (trigger: HTMLButtonElement) => void;
 }) {
-  const [theme, setTheme] = useState<Theme>("dark");
-
-  useEffect(() => {
-    const saved = localStorage.getItem("journal-theme");
-    const initial: Theme = saved === "light" ? "light" : "dark";
-    document.documentElement.classList.toggle("light", initial === "light");
-    setTheme(initial);
-  }, []);
-
-  function selectTheme(next: Theme) {
-    document.documentElement.classList.toggle("light", next === "light");
-    localStorage.setItem("journal-theme", next);
-    setTheme(next);
-  }
-
   return (
     <article className="panel settings-appearance">
       <div>
@@ -36,7 +21,8 @@ export function ThemeSettings({ onCustomizePalette }: {
           className="secondary"
           type="button"
           aria-pressed={theme === "light"}
-          onClick={() => selectTheme("light")}
+          disabled={!onThemeChange}
+          onClick={() => onThemeChange?.("light")}
         >
           Claro
         </button>
@@ -44,7 +30,8 @@ export function ThemeSettings({ onCustomizePalette }: {
           className="secondary"
           type="button"
           aria-pressed={theme === "dark"}
-          onClick={() => selectTheme("dark")}
+          disabled={!onThemeChange}
+          onClick={() => onThemeChange?.("dark")}
         >
           Oscuro
         </button>

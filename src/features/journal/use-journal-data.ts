@@ -132,10 +132,6 @@ export function useJournalData() {
     );
   }, [resources]);
   useEffect(() => {
-    document.documentElement.classList.toggle(
-      "light",
-      localStorage.getItem("journal-theme") === "light",
-    );
     setOnline(navigator.onLine);
     void reloadJournal();
     const db = browserClient();

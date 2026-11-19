@@ -35,7 +35,7 @@ export function restoreSql(
     : [];
   const sections: string[] = [
     "-- Game Journal recovery. Review the target connection before executing.",
-    "-- Only INSERTs into an empty application database. Authentication and sharing are never recreated.",
+    "-- Restore into an empty application database. Authentication and sharing are never recreated.",
     "begin;",
     "set local standard_conforming_strings=on;",
     "select pg_advisory_xact_lock(hashtextextended('game-journal-restore',0));",
@@ -46,7 +46,7 @@ export function restoreSql(
       "'::uuid and active) then raise exception 'Creá primero la cuenta invitada de destino';end if;",
     "end $$;",
   ];
-  function insert(table: string, rows: Record<string, unknown>[]) {
+  function insert(table: string, rows: Record<string, unknown>[], suffix = "") {
     if (!rows.length) return;
     const json = JSON.stringify(rows).replaceAll("'", "''");
     sections.push(
@@ -56,7 +56,7 @@ export function restoreSql(
         table +
         ",'" +
         json +
-        "'::jsonb);",
+        "'::jsonb)" + suffix + ";",
     );
   }
   insert("games", games);
@@ -64,6 +64,9 @@ export function restoreSql(
   insert("game_series", series);
   insert("game_series_members", owned(tables.game_series_members));
   insert("playthroughs", plays);
+  if (tables.member_appearance)
+    insert("member_appearance", [{ ...tables.member_appearance, member_id: targetOwner }],
+      " on conflict (member_id) do update set mode=excluded.mode,palette=excluded.palette,playthrough_id=excluded.playthrough_id,accent=excluded.accent");
   insert("offers", offers);
   insert("price_history", owned(snapshot.priceHistory));
   insert("imports", owned(tables.imports));

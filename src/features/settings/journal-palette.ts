@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 
 export const paletteRoles = [
   ["bg", "Fondo"],
@@ -92,33 +92,7 @@ export function paletteContrastIssue(colors: RoleColors) {
   return null;
 }
 
-function readPalette(raw: string | null): JournalPalette | null {
-  if (!raw) return null;
-  const value = JSON.parse(raw);
-  for (const mode of modes) {
-    for (const [role] of paletteRoles) {
-      const color = value?.[mode]?.[role];
-      if (typeof color !== "string" || !/^#[0-9a-f]{6}$/i.test(color)) return null;
-    }
-    if (paletteContrastIssue(value[mode])) return null;
-  }
-  return value;
-}
-
-export function useJournalPalette(memberId: string | undefined) {
-  const [saved, setSaved] = useState<{ memberId: string; palette: JournalPalette | null }>();
-  const key = memberId ? `journal-custom-palette:${memberId}` : null;
-  const palette = saved?.memberId === memberId ? saved?.palette ?? null : null;
-
-  useEffect(() => {
-    if (!memberId || !key) return;
-    let choice: JournalPalette | null = null;
-    try {
-      choice = readPalette(window.localStorage.getItem(key));
-    } catch {}
-    setSaved({ memberId, palette: choice });
-  }, [memberId, key]);
-
+export function useJournalPalette(palette: JournalPalette | null) {
   useEffect(() => {
     if (!palette) return;
     const style = document.documentElement.style;
@@ -131,15 +105,4 @@ export function useJournalPalette(memberId: string | undefined) {
     );
     return () => names.forEach((name) => style.removeProperty(name));
   }, [palette]);
-
-  function applyPalette(choice: JournalPalette | null) {
-    if (!memberId || !key) return;
-    setSaved({ memberId, palette: choice });
-    try {
-      if (choice) window.localStorage.setItem(key, JSON.stringify(choice));
-      else window.localStorage.removeItem(key);
-    } catch {}
-  }
-
-  return { palette, applyPalette };
 }

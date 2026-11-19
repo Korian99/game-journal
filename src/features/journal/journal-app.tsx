@@ -2,6 +2,7 @@
 import { SettingsScreen, SettingsScreenHeader } from "@/features/settings/settings-screen";
 import { JournalPaletteDialog } from "@/features/settings/journal-palette-dialog";
 import { useJournalPalette } from "@/features/settings/journal-palette";
+import { useMemberAppearance } from "@/features/settings/use-member-appearance";
 import {
   SuggestionsPanel,
   SuggestionsPanelHeader,
@@ -149,8 +150,12 @@ export function JournalApp({
     reloadRecords,
     getRecord,
   } = useJournalData();
-  const { gameTheme, setGameTheme, selectGameTheme } = useGameTheme(member?.id, records);
-  const { palette, applyPalette } = useJournalPalette(member?.id);
+  const { preferences, saveAppearance } = useMemberAppearance(member?.id, setNotice);
+  const { gameTheme, setGameTheme, selectGameTheme } = useGameTheme(
+    member?.id, records, preferences.game, (game, expectedGame) => saveAppearance({ game }, expectedGame),
+  );
+  const palette = preferences.palette;
+  useJournalPalette(palette);
   const [paletteMemberId, setPaletteMemberId] = useState<string | null>(null);
   const paletteOpen = paletteMemberId !== null && paletteMemberId === member?.id;
   const paletteTrigger = useRef<HTMLButtonElement | null>(null);
@@ -921,6 +926,8 @@ export function JournalApp({
             <SettingsScreen
               online={online}
               isAdmin={member?.role === "admin"}
+              appearanceMode={preferences.mode}
+              onAppearanceModeChange={member?.id ? (mode) => void saveAppearance({ mode }) : undefined}
               onCustomizePalette={member?.id ? openPalette : undefined}
               onNotificationSettingsChanged={reloadJournal}
               onTrashChanged={async () => {
@@ -1224,13 +1231,11 @@ export function JournalApp({
           key={themeEntryId}
           entry={themeEntry}
           appliedColor={appliedThemeColor}
-          onApply={(color) => {
-            setGameTheme({ entryId: themeEntryId, color });
-            setThemeDraft(null);
+          onApply={async (color) => {
+            if (await setGameTheme({ entryId: themeEntryId, color })) setThemeDraft(null);
           }}
-          onRemove={appliedThemeColor ? () => {
-            setGameTheme(null);
-            setThemeDraft(null);
+          onRemove={appliedThemeColor ? async () => {
+            if (await setGameTheme(null)) setThemeDraft(null);
           } : undefined}
           onClose={() => setThemeDraft(null)}
           onCustomizePalette={() => openPalette()}
@@ -1251,10 +1256,11 @@ export function JournalApp({
             paletteFromGame.current = false;
             setPaletteMemberId(null);
           }}
-          onApply={(choice) => {
-            applyPalette(choice);
-            paletteFromGame.current = false;
-            setPaletteMemberId(null);
+          onApply={async (choice) => {
+            if (await saveAppearance({ palette: choice })) {
+              paletteFromGame.current = false;
+              setPaletteMemberId(null);
+            }
           }}
           onReturnFocus={() => paletteTrigger.current?.focus()}
         />

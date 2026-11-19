@@ -32,6 +32,8 @@ export function SettingsScreen({
   onTrashChanged,
   onInviteError,
   onCustomizePalette,
+  appearanceMode,
+  onAppearanceModeChange,
 }: {
   online: boolean;
   isAdmin: boolean;
@@ -42,6 +44,8 @@ export function SettingsScreen({
   onTrashChanged: () => Promise<void>;
   onInviteError: (message: string) => void;
   onCustomizePalette?: ComponentProps<typeof ThemeSettings>["onCustomizePalette"];
+  appearanceMode: ComponentProps<typeof ThemeSettings>["theme"];
+  onAppearanceModeChange?: ComponentProps<typeof ThemeSettings>["onThemeChange"];
 }) {
   return (
     <div className="settings-groups">
@@ -51,7 +55,7 @@ export function SettingsScreen({
           <h2 id="settings-appearance-title">Apariencia y preferencias</h2>
         </div>
         <div className="settings-grid">
-          <ThemeSettings onCustomizePalette={onCustomizePalette} />
+          <ThemeSettings theme={appearanceMode} onThemeChange={onAppearanceModeChange} onCustomizePalette={onCustomizePalette} />
           <article className="panel">
             <h2>Avisos y alertas</h2>
             <NotificationSettings onChanged={onNotificationSettingsChanged} />

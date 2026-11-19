@@ -1,5 +1,6 @@
 import { expect, test } from "@playwright/test";
 import { emptyRecord } from "../../src/lib/types";
+import { mockMemberAppearance } from "./mock-member-appearance";
 
 test("Jugando ahora selects privately, opens the playthrough and respects dirty drafts", async ({
   page,
@@ -106,6 +107,7 @@ test("Jugando ahora selects privately, opens the playthrough and respects dirty 
     return route.fulfill({ json: [] });
   });
 
+  await mockMemberAppearance(page, () => memberId);
   const dialog = page.getByRole("dialog", { name: "Personalizar Jugando ahora" });
   const manage = page.getByRole("button", { name: "Personalizar Jugando ahora", exact: true });
   const feature = page.getByRole("button", { name: "Mostrar como «Jugando ahora»" });
@@ -267,6 +269,14 @@ test("Jugando ahora selects privately, opens the playthrough and respects dirty 
 
   await page.evaluate(({ key, id }) => localStorage.setItem(key, id), {
     key: `journal-library-cover:${originalMember}`,
+    id: records[0].id,
+  });
+  await page.reload();
+  await expect.poll(() => page.evaluate((key) => localStorage.getItem(key), `journal-library-cover:${originalMember}`)).toBeNull();
+  await expect(shortcut).toHaveCount(0);
+  memberId = "10000000-0000-4000-8000-000000000003";
+  await page.evaluate(({ key, id }) => localStorage.setItem(key, id), {
+    key: `journal-library-cover:${memberId}`,
     id: records[0].id,
   });
   await page.reload();

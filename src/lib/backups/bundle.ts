@@ -8,6 +8,7 @@ import { createHash } from "node:crypto";
 import { z } from "zod";
 import { excelExport, type ExportData } from "../export";
 import { journalEntrySchema, offerSchema } from "../contracts";
+import { appearancePaletteSchema } from "../../features/settings/appearance-contracts";
 const id = z.uuid(),
   text = z.string(),
   row = z.object({ id, owner_id: id }).passthrough();
@@ -41,6 +42,7 @@ export const backupSnapshotSchema = z
       z.literal(5),
       z.literal(6),
       z.literal(7),
+      z.literal(8),
     ]),
     kind: z.literal("game-journal-daily"),
     ownerId: id,
@@ -63,6 +65,13 @@ export const backupSnapshotSchema = z
         .default([]),
       game_series: z.array(gameSeriesSchema).optional(),
       game_series_members: z.array(gameSeriesMemberSchema).optional(),
+      member_appearance: z.strictObject({
+        member_id: id,
+        mode: z.enum(["dark", "light"]),
+        palette: z.unknown().transform((value) => appearancePaletteSchema.safeParse(value).data ?? null),
+        playthrough_id: id.nullable(),
+        accent: z.string().regex(/^#[a-f0-9]{6}$/i).nullable(),
+      }).nullable().optional(),
       data_check_preferences: z
         .array(dataCheckPreferencesSchema.extend({ owner_id: id }))
         .max(1)
@@ -93,7 +102,7 @@ export const backupSnapshotSchema = z
   })
   .superRefine((snapshot, ctx) => {
     if (
-      snapshot.version === 7 &&
+      snapshot.version >= 7 &&
       (!snapshot.sourceTables.game_series ||
         !snapshot.sourceTables.game_series_members)
     )
@@ -101,6 +110,8 @@ export const backupSnapshotSchema = z
         code: "custom",
         message: "Missing version 7 series state",
       });
+    if (snapshot.version === 8 && snapshot.sourceTables.member_appearance === undefined)
+      ctx.addIssue({ code: "custom", message: "Missing version 8 appearance state" });
     if (
       snapshot.version >= 6 &&
       (!snapshot.sourceTables.data_check_preferences ||
@@ -117,6 +128,7 @@ export const backupSnapshotSchema = z
       ...snapshot.sourceTables,
       game_series: snapshot.sourceTables.game_series ?? [],
       game_series_members: snapshot.sourceTables.game_series_members ?? [],
+      member_appearance: snapshot.sourceTables.member_appearance ?? null,
       data_check_preferences:
         snapshot.sourceTables.data_check_preferences ?? [],
       data_check_dismissals: snapshot.sourceTables.data_check_dismissals ?? [],
@@ -129,6 +141,7 @@ export function sha256(bytes: Uint8Array | string) {
 export function parseBackupSnapshot(source: string): BackupSnapshot {
   const snapshot = backupSnapshotSchema.parse(JSON.parse(source) as unknown);
   const owner = snapshot.ownerId;
+  const appearance = snapshot.sourceTables.member_appearance;
   const owned = [
     ...snapshot.sourceTables.games,
     ...snapshot.sourceTables.playthroughs,
@@ -146,6 +159,7 @@ export function parseBackupSnapshot(source: string): BackupSnapshot {
   if (
     owned.some((row) => row.owner_id !== owner) ||
     snapshot.sourceTables.member.id !== owner ||
+    (appearance && appearance.member_id !== owner) ||
     (snapshot.sourceTables.notification_preferences &&
       snapshot.sourceTables.notification_preferences.owner_id !== owner)
   )
@@ -155,6 +169,9 @@ export function parseBackupSnapshot(source: string): BackupSnapshot {
     offers = new Set(snapshot.offers.map((row) => row.id));
   if (
     snapshot.sourceTables.playthroughs.some((row) => !games.has(row.game_id)) ||
+    (appearance?.playthrough_id && (!appearance.accent || !snapshot.sourceTables.playthroughs.some(
+      (row) => row.id === appearance.playthrough_id && !row.deleted_at,
+    ))) ||
     snapshot.offers.some((row) => !games.has(row.game_id)) ||
     snapshot.priceHistory.some((row) => !offers.has(row.offer_id)) ||
     snapshot.sourceTables.shared_entries.some(

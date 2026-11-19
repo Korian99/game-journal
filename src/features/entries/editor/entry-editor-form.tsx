@@ -345,7 +345,7 @@ export function EntryEditorForm({
         </p>
       )}
       <div className="entry-editor-actions">
-        {(!embedded || activeTab !== "main") && (
+        {(!embedded || activeTab === "main" || activeTab === "more") && (
           <button
             type="button"
             className="text-button"
