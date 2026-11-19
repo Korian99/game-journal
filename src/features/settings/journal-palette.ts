@@ -88,3 +88,41 @@ export function paletteContrastIssue(colors: RoleColors) {
   }
   return null;
 }
+
+function withReadableAccent(colors: RoleColors, edge: string): RoleColors {
+  for (const strength of [0, 0.25, 0.5, 0.75]) {
+    const choice = { ...colors, accent: mix(colors.accent, edge, strength) };
+    if (!paletteContrastIssue(choice)) return choice;
+  }
+  return { ...colors, accent: edge };
+}
+
+function tintedPalette(base: string, accent: string, tint: number): JournalPalette {
+  return {
+    dark: withReadableAccent({
+      bg: mix("#14161c", base, tint),
+      surface: mix("#272930", base, tint * 0.7),
+      text: mix("#fbf8f4", base, 0.07),
+      accent,
+    }, "#ffffff"),
+    light: withReadableAccent({
+      bg: mix("#f2efea", base, tint * 0.68),
+      surface: mix("#ffffff", base, tint * 0.44),
+      text: mix("#231f27", base, 0.11),
+      accent,
+    }, "#000000"),
+  };
+}
+
+export function gamePalettePresets(accent: string, coverColors: readonly string[]) {
+  const [
+    primary = accent,
+    secondary = mix(primary, "#75509d", 0.45),
+    highlight = mix(primary, "#a56b2f", 0.54),
+  ] = coverColors;
+  return [
+    { label: "Portada", palette: tintedPalette(primary, primary, 0.16) },
+    { label: "Ambiental", palette: tintedPalette(secondary, secondary, 0.22) },
+    { label: "Contraste", palette: tintedPalette(primary, highlight, 0.07) },
+  ];
+}

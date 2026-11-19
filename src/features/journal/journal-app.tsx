@@ -1252,6 +1252,7 @@ export function JournalApp({
       {paletteOpen && (
         <JournalPaletteDialog
           palette={palette}
+          nowPlaying={gameTheme}
           onClose={() => {
             paletteFromGame.current = false;
             setPaletteMemberId(null);
