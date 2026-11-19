@@ -2,34 +2,25 @@
 
 import { statuses } from "@/lib/types";
 import { viewStatuses } from "@/lib/journal/view-config";
+import { CollectionSortControl } from "@/features/journal/collection-sort-control";
 import { useJournalLocation } from "@/features/journal/use-journal-location";
 import {
-  ArrowDownUp,
   ChevronDown,
   Plus,
   Search,
   SlidersHorizontal,
 } from "lucide-react";
 
-const librarySortOptions = [
-  ["title.asc", "Juego: A → Z"],
-  ["title.desc", "Juego: Z → A"],
-  ["status.asc", "Estado: A → Z"],
-  ["status.desc", "Estado: Z → A"],
-  ["started.desc", "Empecé: más reciente"],
-  ["started.asc", "Empecé: más antiguo"],
-  ["finished.desc", "Terminé: más reciente"],
-  ["finished.asc", "Terminé: más antiguo"],
-  ["hours.desc", "Horas: mayor a menor"],
-  ["hours.asc", "Horas: menor a mayor"],
-  ["rating.desc", "Reseña: mayor a menor"],
-  ["rating.asc", "Reseña: menor a mayor"],
-  ["reason.asc", "Por qué: A → Z"],
-  ["reason.desc", "Por qué: Z → A"],
-  ["impression.asc", "Impresiones: A → Z"],
-  ["impression.desc", "Impresiones: Z → A"],
-  ["notes.asc", "Comentarios: A → Z"],
-  ["notes.desc", "Comentarios: Z → A"],
+const librarySortFields = [
+  ["title", "Juego", "asc"],
+  ["status", "Estado", "asc"],
+  ["started", "Empecé", "desc"],
+  ["finished", "Terminé", "desc"],
+  ["hours", "Horas", "desc"],
+  ["rating", "Reseña", "desc"],
+  ["reason", "Por qué", "asc"],
+  ["impression", "Impresiones", "asc"],
+  ["notes", "Comentarios", "asc"],
 ] as const;
 
 export function NotebookCollectionHeading({
@@ -84,22 +75,6 @@ export function NotebookLibraryToolbar({
     setSort,
   } = location;
   const activeFilters = Number(!!year) + Number(!!status) + Number(!!platform) + Number(!!scale);
-  const sortValue = sort[0]
-    ? sort[0].id + "." + (sort[0].desc ? "desc" : "asc")
-    : "";
-  const standardSort = sort[0]
-    ? [
-        { id: sort[0].id, desc: sort[0].desc },
-        ...(sort[0].id === "title" ? [] : [{ id: "title", desc: false }]),
-      ]
-    : [];
-  const customSort =
-    sort.length > 0 &&
-    (!librarySortOptions.some(([value]) => value === sortValue) ||
-      JSON.stringify(sort) !== JSON.stringify(standardSort));
-  const customSortLabel =
-    librarySortOptions.find(([value]) => value === sortValue)?.[1] ??
-    "Orden sin criterio reconocido";
 
   return (
     <div className="notebook-library-controls">
@@ -192,39 +167,13 @@ export function NotebookLibraryToolbar({
             </div>
           </details>
 
-          <label className="notebook-library-sort">
-            <span>Ordenar</span>
-            <ArrowDownUp size={16} aria-hidden="true" />
-            <select
-              aria-label="Ordenar Biblioteca"
-              value={customSort ? "custom" : sortValue}
-              onChange={(event) => {
-                const [id, direction] = event.target.value.split(".");
-                setSort(
-                  id
-                    ? [
-                        { id, desc: direction === "desc" },
-                        ...(id === "title"
-                          ? []
-                          : [{ id: "title", desc: false }]),
-                      ]
-                    : [],
-                );
-              }}
-            >
-              <option value="">Sin ordenar</option>
-              {customSort && (
-                <option value="custom">
-                  {customSortLabel} · criterio combinado
-                </option>
-              )}
-              {librarySortOptions.map(([value, label]) => (
-                <option value={value} key={value}>
-                  {label}
-                </option>
-              ))}
-            </select>
-          </label>
+          <CollectionSortControl
+            className="notebook-library-sort"
+            label="Ordenar Biblioteca"
+            fields={librarySortFields}
+            sort={sort}
+            setSort={setSort}
+          />
         </div>
       </div>
     </div>

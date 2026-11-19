@@ -7,11 +7,11 @@ import type {
 } from "@/lib/journal/journal-location";
 import { statuses } from "@/lib/types";
 import { ownershipOptions } from "@/lib/journal/ownership";
+import { CollectionSortControl } from "./collection-sort-control";
 import { useJournalLocation } from "./use-journal-location";
 import { viewStatuses } from "@/lib/journal/view-config";
 import {
   ChevronDown,
-  ArrowDownUp,
   RefreshCw,
   LoaderCircle,
   Search,
@@ -24,37 +24,34 @@ const wishlistAccessOptions = [
   { value: "family", label: ownershipOptions[2].label },
 ] as const;
 
-const collectionSortOptions = {
-  journal: [
-    ["title.asc", "Juego: A → Z"],
-    ["title.desc", "Juego: Z → A"],
-    ["year.asc", "Lanzamiento: más antiguo"],
-    ["year.desc", "Lanzamiento: más reciente"],
-    ["period.asc", "Período: antiguo a reciente"],
-    ["period.desc", "Período: reciente a antiguo"],
-    ["rating.asc", "Valoración: menor a mayor"],
-    ["rating.desc", "Valoración: mayor a menor"],
-    ["notes.asc", "Comentarios: A → Z"],
-    ["notes.desc", "Comentarios: Z → A"],
-  ],
-  wishlist: [
-    ["title.asc", "Juego: A → Z"],
-    ["title.desc", "Juego: Z → A"],
-    ["priority.asc", "Prioridad: menor a mayor"],
-    ["priority.desc", "Prioridad: mayor a menor"],
-    ["ownership.asc", "Acceso: A → Z"],
-    ["ownership.desc", "Acceso: Z → A"],
-    ["estimated.asc", "Hs. estimadas: menor a mayor"],
-    ["estimated.desc", "Hs. estimadas: mayor a menor"],
-  ],
-  upcoming: [
-    ["title.asc", "Juego: A → Z"],
-    ["title.desc", "Juego: Z → A"],
-    ["year.asc", "Salida: próxima primero"],
-    ["year.desc", "Salida: más lejana primero"],
-    ["hype.asc", "Hype: menor a mayor"],
-    ["hype.desc", "Hype: mayor a menor"],
-  ],
+const collectionSort = {
+  journal: {
+    label: "Ordenar Histórico",
+    fields: [
+      ["title", "Juego", "asc"],
+      ["year", "Lanzamiento", "desc"],
+      ["period", "Período", "desc"],
+      ["rating", "Valoración", "desc"],
+      ["notes", "Comentarios", "asc"],
+    ],
+  },
+  wishlist: {
+    label: "Ordenar Lista de deseos",
+    fields: [
+      ["title", "Juego", "asc"],
+      ["priority", "Prioridad", "asc"],
+      ["ownership", "Acceso", "asc"],
+      ["estimated", "Hs. estimadas", "desc"],
+    ],
+  },
+  upcoming: {
+    label: "Ordenar Próximos",
+    fields: [
+      ["title", "Juego", "asc"],
+      ["year", "Salida", "asc"],
+      ["hype", "Hype", "desc"],
+    ],
+  },
 } as const;
 
 export function JournalToolbar({
@@ -93,26 +90,10 @@ export function JournalToolbar({
     sort,
     setSort,
   } = location;
-  const sortOptions =
+  const sortControl =
     view === "journal" || view === "wishlist" || view === "upcoming"
-      ? collectionSortOptions[view]
+      ? collectionSort[view]
       : null;
-  const sortValue = sort[0]
-    ? `${sort[0].id}.${sort[0].desc ? "desc" : "asc"}`
-    : "";
-  const standardSort = sort[0]
-    ? [
-        { id: sort[0].id, desc: sort[0].desc },
-        ...(sort[0].id === "title" ? [] : [{ id: "title", desc: false }]),
-      ]
-    : [];
-  const customSort =
-    sort.length > 0 &&
-    (!sortOptions?.some(([value]) => value === sortValue) ||
-      JSON.stringify(sort) !== JSON.stringify(standardSort));
-  const customSortLabel =
-    sortOptions?.find(([value]) => value === sortValue)?.[1] ??
-    "Criterio personalizado";
   const activeFilters =
     Number(["library", "journal"].includes(view) && !!selectedYear) +
     Number(["library", "journal"].includes(view) && !!status) +
@@ -256,47 +237,14 @@ export function JournalToolbar({
             </label>
           </div>
         </details>
-        {sortOptions && (
-          <label className="notebook-view-sort">
-            <span>Ordenar</span>
-            <ArrowDownUp size={16} aria-hidden="true" />
-            <select
-              aria-label={
-                view === "journal"
-                  ? "Ordenar Histórico"
-                  : view === "wishlist"
-                    ? "Ordenar Lista de deseos"
-                    : "Ordenar Próximos"
-              }
-              value={customSort ? "custom" : sortValue}
-              onChange={(event) => {
-                if (event.target.value === "custom") return;
-                const [id, direction] = event.target.value.split(".");
-                setSort(
-                  id
-                    ? [
-                        { id, desc: direction === "desc" },
-                        ...(id === "title"
-                          ? []
-                          : [{ id: "title", desc: false }]),
-                      ]
-                    : [],
-                );
-              }}
-            >
-              <option value="">Sin ordenar</option>
-              {customSort && (
-                <option value="custom">
-                  {customSortLabel} · criterio combinado
-                </option>
-              )}
-              {sortOptions.map(([value, label]) => (
-                <option value={value} key={value}>
-                  {label}
-                </option>
-              ))}
-            </select>
-          </label>
+        {sortControl && (
+          <CollectionSortControl
+            className="notebook-view-sort"
+            label={sortControl.label}
+            fields={sortControl.fields}
+            sort={sort}
+            setSort={setSort}
+          />
         )}
         {["wishlist", "upcoming"].includes(view) && (
           <button

@@ -154,7 +154,7 @@ for (const view of ["library", "journal"]) {
       if (view === "library")
         await page
           .getByLabel("Ordenar Biblioteca", { exact: true })
-          .selectOption("notes.asc");
+          .selectOption("notes");
       else await page.goto("./?tab=journal&year=all&sort=notes.asc");
       await expect(table.locator(".game-comments-text").first()).toHaveText(
         "A — Un comentario breve.",

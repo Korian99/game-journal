@@ -3,49 +3,36 @@ import { emptyRecord } from "../../src/lib/types";
 
 const collectionViews = [
   {
+    view: "library",
+    label: "Ordenar Biblioteca",
+    sortIds: ["title", "status", "started", "finished", "hours", "rating", "reason", "impression", "notes"],
+    exampleField: "hours",
+    exampleSort: "hours.desc,title.asc",
+    exampleDirection: "ascendente",
+  },
+  {
     view: "journal",
     label: "Ordenar Histórico",
-    sortIds: [
-      "title.asc",
-      "title.desc",
-      "year.asc",
-      "year.desc",
-      "period.asc",
-      "period.desc",
-      "rating.asc",
-      "rating.desc",
-      "notes.asc",
-      "notes.desc",
-    ],
-    status: "completed",
+    sortIds: ["title", "year", "period", "rating", "notes"],
+    exampleField: "year",
+    exampleSort: "year.desc,title.asc",
+    exampleDirection: "ascendente",
   },
   {
     view: "wishlist",
     label: "Ordenar Lista de deseos",
-    sortIds: [
-      "title.asc",
-      "title.desc",
-      "priority.asc",
-      "priority.desc",
-      "ownership.asc",
-      "ownership.desc",
-      "estimated.asc",
-      "estimated.desc",
-    ],
-    status: "wishlist",
+    sortIds: ["title", "priority", "ownership", "estimated"],
+    exampleField: "priority",
+    exampleSort: null,
+    exampleDirection: "descendente",
   },
   {
     view: "upcoming",
     label: "Ordenar Próximos",
-    sortIds: [
-      "title.asc",
-      "title.desc",
-      "year.asc",
-      "year.desc",
-      "hype.asc",
-      "hype.desc",
-    ],
-    status: "upcoming",
+    sortIds: ["title", "year", "hype"],
+    exampleField: "year",
+    exampleSort: null,
+    exampleDirection: "descendente",
   },
 ] as const;
 
@@ -98,9 +85,9 @@ test("collection sorting is visible, usable on mobile, and keeps URL sort state"
     });
   });
 
-  for (const { view, label, sortIds } of collectionViews) {
+  for (const { view, label, sortIds, exampleField, exampleSort, exampleDirection } of collectionViews) {
     await page.setViewportSize({ width: 1280, height: 900 });
-    await page.goto(`./?tab=${view}&year=all`);
+    await page.goto(`./?tab=${view}&year=all&sort=none`);
     const sort = page.getByLabel(label, { exact: true });
     await expect(sort).toBeVisible();
     expect(
@@ -110,6 +97,10 @@ test("collection sorting is visible, usable on mobile, and keeps URL sort state"
           options.map((option) => (option as HTMLOptionElement).value),
         ),
     ).toEqual(["", ...sortIds]);
+    await expect(page.getByRole("button", { name: "Cambiar dirección del orden" })).toBeDisabled();
+    await sort.selectOption(exampleField);
+    await expect(page.getByRole("button", { name: `Cambiar a orden ${exampleDirection}` })).toBeVisible();
+    expect(new URL(page.url()).searchParams.get("sort")).toBe(exampleSort);
     await page.screenshot({
       path: `test-results/mobile-sorting-${view}-desktop.png`,
       fullPage: true,
@@ -120,18 +111,19 @@ test("collection sorting is visible, usable on mobile, and keeps URL sort state"
       await page.goto("./?tab=journal&year=all&sort=title.asc");
       await page.getByRole("button", { name: "Juego", exact: true }).click();
       await expect(page.getByLabel(label, { exact: true })).toHaveValue(
-        "title.desc",
+        "title",
       );
+      await expect(page.getByRole("button", { name: "Cambiar a orden ascendente" })).toBeVisible();
     }
 
     await page.goto(`./?tab=${view}&year=all&sort=title.desc`);
-    await expect(sort).toHaveValue("title.desc");
+    await expect(sort).toHaveValue("title");
     await expect(
       page.locator(".table-scroll .game-data-row").first(),
     ).toContainText("Zulu fixture");
     await page.reload();
     await expect(page.getByLabel(label, { exact: true })).toHaveValue(
-      "title.desc",
+      "title",
     );
     expect(new URL(page.url()).searchParams.get("sort")).toBe("title.desc");
 
@@ -140,10 +132,18 @@ test("collection sorting is visible, usable on mobile, and keeps URL sort state"
       await page.goto(`./?tab=${view}&year=all`);
       const mobileSort = page.getByLabel(label, { exact: true });
       await expect(mobileSort).toBeVisible();
-      await mobileSort.selectOption("title.desc");
+      await mobileSort.selectOption("title");
       await expect(
         page.locator(
-          view === "journal"
+          view === "journal" || view === "library"
+            ? ".mobile-games .notebook-entry-identity h2"
+            : ".mobile-games .mobile-game-wrapper .mobile-game-info strong",
+        ),
+      ).toHaveText(["Alpha fixture", "Zulu fixture"]);
+      await page.getByRole("button", { name: "Cambiar a orden descendente" }).press("Enter");
+      await expect(
+        page.locator(
+          view === "journal" || view === "library"
             ? ".mobile-games .notebook-entry-identity h2"
             : ".mobile-games .mobile-game-wrapper .mobile-game-info strong",
         ),
@@ -158,10 +158,13 @@ test("collection sorting is visible, usable on mobile, and keeps URL sort state"
         fullPage: true,
         animations: "disabled",
       });
-      await page.goto(`./?tab=${view}&year=all&sort=title.desc`);
+      await page.reload();
       await expect(page.getByLabel(label, { exact: true })).toHaveValue(
-        "title.desc",
+        "title",
       );
+      await expect(page.getByRole("button", { name: "Cambiar a orden ascendente" })).toBeVisible();
+      await mobileSort.selectOption("");
+      expect(new URL(page.url()).searchParams.get("sort")).toBe("none");
     }
   }
 
@@ -174,5 +177,10 @@ test("collection sorting is visible, usable on mobile, and keeps URL sort state"
   await page.reload();
   expect(new URL(page.url()).searchParams.get("sort")).toBe(
     "rating.desc,period.asc,title.desc",
+  );
+  await page.getByRole("button", { name: "Cambiar a orden ascendente" }).click();
+  await expect(custom).toHaveValue("custom");
+  expect(new URL(page.url()).searchParams.get("sort")).toBe(
+    "rating.asc,period.asc,title.desc",
   );
 });

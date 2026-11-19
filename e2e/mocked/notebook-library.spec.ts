@@ -231,7 +231,8 @@ test("the library keeps its filters and editor in a responsive notebook layout",
   await expect(page.getByLabel("Filtrar estado")).not.toBeVisible();
   await filterDisclosure.click();
   await expect(page.getByLabel("Filtrar estado")).toBeVisible();
-  await page.getByLabel("Ordenar Biblioteca").selectOption("title.desc");
+  await page.getByLabel("Ordenar Biblioteca").selectOption("title");
+  await page.getByRole("button", { name: "Cambiar a orden descendente" }).click();
   await expect(
     page.locator(".library-table tbody tr.game-data-row").first(),
   ).toContainText("The Last Route Through the Forgotten Kingdom");
@@ -286,7 +287,7 @@ test("the library keeps its filters and editor in a responsive notebook layout",
   await expect(page.getByLabel("Ordenar Biblioteca")).toHaveValue("custom");
   await expect(
     page.getByLabel("Ordenar Biblioteca").locator("option:checked"),
-  ).toContainText("criterio combinado");
+  ).toHaveText("Reseña · combinado");
 
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("./?tab=library&year=all");
