@@ -4,7 +4,9 @@ import { useEffect, useState } from "react";
 
 type Theme = "light" | "dark";
 
-export function ThemeSettings() {
+export function ThemeSettings({ onCustomizePalette }: {
+  onCustomizePalette?: (trigger: HTMLButtonElement) => void;
+}) {
   const [theme, setTheme] = useState<Theme>("dark");
 
   useEffect(() => {
@@ -47,6 +49,11 @@ export function ThemeSettings() {
           Oscuro
         </button>
       </div>
+      {onCustomizePalette && (
+        <button type="button" aria-haspopup="dialog" onClick={(event) => onCustomizePalette(event.currentTarget)}>
+          Personalizar colores
+        </button>
+      )}
     </article>
   );
 }

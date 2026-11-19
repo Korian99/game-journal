@@ -1,4 +1,5 @@
 import type { ComponentProps, ReactNode } from "react";
+import { Gamepad2, SlidersHorizontal } from "lucide-react";
 import { EntryEditor } from "@/features/entries/entry-editor";
 import { JournalCollectionPanel } from "@/features/journal/journal-collection-panel";
 
@@ -13,10 +14,16 @@ export function LibraryScreen({
   collection,
   detailEntryId,
   detail,
+  nowPlaying,
+  onSetNowPlaying,
+  onPersonalizeNowPlaying,
 }: {
   collection: Omit<ComponentProps<typeof JournalCollectionPanel>, "view">;
   detailEntryId: string;
   detail?: DetailProps;
+  nowPlaying?: boolean;
+  onSetNowPlaying?: () => void;
+  onPersonalizeNowPlaying?: (trigger: HTMLButtonElement) => void;
 }) {
   function renderDetail(summaryContent: ReactNode) {
     if (!detail) return summaryContent;
@@ -27,7 +34,34 @@ export function LibraryScreen({
         key={`${editorProps.entry.id}-${revision}`}
         view="library"
         embedded
-        summaryContent={summaryContent}
+        summaryContent={
+          <>
+            {onSetNowPlaying && (
+              <div className="library-use-theme">
+                <button
+                  type="button"
+                  aria-pressed={nowPlaying}
+                  onClick={onSetNowPlaying}
+                >
+                  <Gamepad2 size={17} aria-hidden="true" />
+                  Mostrar como «Jugando ahora»
+                </button>
+                {onPersonalizeNowPlaying && (
+                  <button
+                    type="button"
+                    className="library-personalize-now-playing"
+                    aria-haspopup="dialog"
+                    onClick={(event) => onPersonalizeNowPlaying(event.currentTarget)}
+                  >
+                    <SlidersHorizontal size={17} aria-hidden="true" />
+                    Personalizar Jugando ahora
+                  </button>
+                )}
+              </div>
+            )}
+            {summaryContent}
+          </>
+        }
         onReleaseFound={async () => null}
       />
     );

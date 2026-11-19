@@ -1,33 +1,38 @@
-.app-shell.notebook-app {
-  --bg: #222326;
-  --surface: #2b2c30;
-  --raised: #36383d;
-  --line: #4d4f55;
-  --row-line: #414349;
-  --text: #eeeae0;
-  --muted: #b9b8b1;
-  --accent: #c4a25a;
-  --ink: #222326;
+.app-shell.notebook-app,
+body:has(.notebook-app) .modal-content {
+  --bg: var(--journal-palette-dark-bg, #222326);
+  --surface: var(--journal-palette-dark-surface, #2b2c30);
+  --raised: var(--journal-palette-dark-raised, #36383d);
+  --line: var(--journal-palette-dark-line, #4d4f55);
+  --row-line: var(--journal-palette-dark-line, #414349);
+  --text: var(--journal-palette-dark-text, #eeeae0);
+  --muted: var(--journal-palette-dark-muted, #b9b8b1);
+  --accent: var(--journal-palette-dark-accent, #c4a25a);
+  --ink: var(--journal-palette-dark-ink, #222326);
   --error: #e29483;
   --font-body: "Trebuchet MS", "Segoe UI", sans-serif;
-  min-height: 100dvh;
-  background: var(--bg);
   color: var(--text);
   color-scheme: dark;
 }
 
-:root.light .app-shell.notebook-app {
-  --bg: #ede5d8;
-  --surface: #f5eee3;
-  --raised: #e2d5c2;
-  --line: #cebea7;
+:root.light .app-shell.notebook-app,
+:root.light body:has(.notebook-app) .modal-content {
+  --bg: var(--journal-palette-light-bg, #ede5d8);
+  --surface: var(--journal-palette-light-surface, #f5eee3);
+  --raised: var(--journal-palette-light-raised, #e2d5c2);
+  --line: var(--journal-palette-light-line, #cebea7);
   --row-line: color-mix(in srgb, var(--line) 65%, var(--muted));
-  --text: #332a21;
-  --muted: #7a6957;
-  --accent: #a46b32;
-  --ink: #f5eee3;
+  --text: var(--journal-palette-light-text, #332a21);
+  --muted: var(--journal-palette-light-muted, #7a6957);
+  --accent: var(--journal-palette-light-accent, #a46b32);
+  --ink: var(--journal-palette-light-ink, #f5eee3);
   --error: #a42e24;
   color-scheme: light;
+}
+
+.app-shell.notebook-app {
+  min-height: 100dvh;
+  background: var(--bg);
 }
 
 :root.light
@@ -77,6 +82,10 @@
   flex-direction: column;
   justify-content: flex-start;
   gap: 24px;
+}
+
+.settings-appearance > button {
+  align-self: start;
 }
 
 .settings-group .settings-grid > .banner {
@@ -478,35 +487,6 @@
 .notebook-menu-scrim,
 .notebook-menu-close {
   display: none;
-}
-
-body:has(.notebook-app) .modal-content {
-  --bg: #222326;
-  --surface: #2b2c30;
-  --raised: #36383d;
-  --line: #4d4f55;
-  --row-line: #414349;
-  --text: #eeeae0;
-  --muted: #b9b8b1;
-  --accent: #c4a25a;
-  --ink: #222326;
-  --error: #e29483;
-  color: var(--text);
-  color-scheme: dark;
-}
-
-body:has(.notebook-app) .modal-content:where(:root.light *) {
-  --bg: #ede5d8;
-  --surface: #f5eee3;
-  --raised: #e2d5c2;
-  --line: #cebea7;
-  --row-line: color-mix(in srgb, var(--line) 65%, var(--muted));
-  --text: #332a21;
-  --muted: #7a6957;
-  --accent: #a46b32;
-  --ink: #f5eee3;
-  --error: #a42e24;
-  color-scheme: light;
 }
 
 .notebook-app .notebook-trigger {
@@ -918,4 +898,419 @@ body:has(.notebook-app) .inline-edit-bar.is-confirmation {
 
 body:has(.notebook-app) .inline-edit-bar.is-confirmation .inline-bar-actions {
   pointer-events: auto;
+}
+
+.has-game-theme,
+.game-theme-dialog {
+  --journal-game-accent: color-mix(in srgb, var(--journal-game-color) 50%, white);
+}
+
+:root.light :is(.has-game-theme, .game-theme-dialog) {
+  --journal-game-accent: color-mix(in srgb, var(--journal-game-color) 40%, black);
+}
+
+.notebook-app.has-game-theme .sidebar nav button.active,
+.notebook-app.has-game-theme .notebook-bottom-nav button[aria-current="page"] {
+  background: color-mix(in srgb, var(--journal-game-accent) 18%, transparent);
+}
+
+.notebook-app.has-game-theme .sidebar nav button.active::before {
+  background: var(--journal-game-accent);
+}
+
+.notebook-app.has-game-theme .library-section-nav a[aria-current="page"] {
+  border-bottom-color: var(--journal-game-accent);
+}
+
+.notebook-app.has-game-theme .main .content h1 {
+  color: color-mix(in srgb, var(--text) 72%, var(--journal-game-accent));
+}
+
+.now-playing {
+  display: flex;
+  min-width: 0;
+  max-width: 430px;
+  align-items: center;
+  gap: 4px;
+}
+
+.notebook-app.has-game-theme .topbar {
+  justify-content: flex-start;
+  gap: 0;
+}
+
+.notebook-app.has-game-theme .topbar-right {
+  gap: 0;
+  margin: 0;
+}
+
+.notebook-app.has-game-theme .topbar :is(.global-search-trigger, .notebook-trigger, .notification-count) {
+  min-width: 44px;
+  min-height: 44px;
+  justify-content: center;
+  flex: 0 0 44px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  color: var(--text);
+  background: transparent;
+}
+
+.notebook-app.has-game-theme .topbar > .global-search-trigger {
+  margin-inline-start: auto;
+}
+
+.notebook-app.has-game-theme .topbar .global-search-trigger > :is(span, kbd) {
+  display: none;
+}
+
+.notebook-app.has-game-theme .topbar-right .avatar {
+  margin-inline-start: 8px;
+}
+
+.now-playing-open,
+.now-playing-settings {
+  min-height: 44px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  cursor: pointer;
+}
+
+.now-playing-open {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  align-items: center;
+  gap: 8px;
+  padding: 3px 0;
+  border-bottom: 1px solid var(--journal-game-accent);
+  color: var(--text);
+  text-align: start;
+}
+
+.now-playing-open > span:first-child {
+  flex: none;
+}
+
+.now-playing-copy {
+  display: grid;
+  min-width: 0;
+  gap: 2px;
+}
+
+.now-playing-copy > span {
+  color: var(--muted);
+  font: 600 10px/1.15 var(--font-body);
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.now-playing-copy strong {
+  display: block;
+  overflow: hidden;
+  font: normal 16px/1.1 Georgia, serif;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.now-playing-settings {
+  display: grid;
+  width: 44px;
+  flex: none;
+  place-items: center;
+  padding: 0;
+  color: var(--muted);
+}
+
+.now-playing .game-theme-art {
+  width: 40px;
+  height: 40px;
+}
+
+@media (max-width: 760px) {
+  .notebook-app.has-game-theme .topbar {
+    height: 64px;
+    padding: 8px 12px;
+  }
+
+  .now-playing-settings {
+    display: none;
+  }
+
+  .now-playing {
+    max-width: none;
+    flex: 1;
+    margin-inline-end: 4px;
+  }
+}
+
+.game-theme-art {
+  display: flex;
+  width: 42px;
+  height: 32px;
+  align-items: center;
+  justify-content: center;
+}
+
+.game-theme-art .game-cover {
+  display: block;
+  width: 100%;
+  height: 100%;
+  aspect-ratio: auto;
+  border: 0;
+  border-radius: 3px;
+  background: none;
+}
+
+.game-theme-art .game-cover img {
+  object-fit: contain;
+}
+
+.game-theme-art:has(.game-cover) > svg {
+  display: none;
+}
+
+body:has(.notebook-app) .modal-content:has(> .game-theme-dialog) {
+  inset-inline: max(12px, calc((100% - 450px) / 2));
+}
+
+.game-theme-dialog {
+  display: grid;
+  gap: 18px;
+  padding: clamp(14px, 4vw, 24px);
+}
+
+.game-theme-preview {
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--bg);
+}
+
+.game-theme-preview > div {
+  display: flex;
+  min-height: 40px;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  padding-inline: 12px;
+  border-bottom: 1px solid var(--line);
+  color: var(--text);
+  background: var(--surface);
+  font: 15px/1.1 Georgia, serif;
+}
+
+.game-theme-preview strong {
+  display: block;
+  padding: 14px 12px;
+  border-left: 3px solid var(--journal-game-accent);
+  color: color-mix(in srgb, var(--text) 72%, var(--journal-game-accent));
+  background: color-mix(in srgb, var(--journal-game-accent) 11%, transparent);
+  font: normal 23px/1 Georgia, serif;
+}
+
+.game-theme-swatches {
+  display: flex;
+  flex-wrap: wrap;
+  min-width: 0;
+  gap: 5px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.game-theme-swatches legend {
+  margin-bottom: 6px;
+  padding: 0;
+  color: var(--muted);
+  font-size: .86rem;
+}
+
+.game-theme-swatches button {
+  display: grid;
+  width: 40px;
+  height: 40px;
+  place-items: center;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: 50%;
+  background: transparent;
+  cursor: pointer;
+}
+
+.game-theme-swatches button::before {
+  width: 30px;
+  height: 30px;
+  border: 1px solid var(--line);
+  border-radius: 50%;
+  background: var(--journal-game-color);
+  content: "";
+}
+
+.game-theme-swatches button[aria-pressed="true"] {
+  border-color: var(--text);
+}
+
+.game-theme-swatches button:focus-visible,
+.now-playing button:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.game-theme-custom {
+  display: flex;
+  flex-direction: row;
+  justify-content: flex-start;
+  align-items: center;
+  gap: 9px;
+  margin: 0;
+}
+
+.game-theme-custom input[type="color"] {
+  width: 44px;
+  height: 34px;
+  margin: 0;
+  padding: 3px;
+}
+
+.game-theme-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: end;
+  gap: 8px;
+}
+
+.game-theme-actions .text-button {
+  margin-right: auto;
+}
+
+body:has(.notebook-app) .modal-content:has(> .journal-palette-dialog) {
+  inset-inline: max(12px, calc((100% - 600px) / 2));
+}
+
+.journal-palette-dialog {
+  display: grid;
+  gap: 16px;
+  padding: clamp(14px, 4vw, 22px);
+}
+
+.journal-palette-mode,
+.journal-palette-presets,
+.journal-palette-colors {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.journal-palette-mode button,
+.journal-palette-presets button {
+  min-height: 44px;
+}
+
+.journal-palette-mode button[aria-pressed="true"],
+.journal-palette-presets button[aria-pressed="true"] {
+  border-color: var(--accent);
+  background: var(--raised);
+}
+
+.journal-palette-presets legend,
+.journal-palette-colors legend {
+  margin-bottom: 7px;
+  padding: 0;
+  color: var(--text);
+  font-size: 14px;
+  font-weight: 650;
+}
+
+.journal-palette-presets button {
+  display: flex;
+  flex: 1 0 112px;
+  flex-direction: column;
+  align-items: start;
+  gap: 4px;
+  padding: 6px 10px;
+  text-align: start;
+}
+
+.journal-palette-dots {
+  display: flex;
+  overflow: hidden;
+  width: 68px;
+  height: 12px;
+  border: 1px solid var(--line);
+  border-radius: 3px;
+}
+
+.journal-palette-dots span {
+  flex: 1;
+}
+
+.journal-palette-dialog .journal-palette-colors label {
+  display: flex;
+  flex: 1 0 112px;
+  flex-direction: row;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+}
+
+.journal-palette-colors input[type="color"] {
+  width: 44px;
+  height: 44px;
+  margin: 0;
+  padding: 3px;
+}
+
+.journal-palette-preview {
+  overflow: hidden;
+  border: 1px solid var(--preview-line);
+  border-radius: 7px;
+  color: var(--preview-text);
+  background: var(--preview-bg);
+}
+
+.journal-palette-preview header {
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--preview-line);
+  background: var(--preview-surface);
+  font: 15px/1.2 Georgia, serif;
+}
+
+.journal-palette-preview > div {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+}
+
+.journal-palette-preview strong {
+  flex-basis: 100%;
+  font: normal 23px/1.1 Georgia, serif;
+}
+
+.journal-palette-preview > div > span {
+  padding: 5px 8px;
+  border: 1px solid var(--preview-line);
+  border-radius: 4px;
+  color: var(--preview-muted);
+  background: var(--preview-raised);
+  font-size: 13px;
+}
+
+.journal-palette-preview > div > .journal-palette-preview-add {
+  border-color: var(--preview-accent);
+  color: var(--preview-ink);
+  background: var(--preview-accent);
+}
+
+.journal-palette-error {
+  margin: 0;
+  color: var(--error);
 }

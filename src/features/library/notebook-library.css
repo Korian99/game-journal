@@ -61,6 +61,37 @@
   letter-spacing: -1px;
 }
 
+.library-use-theme {
+  display: flex;
+  justify-content: end;
+  margin-bottom: 8px;
+}
+
+.library-use-theme button {
+  display: inline-flex;
+  min-height: 44px;
+  align-items: center;
+  gap: 7px;
+}
+
+.library-use-theme button[aria-pressed="true"] {
+  border-color: var(--accent);
+}
+
+.library-use-theme .library-personalize-now-playing {
+  display: none;
+}
+
+@media (max-width: 760px) {
+  .library-use-theme:has(.library-personalize-now-playing) > button[aria-pressed="true"] {
+    display: none;
+  }
+
+  .library-use-theme .library-personalize-now-playing {
+    display: inline-flex;
+  }
+}
+
 .notebook-library-kicker {
   color: var(--muted);
   font-size: 12px;

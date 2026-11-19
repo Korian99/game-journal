@@ -1,5 +1,7 @@
 "use client";
 import { SettingsScreen, SettingsScreenHeader } from "@/features/settings/settings-screen";
+import { JournalPaletteDialog } from "@/features/settings/journal-palette-dialog";
+import { useJournalPalette } from "@/features/settings/journal-palette";
 import {
   SuggestionsPanel,
   SuggestionsPanelHeader,
@@ -50,6 +52,7 @@ import {
   LogOut,
   Menu,
   Settings,
+  SlidersHorizontal,
   Users,
   X,
 } from "lucide-react";
@@ -71,6 +74,12 @@ import { JournalToolbar } from "./journal-toolbar";
 import { HistoryScreen, HistoryScreenHeader } from "@/features/library/history/history-screen";
 import { LibraryScreen, LibraryScreenHeader } from "@/features/library/library-screen";
 import { LibrarySectionNav } from "@/features/library/library-section-nav";
+import { useGameTheme } from "@/features/library/use-game-theme";
+import {
+  GameThemeArtwork,
+  GameThemeDialog,
+  gameThemeStyle,
+} from "@/features/library/game-theme-dialog";
 import { Notebook } from "@/features/notebook/notebook-panel";
 import { NotificationDrawer } from "@/features/notifications/notification-drawer";
 import {
@@ -140,6 +149,32 @@ export function JournalApp({
     reloadRecords,
     getRecord,
   } = useJournalData();
+  const { gameTheme, setGameTheme, selectGameTheme } = useGameTheme(member?.id, records);
+  const { palette, applyPalette } = useJournalPalette(member?.id);
+  const [paletteMemberId, setPaletteMemberId] = useState<string | null>(null);
+  const paletteOpen = paletteMemberId !== null && paletteMemberId === member?.id;
+  const paletteTrigger = useRef<HTMLButtonElement | null>(null);
+  const paletteFromGame = useRef(false);
+  function openPalette(trigger?: HTMLButtonElement) {
+    if (!member?.id) return;
+    paletteTrigger.current = trigger ?? null;
+    paletteFromGame.current = !trigger;
+    setPaletteMemberId(member.id);
+  }
+  const [themeDraft, setThemeDraft] = useState<{ memberId: string; entryId: string } | null>(null);
+  const themeTrigger = useRef<HTMLButtonElement | null>(null);
+  const themeEntry = themeDraft && themeDraft.memberId === member?.id
+    ? getRecord(themeDraft.entryId)
+    : undefined;
+  const themeEntryId = themeEntry?.id;
+  const appliedThemeColor = gameTheme && gameTheme.entry.id === themeEntryId
+    ? gameTheme.color
+    : undefined;
+  function openGameTheme(entry: JournalEntry, trigger: HTMLButtonElement) {
+    if (!member?.id || !entry.id) return;
+    themeTrigger.current = trigger;
+    setThemeDraft({ memberId: member.id, entryId: entry.id });
+  }
   const inlineEditing = useInlineEditing({
     records,
     online,
@@ -199,22 +234,34 @@ export function JournalApp({
   function addEntry() {
     openEntry({ ...emptyRecord, status: "wishlist" });
   }
-  function openLibraryListEntry(entry: JournalEntry) {
+  function openLibraryListEntry(entry: JournalEntry, navigate = false) {
     if (inlineEditing.dirty || inlineEditing.saving || busy || savingEntry) {
       setNotice("Guardá o cancelá la edición actual antes de abrir otra.");
-      return;
+      return false;
     }
     const current = getRecord(entry.id ?? "");
     if (!current) {
       setNotice("La partida ya no está disponible.");
-      return;
+      return false;
     }
     inlineEditing.cancel();
+    if (navigate && (view !== "library" || librarySection !== "games")) {
+      journalLocation.setLibrarySection("games");
+    }
     const id = current.id ?? current.sourceKey;
     setDetailEntryId(id);
     setDetailDraftDirty(false);
     setEditingDraft(undefined);
     setEditingEntry(null);
+    return true;
+  }
+  function openNowPlaying() {
+    if (!gameTheme || !detailNavigationGuard.current()) return;
+    if (gameTheme.entry.id !== detailEntryId && !openLibraryListEntry(gameTheme.entry, true)) return;
+    setSidebarOpen(false);
+    requestAnimationFrame(() => {
+      document.querySelector<HTMLButtonElement>(".library-notebook-back")?.focus();
+    });
   }
   function closeLibraryDetail() {
     const returnId = detailEntryId;
@@ -527,8 +574,10 @@ export function JournalApp({
     <div
       className={
         "app-shell notebook-app" +
-        (["library", "journal"].includes(view) ? " notebook-library" : "")
+        (["library", "journal"].includes(view) ? " notebook-library" : "") +
+        (gameTheme ? " has-game-theme" : "")
       }
+      style={gameTheme ? gameThemeStyle(gameTheme.color) : undefined}
     >
       <aside
         id="journal-full-navigation"
@@ -659,6 +708,27 @@ export function JournalApp({
           >
             <Menu size={21} />
           </button>
+          {gameTheme && (
+            <div className="now-playing">
+              <button type="button" className="now-playing-open" onClick={openNowPlaying}>
+                <span aria-hidden="true"><GameThemeArtwork entry={gameTheme.entry} /></span>
+                <span className="now-playing-copy">
+                  <span>Jugando ahora</span>
+                  <strong>{gameTheme.entry.title}</strong>
+                </span>
+              </button>
+              <button
+                type="button"
+                className="now-playing-settings"
+                aria-label="Personalizar Jugando ahora"
+                aria-haspopup="dialog"
+                title="Personalizar Jugando ahora"
+                onClick={(event) => openGameTheme(gameTheme.entry, event.currentTarget)}
+              >
+                <SlidersHorizontal size={17} aria-hidden="true" />
+              </button>
+            </div>
+          )}
           <GlobalSearch
             records={records}
             offers={offers}
@@ -851,6 +921,7 @@ export function JournalApp({
             <SettingsScreen
               online={online}
               isAdmin={member?.role === "admin"}
+              onCustomizePalette={member?.id ? openPalette : undefined}
               onNotificationSettingsChanged={reloadJournal}
               onTrashChanged={async () => {
                 setUndoEntry(null);
@@ -991,6 +1062,17 @@ export function JournalApp({
                 <LibraryScreen
                   collection={collection}
                   detailEntryId={detailEntryId}
+                  nowPlaying={gameTheme?.entry.id === detailEntry?.id}
+                  onPersonalizeNowPlaying={
+                    gameTheme && gameTheme.entry.id === detailEntry?.id
+                      ? (trigger) => openGameTheme(gameTheme.entry, trigger)
+                      : undefined
+                  }
+                  onSetNowPlaying={
+                    member?.id && detailEntry?.id
+                      ? () => selectGameTheme(detailEntry)
+                      : undefined
+                  }
                   detail={
                     detailEntry
                       ? {
@@ -1135,6 +1217,46 @@ export function JournalApp({
               )
             )?.focus({ preventScroll: true });
           }}
+        />
+      )}
+      {themeEntry && themeEntryId && !paletteOpen && (
+        <GameThemeDialog
+          key={themeEntryId}
+          entry={themeEntry}
+          appliedColor={appliedThemeColor}
+          onApply={(color) => {
+            setGameTheme({ entryId: themeEntryId, color });
+            setThemeDraft(null);
+          }}
+          onRemove={appliedThemeColor ? () => {
+            setGameTheme(null);
+            setThemeDraft(null);
+          } : undefined}
+          onClose={() => setThemeDraft(null)}
+          onCustomizePalette={() => openPalette()}
+          onReturnFocus={() => {
+            if (paletteFromGame.current) return;
+            const trigger = themeTrigger.current;
+            const fallback = Array.from(document.querySelectorAll<HTMLButtonElement>(
+              ".now-playing-settings, .global-search-trigger:not(:disabled), .library-use-theme button",
+            )).find((button) => button.getClientRects().length > 0);
+            (trigger?.getClientRects().length ? trigger : fallback)?.focus();
+          }}
+        />
+      )}
+      {paletteOpen && (
+        <JournalPaletteDialog
+          palette={palette}
+          onClose={() => {
+            paletteFromGame.current = false;
+            setPaletteMemberId(null);
+          }}
+          onApply={(choice) => {
+            applyPalette(choice);
+            paletteFromGame.current = false;
+            setPaletteMemberId(null);
+          }}
+          onReturnFocus={() => paletteTrigger.current?.focus()}
         />
       )}
       {editingEntry && !detailEntryId && (

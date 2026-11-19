@@ -119,6 +119,7 @@ export function GlobalSearch({
         type="button"
         className="global-search-trigger"
         aria-label="Buscar en todos mis juegos"
+        aria-keyshortcuts="Control+K Meta+K"
         title="Buscar en todos mis juegos (Ctrl+K)"
         disabled={blocked}
         onClick={show}
