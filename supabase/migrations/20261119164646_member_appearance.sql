@@ -4,7 +4,7 @@ create table public.member_appearance (
   palette jsonb check (palette is null or (jsonb_typeof(palette) = 'object' and pg_column_size(palette) < 1024)),
   playthrough_id uuid,
   accent text check (accent is null or accent ~ '^#[0-9a-fA-F]{6}$'),
-  check (playthrough_id is null or accent is not null)
+  check ((playthrough_id is null) = (accent is null))
 );
 
 alter table public.playthroughs add constraint playthrough_appearance_owner unique (owner_id, id);
@@ -14,32 +14,17 @@ alter table public.member_appearance add constraint member_appearance_owned_play
 
 alter table public.member_appearance enable row level security;
 revoke all on public.member_appearance from public, anon, authenticated, service_role;
-grant select, insert, update on public.member_appearance to authenticated;
+grant select on public.member_appearance to authenticated;
 
 create policy member_appearance_read on public.member_appearance for select to authenticated
   using ((select private.is_member()) and member_id = (select auth.uid()));
-create policy member_appearance_insert on public.member_appearance for insert to authenticated
-  with check ((select private.is_member()) and member_id = (select auth.uid()) and (
-    playthrough_id is null or exists (
-      select 1 from public.playthroughs p
-      where p.owner_id = member_id and p.id = playthrough_id and p.deleted_at is null
-    )
-  ));
-create policy member_appearance_update on public.member_appearance for update to authenticated
-  using ((select private.is_member()) and member_id = (select auth.uid()))
-  with check ((select private.is_member()) and member_id = (select auth.uid()) and (
-    playthrough_id is null or exists (
-      select 1 from public.playthroughs p
-      where p.owner_id = member_id and p.id = playthrough_id and p.deleted_at is null
-    )
-  ));
 
 create function private.clear_appearance_playthrough() returns trigger
-language plpgsql security invoker set search_path='' as $$
+language plpgsql security definer set search_path='' as $$
 begin
   update public.member_appearance set playthrough_id = null, accent = null
     where member_id = old.owner_id and playthrough_id = old.id;
-  return null;
+  return old;
 end $$;
 revoke all on function private.clear_appearance_playthrough() from public, anon, authenticated, service_role;
 create trigger clear_appearance_on_trash after update of deleted_at on public.playthroughs
@@ -53,7 +38,7 @@ create function public.save_member_appearance(
   initialize_only boolean default false,
   expected_game jsonb default null
 ) returns jsonb
-language plpgsql security invoker set search_path='' as $$
+language plpgsql security definer set search_path='' as $$
 declare
   owner uuid := (select auth.uid());
   selected uuid := (patch #>> '{game,entryId}')::uuid;
@@ -61,6 +46,7 @@ declare
   saved public.member_appearance;
 begin
   if not private.is_member() then raise exception 'FORBIDDEN'; end if;
+  -- Serialize a pin with trash and deletion before changing the appearance row.
   if selected is not null then
     perform 1 from public.playthroughs p
       where p.id = selected and p.owner_id = owner and p.deleted_at is null for share;
@@ -86,6 +72,7 @@ begin
 
   if saved.member_id is null then
     select a.* into saved from public.member_appearance a where a.member_id = owner;
+    if not found then return null; end if;
   end if;
   return to_jsonb(saved);
 end $$;

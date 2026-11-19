@@ -37,7 +37,8 @@ export type JournalRecord = {
   focus: string;
   replay: string;
   reason: string;
-  notes: string;
+  review_details: string;
+  reminder?: string;
   sourceKey: string;
   pages?: string[];
   sourceSnapshot?: Record<string, unknown>;
@@ -100,6 +101,14 @@ export const emptyRecord: JournalRecord = {
   focus: "",
   replay: "",
   reason: "",
-  notes: "",
+  review_details: "",
+  reminder: "",
   sourceKey: "",
 };
+
+export function toRecordStorage<T extends { review_details: string }>({
+  review_details,
+  ...entry
+}: T) {
+  return { ...entry, notes: review_details };
+}

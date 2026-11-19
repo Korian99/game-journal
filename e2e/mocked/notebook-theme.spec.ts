@@ -363,7 +363,7 @@ test("book principal and more pages keep moved fields and the modal editor stays
   await page.setViewportSize({ width: 360, height: 800 });
   await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(360);
   await page.getByRole("tab", { name: "Resumen", exact: true }).click();
-  await expect(page.getByRole("button", { name: "Cancelar", exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Cancelar", exact: true })).toHaveCount(0);
   await page.screenshot({ path: join(tmpdir(), "notebook-extra-summary-mobile-light.png"), fullPage: true, animations: "disabled" });
   await page.getByRole("tab", { name: "Principal", exact: true }).click();
   await page.getByRole("tab", { name: "Más", exact: true }).click();
@@ -371,15 +371,16 @@ test("book principal and more pages keep moved fields and the modal editor stays
   await expect(more.getByRole("textbox", { name: "¿Lo rejugarías?", exact: true })).toHaveCount(0);
   await expect(more.getByRole("combobox", { name: "Hype", exact: true })).toHaveCount(0);
   await expect(page.getByRole("button", { name: "Guardar entrada", exact: true })).toBeVisible();
-  await expect(page.getByRole("button", { name: "Cancelar", exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Cancelar", exact: true })).toHaveCount(0);
   await page.getByRole("tab", { name: "Resumen", exact: true }).click();
-  await expect(page.getByRole("button", { name: "Guardar entrada", exact: true })).toHaveCount(0);
+  await expect(page.locator(".entry-editor-actions")).toHaveCount(0);
 
   await page.setViewportSize({ width: 1280, height: 900 });
   await page.goto("./?tab=wishlist");
   await page.locator(".wishlist-table").getByRole("button", { name: "Ver detalles de Wishlist fixture", exact: true }).click();
   const modal = page.getByRole("dialog", { name: "Tu partida", exact: true });
-  await expect(modal.getByRole("button", { name: "Cancelar", exact: true })).toBeVisible();
+  await expect(modal.getByRole("button", { name: "Cancelar", exact: true })).toHaveCount(0);
+  await expect(modal.getByRole("button", { name: "Cerrar", exact: true })).toBeVisible();
   await expect(modal.getByRole("textbox", { name: "Nombre del juego", exact: true })).toBeVisible();
   await expect(modal.getByRole("tab", { name: "Partida", exact: true })).toBeVisible();
   await expect(modal.getByRole("tab", { name: "Reseña", exact: true })).toBeVisible();
@@ -388,6 +389,17 @@ test("book principal and more pages keep moved fields and the modal editor stays
   await modal.getByRole("tab", { name: "Más", exact: true }).click();
   await expect(modal.getByRole("textbox", { name: "¿Lo rejugarías?", exact: true })).toBeVisible();
   await expect(modal.getByRole("combobox", { name: "Hype" })).toBeVisible();
+  await expect(modal.getByRole("button", { name: "Cancelar", exact: true })).toHaveCount(0);
+
+  const options = modal.getByRole("button", { name: "Opciones del juego" });
+  await options.click();
+  await modal.getByRole("button", { name: "Eliminar entrada", exact: true }).click();
+  const confirmation = page.getByRole("dialog", { name: "Eliminar entrada" });
+  const returnToEditor = confirmation.getByRole("button", { name: "Volver al editor", exact: true });
+  await expect(returnToEditor).toBeFocused();
+  await expect(confirmation.getByRole("button", { name: "Cancelar", exact: true })).toHaveCount(0);
+  await returnToEditor.click();
+  await expect(options).toBeFocused();
 });
 
 test("a private next-session reminder persists without replacing review comments", async ({ page }) => {
@@ -483,10 +495,7 @@ test("Biblioteca list scroll returns focus to the game edit button", async ({ pa
 test("discounted wishlist and released upcoming highlights follow the light theme", async ({
   page,
 }) => {
-  await page.addInitScript(() =>
-    localStorage.setItem("journal-theme", "light"),
-  );
-  await mockApp(page);
+  const { memberId, storedAppearance } = await mockApp(page);
 
   const wishlist = {
     ...emptyRecord,
@@ -512,7 +521,7 @@ test("discounted wishlist and released upcoming highlights follow the light them
     route.fulfill({
       json: {
         records: [wishlist, upcoming],
-        member: { display_name: "Fixture", role: "member" },
+        member: { id: memberId, display_name: "Fixture", role: "member" },
       },
     }),
   );
@@ -552,6 +561,7 @@ test("discounted wishlist and released upcoming highlights follow the light them
       ".mobile-game.upcoming-released",
     ],
   ] as const) {
+    storedAppearance.set(memberId, { mode: "light", game: null, palette: null });
     await page.setViewportSize({ width: 1280, height: 900 });
     await page.goto(`./?tab=${view}`);
     await expect(shell).toHaveCSS("--accent", "#a46b32");
@@ -597,10 +607,8 @@ test("discounted wishlist and released upcoming highlights follow the light them
       animations: "disabled",
     });
 
-    await page.evaluate(() => {
-      document.documentElement.classList.remove("light");
-      localStorage.setItem("journal-theme", "dark");
-    });
+    storedAppearance.set(memberId, { mode: "dark", game: null, palette: null });
+    await page.reload();
     await page.setViewportSize({ width: 1280, height: 900 });
     await expect(shell).toHaveCSS("--accent", "#c4a25a");
     expect(
@@ -721,7 +729,8 @@ async function mockApp(page: Page, paginationFixture = false, reviewFixture = fa
       });
     return route.fulfill({ json: [] });
   });
-  await mockMemberAppearance(page, () => memberId);
+  const storedAppearance = await mockMemberAppearance(page, () => memberId);
+  return { memberId, storedAppearance };
 }
 
 test("history, wishlist, and upcoming share the Biblioteca collection header", async ({

@@ -11,6 +11,17 @@ const copies = [
     "supabase/functions/notification-worker/types.ts",
     fs.readFileSync("src/lib/types.ts", "utf8"),
   ],
+  [
+    "supabase/functions/notification-worker/notification-release.ts",
+    fs.readFileSync("src/lib/notification-release.ts", "utf8")
+      .replace('from "./releases"', 'from "./releases.ts"')
+      .replace('from "./types"', 'from "./types.ts"'),
+  ],
+  [
+    "supabase/functions/notification-worker/releases.ts",
+    fs.readFileSync("src/lib/releases.ts", "utf8")
+      .replace('from "./types"', 'from "./types.ts"'),
+  ],
   ["supabase/functions/price-worker/domain.ts", priceParser],
   [
     "supabase/functions/price-worker/types.ts",

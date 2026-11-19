@@ -454,7 +454,6 @@ export function EntryEditor({
       }}
       onSelectTab={selectTab}
       onValidationTab={setActiveTab}
-      onCancel={requestClose}
     />
   );
   if (embedded)

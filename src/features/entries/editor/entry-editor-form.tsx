@@ -40,7 +40,6 @@ export function EntryEditorForm({
   lookup,
   onSelectTab,
   onValidationTab,
-  onCancel,
 }: {
   editorId: string;
   tabs: ReturnType<typeof entryEditorTabs>;
@@ -59,7 +58,6 @@ export function EntryEditorForm({
   lookup: Omit<PrincipalProps, "main" | "cover">;
   onSelectTab: (id: string) => void;
   onValidationTab: (id: string) => void;
-  onCancel: () => void;
 }) {
   const {
     entry,
@@ -344,18 +342,8 @@ export function EntryEditorForm({
           {targetError || actionError}
         </p>
       )}
-      <div className="entry-editor-actions">
-        {(!embedded || activeTab === "main" || activeTab === "more") && (
-          <button
-            type="button"
-            className="text-button"
-            onClick={onCancel}
-            disabled={busy}
-          >
-            Cancelar
-          </button>
-        )}
-        {(!embedded || activeTab === "main" || activeTab === "more") && (
+      {(!embedded || activeTab === "main" || activeTab === "more") && (
+        <div className="entry-editor-actions">
           <button
             type="submit"
             form={formId}
@@ -373,8 +361,8 @@ export function EntryEditorForm({
               <Check size={16} aria-hidden="true" />
             )}
           </button>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   );
 }

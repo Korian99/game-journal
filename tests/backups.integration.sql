@@ -8,12 +8,14 @@ insert into public.members(id,display_name) values
  ('77777777-7777-4777-8777-777777777771','Backup one'),
  ('77777777-7777-4777-8777-777777777772','Backup two');
 do $fixtures$
-declare gid uuid; oid uuid; run uuid; saved jsonb;
+declare gid uuid; play_id uuid; oid uuid; run uuid; saved jsonb;
 begin
  insert into public.games(owner_id,data) values
  ('77777777-7777-4777-8777-777777777771','{"title":"Snapshot fixture","platforms":"PC"}') returning id into gid;
  insert into public.playthroughs(owner_id,game_id,data,source_key,source_snapshot) values
- ('77777777-7777-4777-8777-777777777771',gid,'{"status":"remembered","hours":0,"notes":"PRIVATE_BACKUP","rating":0}','backup-test','{"original":"source"}');
+ ('77777777-7777-4777-8777-777777777771',gid,'{"status":"remembered","hours":0,"notes":"PRIVATE_BACKUP","rating":0}','backup-test','{"original":"source"}') returning id into play_id;
+ insert into public.member_appearance(member_id,mode,playthrough_id,accent) values
+ ('77777777-7777-4777-8777-777777777771','light',play_id,'#aabbcc');
  insert into public.offers(owner_id,game_id,url,store,product,region) values
  ('77777777-7777-4777-8777-777777777771',gid,'https://store.steampowered.com/app/620/','steam','620','AR') returning id into oid;
  insert into public.price_history(owner_id,offer_id,price,currency,discount) values
@@ -21,6 +23,11 @@ begin
  run:=private.capture_daily_backup('77777777-7777-4777-8777-777777777771');
  if private.capture_daily_backup('77777777-7777-4777-8777-777777777771')<>run then raise exception 'Duplicate daily snapshot'; end if;
  select payload into saved from private.backup_snapshots where run_id=run;
+ if saved->>'version' is distinct from '8' or
+    saved#>'{sourceTables,member_appearance}' is distinct from jsonb_build_object(
+      'member_id','77777777-7777-4777-8777-777777777771','mode','light','palette',null,
+      'playthrough_id',play_id,'accent','#aabbcc'
+    ) then raise exception 'Incomplete member appearance snapshot'; end if;
  if saved->'records'->0->>'notes'<>'PRIVATE_BACKUP' or saved->'records'->0->>'hours'<>'0'
    or jsonb_array_length(saved->'offers')<>1 or jsonb_array_length(saved->'priceHistory')<>1 then
    raise exception 'Incomplete snapshot';

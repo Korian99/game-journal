@@ -64,7 +64,7 @@ function DeleteEntryDialogContent({
           disabled={busy}
           onClick={onCancel}
         >
-          Cancelar
+          Volver al editor
         </button>
         <button
           type="button"

@@ -1,5 +1,3 @@
-import { useEffect } from "react";
-
 export const paletteRoles = [
   ["bg", "Fondo"],
   ["surface", "Superficies"],
@@ -11,7 +9,6 @@ type Role = (typeof paletteRoles)[number][0];
 export type PaletteMode = "dark" | "light";
 type RoleColors = Record<Role, string>;
 export type JournalPalette = Record<PaletteMode, RoleColors>;
-const modes = ["dark", "light"] as const;
 
 export const palettePresets = [
   {
@@ -90,19 +87,4 @@ export function paletteContrastIssue(colors: RoleColors) {
     return "Elegí un acento que se distinga mejor del fondo y las superficies.";
   }
   return null;
-}
-
-export function useJournalPalette(palette: JournalPalette | null) {
-  useEffect(() => {
-    if (!palette) return;
-    const style = document.documentElement.style;
-    const names = modes.flatMap((mode) =>
-      Object.entries(paletteTokens(palette[mode])).map(([role, color]) => {
-        const name = `--journal-palette-${mode}-${role}`;
-        style.setProperty(name, color);
-        return name;
-      }),
-    );
-    return () => names.forEach((name) => style.removeProperty(name));
-  }, [palette]);
 }

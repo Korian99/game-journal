@@ -7,6 +7,7 @@ import {
   sha256,
   type BackupSnapshot,
 } from "../src/lib/backups/bundle";
+import { palettePresets } from "../src/features/settings/journal-palette";
 import { restoreSql } from "../src/lib/backups/restore";
 import { runBackupJob, type BackupJob } from "../src/lib/backups/worker";
 // No connection-string option is supported: these tests always create isolated, owned Docker containers.
@@ -29,7 +30,14 @@ await disposableDatabase(async (sql: (input: string) => string) => {
   const snapshotData: BackupSnapshot = parseBackupSnapshot(
     JSON.stringify(backupFixture()),
   );
-  snapshotData.version = 6;
+  snapshotData.version = 8;
+  snapshotData.sourceTables.member_appearance = {
+    member_id: backupOwner,
+    mode: "light",
+    palette: palettePresets[1].palette,
+    playthrough_id: snapshotData.sourceTables.playthroughs[0].id,
+    accent: "#aabbcc",
+  };
   snapshotData.sourceTables.data_check_preferences = [
     { owner_id: backupOwner, review: true, console: false, hours: true },
   ];
@@ -111,7 +119,9 @@ await disposableDatabase(async (sql: (input: string) => string) => {
       targetOwner +
       "','recovery@example.invalid');insert into public.members(id,display_name) values('" +
       targetOwner +
-      "','Disposable recovery');",
+      "','Disposable recovery');insert into public.member_appearance(member_id) values('" +
+      targetOwner +
+      "');",
   );
   sql(recovery.sql);
   const check = sql(
@@ -139,6 +149,14 @@ await disposableDatabase(async (sql: (input: string) => string) => {
   );
   if (!checkState.includes("true:true:missing-review"))
     throw Error("Recovery lost owner-mapped data-check state");
+  const appearance = sql(
+    "select mode||':'||(palette #>> '{dark,bg}')||':'||playthrough_id::text||':'||accent from public.member_appearance where member_id='" +
+      targetOwner +
+      "';",
+  );
+  const pinId = snapshotData.sourceTables.playthroughs[0].id;
+  if (appearance.trim() !== `light:#19221d:${pinId}:#aabbcc`)
+    throw Error("Recovery lost owner-mapped appearance state");
   const privacy = sql("select count(*) from public.shared_entries;");
   if (privacy.trim() !== "0")
     throw Error("Recovery unexpectedly restored sharing");

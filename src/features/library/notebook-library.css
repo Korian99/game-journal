@@ -1402,10 +1402,6 @@
   background-image: none;
 }
 
-.notebook-book-editor .entry-editor-actions > .primary {
-  margin-inline-start: auto;
-}
-
 .notebook-book-editor .entry-editor-actions,
 .notebook-book-editor .cover-editor {
   background: transparent;

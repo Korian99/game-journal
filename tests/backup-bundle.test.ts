@@ -151,3 +151,25 @@ it("round-trips version 7 series through JSON, Excel manifest, and owner-remappe
   expect(recovery.sql).toContain("insert into public.game_series_members");
   expect(recovery.sql).toContain("78787878-7878-4878-8878-787878787878");
 });
+
+it("rejects a version 8 appearance accent without a selected playthrough", () => {
+  const snapshot = backupFixture();
+  expect(() => parseBackupSnapshot(JSON.stringify({
+    ...snapshot,
+    version: 8,
+    sourceTables: {
+      ...snapshot.sourceTables,
+      data_check_preferences: [],
+      data_check_dismissals: [],
+      game_series: [],
+      game_series_members: [],
+      member_appearance: {
+        member_id: snapshot.ownerId,
+        mode: "dark",
+        palette: null,
+        playthrough_id: null,
+        accent: "#aabbcc",
+      },
+    },
+  }))).toThrow(/relaciones incompletas/);
+});

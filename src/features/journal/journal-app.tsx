@@ -1,7 +1,7 @@
 "use client";
 import { SettingsScreen, SettingsScreenHeader } from "@/features/settings/settings-screen";
 import { JournalPaletteDialog } from "@/features/settings/journal-palette-dialog";
-import { useJournalPalette } from "@/features/settings/journal-palette";
+import { useJournalPalette } from "@/features/settings/use-journal-palette";
 import { useMemberAppearance } from "@/features/settings/use-member-appearance";
 import {
   SuggestionsPanel,

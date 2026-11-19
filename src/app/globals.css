@@ -1275,7 +1275,7 @@ tbody tr:hover {
 }
 .entry-editor-actions {
   display: flex;
-  justify-content: space-between;
+  justify-content: flex-end;
   align-items: center;
   gap: 15px;
   padding: 16px 25px;

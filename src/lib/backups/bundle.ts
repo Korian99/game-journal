@@ -169,9 +169,10 @@ export function parseBackupSnapshot(source: string): BackupSnapshot {
     offers = new Set(snapshot.offers.map((row) => row.id));
   if (
     snapshot.sourceTables.playthroughs.some((row) => !games.has(row.game_id)) ||
-    (appearance?.playthrough_id && (!appearance.accent || !snapshot.sourceTables.playthroughs.some(
+    (appearance && (appearance.playthrough_id === null) !== (appearance.accent === null)) ||
+    (appearance?.playthrough_id && !snapshot.sourceTables.playthroughs.some(
       (row) => row.id === appearance.playthrough_id && !row.deleted_at,
-    ))) ||
+    )) ||
     snapshot.offers.some((row) => !games.has(row.game_id)) ||
     snapshot.priceHistory.some((row) => !offers.has(row.offer_id)) ||
     snapshot.sourceTables.shared_entries.some(

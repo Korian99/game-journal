@@ -37,7 +37,7 @@ reset role;
 delete from public.games where id='98989898-1111-4111-8111-111111111112';
 do $test$ begin if (select count(*) from public.game_series_members where game_id='98989898-1111-4111-8111-111111111112')<>0 then raise exception 'Game delete did not cascade membership';end if;if (select count(*) from public.game_series where owner_id='98989898-9898-4898-8898-989898989891')<>1 then raise exception 'Game delete removed series';end if;end $test$;
 select set_config('request.jwt.claim.sub','98989898-9898-4898-8898-989898989891',true);
-do $$declare run uuid;snap jsonb;begin run:=private.capture_daily_backup('98989898-9898-4898-8898-989898989891');select payload into snap from private.backup_snapshots where run_id=run;if snap->>'version'<>'7' or jsonb_array_length(snap->'sourceTables'->'game_series')<>1 then raise exception 'V7 series backup missing';end if;end $$;
+do $$declare run uuid;snap jsonb;begin run:=private.capture_daily_backup('98989898-9898-4898-8898-989898989891');select payload into snap from private.backup_snapshots where run_id=run;if coalesce((snap->>'version')::int,0)<7 or jsonb_array_length(snap->'sourceTables'->'game_series')<>1 then raise exception 'V7 series backup missing';end if;end $$;
 reset role;
 update public.members set active=false where id='98989898-9898-4898-8898-989898989891';
 set local role authenticated;

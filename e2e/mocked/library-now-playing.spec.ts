@@ -107,7 +107,7 @@ test("Jugando ahora selects privately, opens the playthrough and respects dirty 
     return route.fulfill({ json: [] });
   });
 
-  await mockMemberAppearance(page, () => memberId);
+  const storedAppearance = await mockMemberAppearance(page, () => memberId);
   const dialog = page.getByRole("dialog", { name: "Personalizar Jugando ahora" });
   const manage = page.getByRole("button", { name: "Personalizar Jugando ahora", exact: true });
   const feature = page.getByRole("button", { name: "Mostrar como «Jugando ahora»" });
@@ -205,7 +205,10 @@ test("Jugando ahora selects privately, opens the playthrough and respects dirty 
   await page.getByRole("navigation", { name: "Navegación móvil" }).getByRole("button", { name: "Más", exact: true }).click();
   await expect(sidebar.getByRole("link", brand)).toBeVisible();
   await sidebar.getByRole("button", { name: "Cerrar menú" }).click();
-  await page.evaluate(() => document.documentElement.classList.add("light"));
+  const currentAppearance = storedAppearance.get(originalMember)!;
+  storedAppearance.set(originalMember, { ...currentAppearance, mode: "light" });
+  await page.reload();
+  await expect(page.locator("html")).toHaveClass(/\blight\b/);
   await page.getByRole("button", { name: `Editar rápidamente ${wideCoverTitle}` }).click();
   await feature.click();
   await expect(shortcut).toHaveAccessibleName(`Jugando ahora ${wideCoverTitle}`);
